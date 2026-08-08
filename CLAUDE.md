@@ -27,6 +27,8 @@ bun run typecheck        # tsc --noEmit across shared + server + web — THE che
 bun run build            # production web build
 bun run asr:gen          # (re)generate fixtures/audio/* from transcripts via ElevenLabs TTS
 bun run asr:bench        # score local Gemma ASR against those fixtures (WER) — needs Ollama
+bun run meetings:gen     # (re)generate fixtures/meetings/* — naturalistic v3 meetings
+bun run meetings:bench   # WER on the realism-set clips (asr-bench --set meetings)
 ```
 
 There is **no test runner and no linter**. `bun run typecheck` is the only automated
@@ -34,11 +36,15 @@ check — run it before claiming a change is done. `test-transcripts.json` is *n
 test suite; it is the fixture stream (see below). To check a single scenario, set
 `FIXTURE_SCENARIO` and run the app.
 
-`fixtures/audio/` holds committed, deterministic meeting audio (16 kHz mono WAV) TTS'd
-from `test-transcripts.json` — the input for ASR benchmarking (`scripts/`, see
-`fixtures/audio/README.md`). Generation needs an ElevenLabs key with the
-`text_to_speech` permission; the committed bytes are the fixture, so the bench never
-calls the network.
+Two committed audio-fixture sets feed ASR work (16 kHz mono WAV, generated once and
+committed — the bench never calls the network; needs an ElevenLabs key with
+`text_to_speech` to *re*generate):
+- **`fixtures/audio/`** — clean TTS of `test-transcripts.json` (canonical), `eleven_multilingual_v2`.
+- **`fixtures/meetings/`** — naturalistic, multilingual (EN/PT-BR), overlapping meetings
+  authored in `fixtures/meetings/scripts.json` and rendered with **`eleven_v3`** (audio
+  tags + emotion). Separate from the agent gold labels on purpose. Per scenario: clean
+  per-utterance clips (WER) + a `meeting.wav` mix with true cross-talk (not WER-scored).
+  See `fixtures/meetings/README.md`.
 
 ## Architecture
 
