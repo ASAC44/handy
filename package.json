@@ -1,0 +1,22 @@
+{
+  "name": "sidebar",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Sidebar — an ambient panel of AI agents that works alongside you in a live meeting. Built on Cerebras + Gemma 4.",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c green,cyan \"bun run dev:server\" \"bun run dev:web\"",
+    "dev:server": "bun --watch apps/server/src/index.ts",
+    "dev:web": "cd apps/web && bun run dev",
+    "start": "bun apps/server/src/index.ts",
+    "build": "cd apps/web && bun run build",
+    "typecheck": "tsc --noEmit -p packages/shared && tsc --noEmit -p apps/server && tsc --noEmit -p apps/web"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.1.0",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.8.3"
+  }
+}
