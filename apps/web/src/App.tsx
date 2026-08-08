@@ -3,9 +3,11 @@ import { Rail } from "./components/Rail";
 import { Hud } from "./components/Hud";
 import { Canvas } from "./components/Canvas";
 import { Bottom } from "./components/Bottom";
+import { CaptureDock } from "./components/CaptureDock";
 
 export function App() {
   const { state, send, setAbMode } = useSidebar();
+  const hostMode = new URLSearchParams(location.search).has("host");
   return (
     <div className="app">
       <header className="topbar">
@@ -16,6 +18,7 @@ export function App() {
         <span className={"conn " + (state.connected ? "on" : "off")}>
           {state.connected ? "● connected" : "○ offline"}
         </span>
+        <CaptureDock hostMode={hostMode} state={state} send={send} />
         <div className="spacer" />
         <div className="status">
           <span className="live">
