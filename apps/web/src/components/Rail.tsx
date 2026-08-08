@@ -122,6 +122,7 @@ function FactCheck({ state }: { state: SidebarState }) {
               <span className="conf">confidence {f.confidence}</span>
               <span className="src">&#128279; {f.source}</span>
             </div>
+            {f.note && <div className="note">{f.note}</div>}
           </div>
         ))}
       </div>

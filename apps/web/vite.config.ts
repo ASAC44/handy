@@ -10,6 +10,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/ws": { target: "ws://localhost:3001", ws: true },
+      // ASR token mint + on-device Gemma transcription live on the server.
+      "/asr": { target: "http://localhost:3001" },
     },
   },
 });

@@ -10,8 +10,11 @@
     "dev:server": "bun --watch apps/server/src/index.ts",
     "dev:web": "cd apps/web && bun run dev",
     "start": "bun apps/server/src/index.ts",
+    "host": "bun run build && bun run start",
+    "funnel": "tailscale funnel --bg --yes --https 8443 3001",
+    "funnel:off": "tailscale funnel --https=8443 off",
     "build": "cd apps/web && bun run build",
-    "typecheck": "tsc --noEmit -p packages/shared && tsc --noEmit -p apps/server && tsc --noEmit -p apps/web"
+    "typecheck": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p packages/shared && node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p apps/server && node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p apps/web"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

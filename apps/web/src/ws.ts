@@ -38,6 +38,7 @@ export interface SidebarState {
   participants: string[];
   scenarioId?: string;
   running: boolean;
+  capture: { screen: boolean; speech: boolean; lastFrameTs?: number; host?: string };
   seq: number;
   transcript: TLine[];
   summary: MeetingSummary | null;
@@ -55,6 +56,7 @@ const initial: SidebarState = {
   title: "Sidebar",
   participants: [],
   running: false,
+  capture: { screen: false, speech: false },
   seq: 1,
   transcript: [],
   summary: null,
@@ -90,6 +92,16 @@ function reducer(s: SidebarState, a: Action): SidebarState {
         artifacts: [],
         fanoutBuildId: null,
         latencyMs: null,
+      };
+    case "capture.status":
+      return {
+        ...s,
+        capture: {
+          screen: ev.screen,
+          speech: ev.speech,
+          lastFrameTs: ev.lastFrameTs,
+          host: ev.host,
+        },
       };
     case "transcript.partial": {
       const t = s.transcript.filter((l) => l.kind !== "partial");
@@ -149,6 +161,8 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       return { ...s, dna: ev.theme };
     case "telemetry":
       return { ...s, telemetry: { ...s.telemetry, [ev.agent]: { tokPerS: ev.tokPerS, tokens: ev.tokens, latencyMs: ev.latencyMs } } };
+    case "mode.changed":
+      return { ...s, abMode: ev.baseline === "gpu" };
     case "meeting.end":
       return { ...s, running: false };
     default:
@@ -162,7 +176,8 @@ export function useSidebar() {
 
   useEffect(() => {
     const url =
-      (import.meta.env.VITE_WS_URL as string | undefined) ?? `ws://${location.hostname}:3001/ws`;
+      (import.meta.env.VITE_WS_URL as string | undefined) ??
+      `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
     let closed = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let ws: WebSocket;

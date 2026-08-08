@@ -16,7 +16,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@sidebar/shared": "workspace:*",
-        "universal-llm-client": "link:universal-llm-client",
+        "universal-llm-client": "^4.5.2",
         "zod": "^4.0.0",
       },
       "devDependencies": {
@@ -320,7 +320,7 @@
 
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "universal-llm-client": ["universal-llm-client@link:universal-llm-client", {}],
+    "universal-llm-client": ["universal-llm-client@4.5.2", "", { "peerDependencies": { "@modelcontextprotocol/sdk": ">=1.24.0", "zod": "^4.0.0" }, "optionalPeers": ["@modelcontextprotocol/sdk", "zod"] }, "sha512-zWYl5EsZ2cB+gr6E4nZTui3PW3KwNtCNZlMTuJts+CuCXPYd6GUKx5xzSfSS+EdHSRIA40mWJQ+NFQ8rIqVkWw=="],
 
     "update-browserslist-db": ["update-browserslist-db@1.2.3", "", { "dependencies": { "escalade": "^3.2.0", "picocolors": "^1.1.1" }, "peerDependencies": { "browserslist": ">= 4.21.0" }, "bin": { "update-browserslist-db": "cli.js" } }, "sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w=="],
 
