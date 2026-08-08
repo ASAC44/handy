@@ -23,7 +23,7 @@ export interface ElevenLabsOptions {
 }
 
 async function defaultGetToken(): Promise<string> {
-  const res = await fetch(TOKEN_URL);
+  const res = await fetch(TOKEN_URL, { signal: AbortSignal.timeout(8000) });
   const body = (await res.json().catch(() => ({}))) as { token?: string; error?: string };
   if (!res.ok || !body.token) throw new Error(body.error || `ASR token mint failed (HTTP ${res.status})`);
   return body.token;
@@ -45,11 +45,16 @@ export class ElevenLabsScribeProvider implements AsrProvider {
 
   async start(cb: AsrCallbacks): Promise<void> {
     this.stopped = false;
-    const token = await (this.opts.getToken ?? defaultGetToken)();
-
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone unavailable — open over https:// or http://localhost (secure context required)");
+    }
+    // Prompt for the mic FIRST, before the token round-trip, so the permission
+    // dialog appears the instant the user clicks Mic (a slow/failing token must
+    // never swallow the prompt).
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
     });
+    const token = await (this.opts.getToken ?? defaultGetToken)();
     this.ctx = new AudioContext({ sampleRate: TARGET_RATE });
     const rate = Math.round(this.ctx.sampleRate);
 
@@ -103,8 +108,11 @@ export class ElevenLabsScribeProvider implements AsrProvider {
     this.sink = this.ctx.createGain();
     this.sink.gain.value = 0;
     this.node.onaudioprocess = (e) => {
-      if (this.stopped || ws.readyState !== WebSocket.OPEN) return;
-      ws.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: floatToPcm16Base64(e.inputBuffer.getChannelData(0)) }));
+      if (this.stopped) return;
+      const f32 = e.inputBuffer.getChannelData(0);
+      cb.onLevel?.(rms(f32));
+      if (ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: floatToPcm16Base64(f32) }));
     };
     this.source.connect(this.node);
     this.node.connect(this.sink);
@@ -130,6 +138,13 @@ export class ElevenLabsScribeProvider implements AsrProvider {
     if (this.ws && this.ws.readyState <= WebSocket.OPEN) this.ws.close(1000);
     this.ws = null;
   }
+}
+
+/** RMS of a frame, ~0..1, for a mic level meter. */
+function rms(f32: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < f32.length; i++) sum += f32[i]! * f32[i]!;
+  return Math.sqrt(sum / f32.length);
 }
 
 /** Float32 [-1,1] mono -> 16-bit little-endian PCM -> base64 (for one audio frame). */

@@ -14,6 +14,8 @@ export interface AsrCallbacks {
   onFinal(text: string): void;
   /** Non-fatal error / status text for the UI. */
   onError(message: string): void;
+  /** 0..1 mic input level for a live meter (providers with audio access only). */
+  onLevel?(level: number): void;
 }
 
 export interface AsrProvider {

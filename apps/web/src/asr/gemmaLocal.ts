@@ -35,6 +35,9 @@ export class GemmaLocalProvider implements AsrProvider {
 
   async start(cb: AsrCallbacks): Promise<void> {
     this.stopped = false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone unavailable — open over https:// or http://localhost (secure context required)");
+    }
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
     });
@@ -52,6 +55,7 @@ export class GemmaLocalProvider implements AsrProvider {
       if (this.stopped) return;
       const frame = new Float32Array(e.inputBuffer.getChannelData(0)); // copy; buffer is reused
       const rms = rmsOf(frame);
+      cb.onLevel?.(rms);
 
       if (!this.capturing) {
         this.preroll.push(frame);

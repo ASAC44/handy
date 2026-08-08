@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientEvent } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
 import { asrProviders, createAsrProvider, webSpeechAvailable, type AsrProvider, type AsrProviderId } from "../asr";
+import { InviteButton } from "./InviteButton";
 
 export function CaptureDock({
   hostMode,
@@ -123,6 +124,7 @@ export function CaptureDock({
           send({ type: "transcript.final", text, speaker: host });
         },
         onError: (msg) => setError(msg),
+        onLevel: (lvl) => setLevel(lvl),
       });
       asrRef.current = provider;
       speechOnRef.current = true;
@@ -151,6 +153,7 @@ export function CaptureDock({
     asrRef.current = null;
     speechOnRef.current = false;
     setSpeechOn(false);
+    setLevel(0);
     sendStatus(screenOnRef.current, false);
   };
 
@@ -202,6 +205,25 @@ export function CaptureDock({
       <button className={"capBtn" + (speechOn ? " on" : "")} onClick={speechOn ? stopSpeech : () => void startSpeech()}>
         Mic
       </button>
+      {speechOn ? (
+        <span className="micMeter" title="Mic input level" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span
+            style={{
+              width: 8, height: 8, borderRadius: "50%", background: "#ff5470",
+              boxShadow: "0 0 6px #ff5470", animation: "pulse 1.2s ease-in-out infinite",
+            }}
+          />
+          <span style={{ position: "relative", width: 54, height: 6, background: "rgba(255,255,255,.12)", borderRadius: 3, overflow: "hidden" }}>
+            <span
+              style={{
+                position: "absolute", inset: 0, transformOrigin: "left",
+                width: Math.min(100, Math.round(level * 320)) + "%",
+                background: "linear-gradient(90deg,#4dffd2,#ffc857,#ff5470)", transition: "width .05s linear",
+              }}
+            />
+          </span>
+        </span>
+      ) : null}
       <input
         className="manualLine"
         value={manual}
@@ -218,9 +240,7 @@ export function CaptureDock({
       <button className="capBtn stop" onClick={() => send({ type: "live.stop" })}>
         Stop
       </button>
-      <a className="shareUrl" href={location.origin} title={location.origin}>
-        Share
-      </a>
+      <InviteButton />
       {error ? <span className="capError">{error}</span> : null}
     </div>
   );
