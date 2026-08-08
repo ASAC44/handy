@@ -166,18 +166,35 @@ export function CaptureDock({
   };
 
   if (!hostMode) {
+    const selfName = state.presence.find((p) => p.id === state.selfId)?.name ?? "";
     return (
       <div className="watchDock">
         <span className={"watch-dot" + (state.capture.screen || state.capture.speech ? " on" : "")} />
-        <span>{state.capture.host ?? "viewer"}</span>
-        <a href={withHostParam()}>host</a>
+        <span className="watchHost">{state.capture.host ?? "host"}&rsquo;s room</span>
+        <input
+          className="watchName"
+          placeholder="your name"
+          defaultValue={selfName.startsWith("Viewer ") ? "" : selfName}
+          aria-label="Your name"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          onBlur={(e) => {
+            const n = e.target.value.trim();
+            if (n) {
+              localStorage.setItem("sidebar.viewer", n);
+              send({ type: "presence.hello", name: n, role: "viewer" });
+            }
+          }}
+        />
+        <a href={withHostParam()}>host view</a>
       </div>
     );
   }
 
   return (
     <div className="captureDock">
-      <input className="hostName" value={host} onChange={(e) => persistHost(e.target.value)} aria-label="Host name" />
+      <input className="hostName" value={host} onChange={(e) => persistHost(e.target.value)} placeholder="your name" aria-label="Host name" />
       <button className="capBtn primary" onClick={startRoom}>
         Live
       </button>

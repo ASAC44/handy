@@ -39,13 +39,13 @@ interface PointerWorld {
   artifactId?: string;
 }
 
-export function Canvas({ state, send }: { state: SidebarState; send: (e: ClientEvent) => void }) {
+export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (e: ClientEvent) => void; hostMode: boolean }) {
   const vpRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 40, y: 30, z: 0.9 });
   const [follow, setFollow] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [mapOpen, setMapOpen] = useState(true);
+  const [mapOpen, setMapOpen] = useState(false);
   const [grabbing, setGrabbing] = useState(false);
   const [vpSize, setVpSize] = useState({ w: 1, h: 1 });
   const drag = useRef<{ x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null);
@@ -288,8 +288,8 @@ export function Canvas({ state, send }: { state: SidebarState; send: (e: ClientE
     >
       {state.artifacts.length === 0 && (
         <div className="empty-hint">
-          <b>canvas</b>
-          <span>waiting for the first artifact</span>
+          <b>Nothing built yet</b>
+          <span>Describe an idea in the meeting — the prototype appears here.</span>
         </div>
       )}
 
@@ -332,13 +332,15 @@ export function Canvas({ state, send }: { state: SidebarState; send: (e: ClientE
           })}
       </div>
 
-      <DNA state={state} send={send} />
-      <MeetingMap
-        events={state.activity}
-        open={mapOpen}
-        onToggle={() => setMapOpen((v) => !v)}
-        onFocusArtifact={focusArtifact}
-      />
+      {hostMode ? <DNA state={state} send={send} /> : null}
+      {hostMode ? (
+        <MeetingMap
+          events={state.activity}
+          open={mapOpen}
+          onToggle={() => setMapOpen((v) => !v)}
+          onFocusArtifact={focusArtifact}
+        />
+      ) : null}
       <PresenceDock state={state} />
       <CanvasControls
         count={perm.length}
@@ -349,7 +351,7 @@ export function Canvas({ state, send }: { state: SidebarState; send: (e: ClientE
         onFit={fitAll}
         onFollow={() => setFollow(true)}
       />
-      {selected ? (
+      {hostMode && selected ? (
         <Inspector
           artifact={selected.a}
           viewers={viewersByArtifact.get(selected.a.id) ?? []}
@@ -362,7 +364,7 @@ export function Canvas({ state, send }: { state: SidebarState; send: (e: ClientE
 
       {state.fanoutBuildId && (
         <div className="stage-banner">
-          ◆ Pick a direction · Sidebar learns your taste · <b>auto-selects</b>
+          Pick a design direction — it styles every later <b>build</b>
         </div>
       )}
     </div>
@@ -773,31 +775,7 @@ function DNA({ state, send }: { state: SidebarState; send: (e: ClientEvent) => v
           <span className="ph">—</span>
         )}
       </div>
-      {t ? (
-        <div>
-          <div className="dna-row">
-            <span>Accent</span>
-            <b>{t.name}</b>
-          </div>
-          <div className="dna-row">
-            <span>Radius</span>
-            <b>{t.radius}</b>
-          </div>
-          <div className="dna-row">
-            <span>Density</span>
-            <b>{t.density}</b>
-          </div>
-          <div className="dna-row">
-            <span>Type</span>
-            <b>{t.typeLabel}</b>
-          </div>
-          <div className="dna-learn">◆ applied to every new build</div>
-        </div>
-      ) : (
-        <div className="dna-row">
-          <span style={{ color: "var(--dim)" }}>awaiting your first pick</span>
-        </div>
-      )}
+      <div className="dna-learn">{t ? "applied to every new build" : "awaiting your first pick"}</div>
     </div>
   );
 }

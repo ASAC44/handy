@@ -82,9 +82,11 @@ export function Hud({
   const lat = state.latencyMs != null ? (state.latencyMs / 1000).toFixed(2) + "s" : "0.00s";
   return (
     <div className="hud">
-      <div className="lat-label">idea &rarr; artifact</div>
-      <div className="lat-num">{lat}</div>
-      <div>
+      <div className="hero">
+        <div className="lat-label">idea &rarr; artifact</div>
+        <div className="lat-num">{lat}</div>
+      </div>
+      <div className="hero-meta">
         <div className="lat-sub">
           Cerebras &middot; <b>~1900 tok/s</b>
         </div>

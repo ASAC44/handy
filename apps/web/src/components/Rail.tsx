@@ -1,17 +1,17 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import type { SidebarState } from "../ws";
 
-export function Rail({ state }: { state: SidebarState }) {
+export function Rail({ state, hostMode }: { state: SidebarState; hostMode: boolean }) {
   return (
     <aside className="rail">
-      <Transcript state={state} />
+      <Transcript state={state} hostMode={hostMode} />
       <Summary state={state} />
       <FactCheck state={state} />
     </aside>
   );
 }
 
-function Transcript({ state }: { state: SidebarState }) {
+function Transcript({ state, hostMode }: { state: SidebarState; hostMode: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
@@ -23,27 +23,32 @@ function Transcript({ state }: { state: SidebarState }) {
       </div>
       <div className="panel-b trans" ref={ref}>
         {state.transcript.length === 0 && <div className="empty">Waiting for the meeting…</div>}
-        {state.transcript.map((l) =>
-          l.kind === "router" && l.router ? (
-            <div key={l.id} className="line router">
-              <b>&rarr; router</b>&nbsp; prototype{" "}
-              <span className={l.router.proto ? "y" : "n"}>{l.router.proto ? "fire" : "skip"}</span> &middot; summary{" "}
-              <span className={l.router.summary ? "y" : "n"}>{l.router.summary ? "update" : "skip"}</span> &middot; factcheck{" "}
-              <span className={l.router.fact ? "y" : "n"}>{l.router.fact ? "fire" : "skip"}</span>
-              {l.router.screen ? (
-                <>
-                  {" "}
-                  &middot; <span className="y">+screenshot</span>
-                </>
-              ) : null}
-            </div>
-          ) : (
+        {state.transcript.map((l) => {
+          // Router decisions are operator insight — keep them out of the participants' read.
+          if (l.kind === "router" && l.router) {
+            if (!hostMode) return null;
+            return (
+              <div key={l.id} className="line router">
+                <b>&rarr; router</b>&nbsp; prototype{" "}
+                <span className={l.router.proto ? "y" : "n"}>{l.router.proto ? "fire" : "skip"}</span> &middot; summary{" "}
+                <span className={l.router.summary ? "y" : "n"}>{l.router.summary ? "update" : "skip"}</span> &middot; factcheck{" "}
+                <span className={l.router.fact ? "y" : "n"}>{l.router.fact ? "fire" : "skip"}</span>
+                {l.router.screen ? (
+                  <>
+                    {" "}
+                    &middot; <span className="y">+screenshot</span>
+                  </>
+                ) : null}
+              </div>
+            );
+          }
+          return (
             <div key={l.id} className={"line" + (l.kind === "partial" ? " partial" : "")}>
               <span className="sp">{l.speaker ?? "…"}</span>
               {l.text}
             </div>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );
