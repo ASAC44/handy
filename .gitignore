@@ -8,3 +8,5 @@ build/
 bun.lockb
 .vite/
 apps/web/dist/
+.playwright-mcp/
+/*.png
