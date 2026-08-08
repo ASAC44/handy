@@ -1,5 +1,5 @@
 import { config } from "./config";
-import type { Session } from "./session";
+import type { MeetingRuntime } from "./runtime";
 import { getScenario, type FixtureSegment } from "./source/fixtures";
 import {
   buildPrototype,
@@ -23,6 +23,81 @@ import { factcheckLive } from "./agents/factcheck";
 const RATE = 0.6; // compress fixture pacing for a snappier replay
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 let buildSeq = 0;
+let liveTurnSeq = 0;
+
+/** Safe "do nothing" decision used when a live router call fails — skips the turn. */
+const NOOP_DECISION: RouterDecision = {
+  topic_shift: false,
+  summary_update: false,
+  prototype: { trigger: false, intent: "", uses_screen: false },
+  factcheck: { trigger: false, claims: [] },
+};
+const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+const PROTOTYPE_WORDS =
+  /\b(build|make|mock|mockup|prototype|design|sketch|wireframe|dashboard|chart|graph|page|landing|board|kanban|flow|form|table|app|ui|screen|widget|visuali[sz]e)\b/i;
+const SCREEN_WORDS = /\b(this|screen|share|shared|slide|deck|diagram|whiteboard|mockup|figma|visual|screenshot|as shown)\b/i;
+const FACT_WORDS = /\b(\d+[%$kmb]?|percent|million|billion|q[1-4]|january|february|march|april|may|june|july|august|september|october|november|december|industry|category|market)\b/i;
+
+function heuristicExpect(text: string, prev: MeetingSummary | null): FixtureSegment["expect"] {
+  const prototype = PROTOTYPE_WORDS.test(text);
+  const usesScreen = prototype && SCREEN_WORDS.test(text);
+  const factcheck = !prototype && FACT_WORDS.test(text);
+  return {
+    router: {
+      topic_shift: !prev,
+      summary_update: true,
+      prototype: {
+        trigger: prototype,
+        intent: prototype ? intentFrom(text) : "",
+        uses_screen: usesScreen,
+      },
+      factcheck: {
+        trigger: factcheck,
+        claims: factcheck ? [text] : [],
+      },
+    },
+    summary: summarizeMockLine(text, prev),
+    prototype: prototype ? { build: inferPrototypeKey(text), intent: intentFrom(text), uses_screen: usesScreen } : undefined,
+    factcheck: factcheck
+      ? { claim: text, verdict: "unverified", confidence: 0.35, source: "live heuristic; web search not wired" }
+      : undefined,
+  };
+}
+
+function intentFrom(text: string): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > 120 ? clean.slice(0, 117) + "..." : clean;
+}
+
+function inferPrototypeKey(text: string): PrototypeKey {
+  const lower = text.toLowerCase();
+  if (/\b(landing|hero|waitlist|signup|marketing|page)\b/.test(lower)) return "landing";
+  if (/\b(dashboard|metric|mrr|churn|chart|graph|analytics|revenue)\b/.test(lower)) return "dashboard";
+  return "kanban";
+}
+
+function summarizeMock(transcript: string[], prev: MeetingSummary | null): MeetingSummary {
+  const last = transcript[transcript.length - 1]?.replace(/^[^:]+:\s*/, "") ?? "Listening.";
+  return summarizeMockLine(last, prev);
+}
+
+function summarizeMockLine(text: string, prev: MeetingSummary | null): MeetingSummary {
+  const decisions = [...(prev?.decisions ?? [])];
+  const action_items = [...(prev?.action_items ?? [])];
+  const open_questions = [...(prev?.open_questions ?? [])];
+  if (/\b(ship|go with|decided|decision|make this|use this)\b/i.test(text)) decisions.push(intentFrom(text));
+  if (/\b(can you|please|todo|follow up|need to|wire|implement|send|create)\b/i.test(text)) {
+    action_items.push({ owner: "unassigned", task: intentFrom(text) });
+  }
+  if (text.includes("?")) open_questions.push(intentFrom(text));
+  return {
+    tldr: intentFrom(text),
+    decisions: decisions.slice(-5),
+    action_items: action_items.slice(-5),
+    open_questions: open_questions.slice(-5),
+  };
+}
 
 /**
  * Drives a meeting end-to-end: streams the transcript (from fixtures for now),
@@ -33,8 +108,9 @@ export class Orchestrator {
   private runId = 0;
   private transcript: string[] = [];
   private summary: MeetingSummary | null = null;
+  private liveQueue: Promise<void> = Promise.resolve();
 
-  constructor(private session: Session) {}
+  constructor(private runtime: MeetingRuntime) {}
 
   stop(): void {
     this.runId++;
@@ -54,11 +130,50 @@ export class Orchestrator {
     if (my === this.runId) this.send({ type: "meeting.end", artifacts: buildSeq });
   }
 
-  private send(ev: ServerEvent): void {
-    this.session.send(ev);
+  startLive(title = "Live Meeting", host = "Host"): void {
+    this.stop();
+    this.runId++;
+    this.transcript = [];
+    this.summary = null;
+    this.liveQueue = Promise.resolve();
+    this.send({ type: "meeting.start", scenarioId: "live", title, participants: [host] });
+    this.send({
+      type: "capture.status",
+      screen: !!this.runtime.latestScreenDataUri,
+      speech: false,
+      host,
+    });
   }
 
-  private async playSegment(seg: FixtureSegment, my: number): Promise<void> {
+  ingestPartial(text: string, speaker?: string): void {
+    const clean = text.trim();
+    if (!clean) return;
+    this.send({ type: "transcript.partial", text: clean, ts: Date.now(), speaker });
+  }
+
+  ingestFinal(text: string, speaker?: string): void {
+    const clean = text.trim();
+    if (!clean) return;
+    const my = this.runId;
+    const seg: FixtureSegment = {
+      t: liveTurnSeq++,
+      speaker: speaker?.trim() || "Speaker",
+      ms: 0,
+      text: clean,
+      expect: heuristicExpect(clean, this.summary),
+    };
+    this.liveQueue = this.liveQueue
+      .then(() => this.playSegment(seg, my, false))
+      .catch((err) => {
+        console.error("[live] transcript processing failed", errMsg(err));
+      });
+  }
+
+  private send(ev: ServerEvent): void {
+    this.runtime.send(ev);
+  }
+
+  private async playSegment(seg: FixtureSegment, my: number, paced = true): Promise<void> {
     if (seg.partials) {
       for (const p of seg.partials) {
         if (my !== this.runId) return;
@@ -68,7 +183,7 @@ export class Orchestrator {
     }
     this.send({ type: "transcript.final", text: seg.text, ts: Date.now(), speaker: seg.speaker });
     this.transcript.push(`${seg.speaker}: ${seg.text}`);
-    await sleep(Math.max(500, seg.ms * RATE));
+    if (paced) await sleep(Math.max(500, seg.ms * RATE));
     if (my !== this.runId || !seg.expect) return;
 
     const decision = await this.router(seg);
@@ -95,13 +210,23 @@ export class Orchestrator {
   private async router(seg: FixtureSegment): Promise<RouterDecision> {
     this.telemetry("router", 950, 180);
     if (config.agents === "mock") return seg.expect!.router;
-    return routeLive(seg.text, JSON.stringify(this.summary ?? {}));
+    try {
+      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}));
+    } catch (err) {
+      console.error("[router] live call failed", errMsg(err));
+      return NOOP_DECISION;
+    }
   }
 
   private async summarize(seg: FixtureSegment): Promise<MeetingSummary | null> {
     this.telemetry("summarizer", 760, 520);
-    if (config.agents === "mock") return seg.expect!.summary ?? this.summary;
-    return summarizeLive(this.transcript.join("\n"), this.summary);
+    if (config.agents === "mock") return seg.expect!.summary ?? summarizeMock(this.transcript, this.summary);
+    try {
+      return await summarizeLive(this.transcript.join("\n"), this.summary);
+    } catch (err) {
+      console.error("[summarizer] live call failed", errMsg(err));
+      return summarizeMock(this.transcript, this.summary);
+    }
   }
 
   private async factcheck(seg: FixtureSegment, claims: string[]): Promise<FactcheckResult | null> {
@@ -114,12 +239,12 @@ export class Orchestrator {
 
   /** Prototype build: fan-out 3 variants the first time, single learned-style build after. */
   private async build(seg: FixtureSegment, decision: RouterDecision, my: number): Promise<void> {
-    const buildKey: PrototypeKey = seg.expect!.prototype?.build ?? "kanban";
-    const intent = decision.prototype.intent || seg.expect!.prototype?.intent || "Prototype";
+    const buildKey: PrototypeKey = seg.expect?.prototype?.build ?? inferPrototypeKey(`${decision.prototype.intent} ${seg.text}`);
+    const intent = decision.prototype.intent || seg.expect?.prototype?.intent || "Prototype";
     const usesScreen = decision.prototype.uses_screen;
     const buildId = `b${++buildSeq}`;
 
-    if (!this.session.learned) {
+    if (!this.runtime.learned) {
       const variants: VariantInfo[] = FANOUT.map((k) => ({
         id: `${buildId}-${k}`,
         themeKey: k,
@@ -132,12 +257,12 @@ export class Orchestrator {
       );
       if (my !== this.runId) return;
       const chosen = await this.awaitPickWithTimeout(buildId, 4200);
-      this.session.learn(chosen);
+      this.runtime.learn(chosen);
       this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
     } else {
-      const theme = this.session.learned.key;
+      const theme = this.runtime.learned.key;
       await this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my);
-      if (this.session.abMode) {
+      if (this.runtime.abMode) {
         await this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my);
       }
     }
@@ -163,10 +288,11 @@ export class Orchestrator {
       const r = await mockStream(buildPrototype(buildKey, THEMES[themeKey]), totalMs, onToken, alive);
       ({ html, ms, tokPerS, tokens } = r);
     } else {
-      // Inject THIS variant's design language (not session.learned, which is null
+      // Inject THIS variant's design language (not runtime.learned, which is null
       // on the first build) so the fan-out yields three visually distinct designs.
       // On later single builds, themeKey is already the learned theme's key.
-      const r = await liveStream(intent, this.transcript.join("\n"), THEMES[themeKey], null, onToken);
+      const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
+      const r = await liveStream(intent, this.transcript.join("\n"), THEMES[themeKey], screenshot, onToken);
       ({ html, ms, tokPerS, tokens } = r);
     }
     if (!alive()) return;
@@ -179,7 +305,7 @@ export class Orchestrator {
     const timeout = new Promise<ThemeKey>((res) => {
       timer = setTimeout(() => res(RECOMMENDED), ms);
     });
-    const pick = this.session.awaitPick(buildId).then((k) => {
+    const pick = this.runtime.awaitPick(buildId).then((k) => {
       clearTimeout(timer);
       return k;
     });

@@ -1,5 +1,7 @@
 export type AgentMode = "mock" | "live";
 export type SourceMode = "fixtures" | "asr";
+/** tavily = ground fact-check verdicts on Tavily web search; none = model self-reports. */
+export type FactcheckSearch = "tavily" | "none";
 
 export const config = {
   port: Number(process.env.PORT ?? 3001),
@@ -14,6 +16,17 @@ export const config = {
   cerebrasBaseUrl: process.env.CEREBRAS_BASE_URL ?? "https://api.cerebras.ai",
   cerebrasApiKey: process.env.CEREBRAS_API_KEY ?? "",
 
+  /** Web-search backend for the live fact-check agent (retrieve-then-ground). */
+  factcheckSearch: (process.env.FACTCHECK_SEARCH ?? "tavily") as FactcheckSearch,
+  tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
+
+  /** ElevenLabs Scribe v2 Realtime — client-side ASR via a single-use token minted server-side. */
+  elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
+
+  /** Local Gemma ASR: Ollama (OpenAI-compatible /v1 input_audio) for on-device, all-Gemma transcription. */
+  ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
+  gemmaAsrModel: process.env.GEMMA_ASR_MODEL ?? "gemma4:e4b-it-qat",
+
   baselineBaseUrl: process.env.BASELINE_BASE_URL ?? "",
   baselineApiKey: process.env.BASELINE_API_KEY ?? "",
   baselineModelId: process.env.BASELINE_MODEL_ID ?? "",
@@ -24,6 +37,12 @@ export function assertLiveReady(): void {
     console.warn(
       "[config] AGENTS=live but CEREBRAS_API_KEY is empty — agent calls will fail. " +
         "Set it in .env or run with AGENTS=mock.",
+    );
+  }
+  if (config.agents === "live" && config.factcheckSearch === "tavily" && !config.tavilyApiKey) {
+    console.warn(
+      "[config] FACTCHECK_SEARCH=tavily but TAVILY_API_KEY is empty — fact-check will fall back to " +
+        "the model's own knowledge (no web grounding). Set TAVILY_API_KEY or FACTCHECK_SEARCH=none.",
     );
   }
 }
