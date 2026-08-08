@@ -27,6 +27,9 @@ export const config = {
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   gemmaAsrModel: process.env.GEMMA_ASR_MODEL ?? "gemma4:e4b-it-qat",
 
+  /** Honest A/B GPU baseline. provider=ollama uses the native endpoint (thinking:false
+   *  works there; the OpenAI-compat /v1 path ignores it and burns tokens on reasoning). */
+  baselineProvider: (process.env.BASELINE_PROVIDER ?? "openai") as "openai" | "ollama",
   baselineBaseUrl: process.env.BASELINE_BASE_URL ?? "",
   baselineApiKey: process.env.BASELINE_API_KEY ?? "",
   baselineModelId: process.env.BASELINE_MODEL_ID ?? "",

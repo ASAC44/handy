@@ -27,15 +27,24 @@ export const prototypeModel = (): AIModel => cerebras({ temperature: 1.0, top_p:
 // Fact-check: cold, deterministic.
 export const factcheckModel = (): AIModel => cerebras({ temperature: 0.2, max_tokens: 1024 });
 
-/** Honest A/B baseline — a GPU-hosted open model on any OpenAI-compatible endpoint. */
+/** Honest A/B baseline — a GPU-hosted open model. `BASELINE_PROVIDER=ollama` uses the
+ *  native Ollama endpoint (where `thinking:false` actually disables reasoning); anything
+ *  else uses the OpenAI-compatible provider (Together / Fireworks / vLLM / …). */
 export function baselineModel(): AIModel | null {
   if (!config.baselineBaseUrl || !config.baselineModelId) return null;
+  const isOllama = config.baselineProvider === "ollama";
   return new AIModel({
     model: config.baselineModelId,
     thinking: false,
     providers: [
-      { type: "openai", url: config.baselineBaseUrl, apiKey: config.baselineApiKey },
+      isOllama
+        ? { type: "ollama", url: config.baselineBaseUrl }
+        : { type: "openai", url: config.baselineBaseUrl, apiKey: config.baselineApiKey },
     ],
-    defaultParameters: { temperature: 1.0, top_p: 0.95, max_tokens: 2500 },
+    defaultParameters: isOllama
+      ? { temperature: 1.0, top_p: 0.95, num_predict: 2500 }
+      : { temperature: 1.0, top_p: 0.95, max_tokens: 2500 },
+    // A local 31B build can take ~45s; the lib's 30s default would abort it mid-stream.
+    timeout: 120_000,
   });
 }
