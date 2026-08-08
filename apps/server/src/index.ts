@@ -3,6 +3,7 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import { extname, resolve, sep } from "node:path";
 import { config, assertLiveReady } from "./config";
 import { Session, type WsData } from "./session";
+import { room } from "./room";
 
 assertLiveReady();
 
@@ -141,6 +142,8 @@ const server = Bun.serve<WsData>({
     if (url.pathname === "/health") {
       return Response.json({ ok: true, agents: config.agents, source: config.source, model: config.modelId });
     }
+    if (url.pathname === "/context/upload" && req.method === "OPTIONS") return room.contextOptions();
+    if (url.pathname === "/context/upload" && req.method === "POST") return room.uploadContext(req);
     // Mint a single-use ElevenLabs Scribe v2 Realtime token so the browser can
     // stream mic audio directly to ElevenLabs without ever seeing the API key.
     if (url.pathname === "/asr/token") return mintScribeToken();

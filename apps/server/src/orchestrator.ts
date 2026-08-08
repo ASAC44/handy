@@ -15,7 +15,7 @@ import {
   type VariantInfo,
   type AgentName,
 } from "@sidebar/shared";
-import { mockStream, liveStream } from "./agents/prototype";
+import { mockStream, liveStream, getBaseline } from "./agents/prototype";
 import { routeLive } from "./agents/router";
 import { summarizeLive } from "./agents/summarizer";
 import { factcheckLive } from "./agents/factcheck";
@@ -186,22 +186,27 @@ export class Orchestrator {
     if (paced) await sleep(Math.max(500, seg.ms * RATE));
     if (my !== this.runId || !seg.expect) return;
 
+    // Per-agent toggles for testing. Router off = pure audio path (transcripts only,
+    // no inference); each downstream agent is gated independently.
+    const agents = this.runtime.agents;
+    if (!agents.router) return;
+
     const decision = await this.router(seg);
     if (my !== this.runId) return;
     this.send({ type: "router.decision", decision });
 
-    if (decision.summary_update) {
+    if (decision.summary_update && agents.summarizer) {
       const summary = await this.summarize(seg);
       if (summary) {
         this.summary = summary;
         this.send({ type: "summary.update", summary });
       }
     }
-    if (decision.factcheck.trigger) {
+    if (decision.factcheck.trigger && agents.factcheck) {
       const result = await this.factcheck(seg, decision.factcheck.claims);
       if (result) this.send({ type: "factcheck.result", result });
     }
-    if (decision.prototype.trigger) {
+    if (decision.prototype.trigger && agents.prototype) {
       await this.build(seg, decision, my);
     }
     await sleep(400);
@@ -211,7 +216,7 @@ export class Orchestrator {
     this.telemetry("router", 950, 180);
     if (config.agents === "mock") return seg.expect!.router;
     try {
-      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}));
+      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}), this.runtime.contextSummary());
     } catch (err) {
       console.error("[router] live call failed", errMsg(err));
       return NOOP_DECISION;
@@ -222,7 +227,7 @@ export class Orchestrator {
     this.telemetry("summarizer", 760, 520);
     if (config.agents === "mock") return seg.expect!.summary ?? summarizeMock(this.transcript, this.summary);
     try {
-      return await summarizeLive(this.transcript.join("\n"), this.summary);
+      return await summarizeLive(this.transcript.join("\n"), this.summary, this.runtime.contextSummary());
     } catch (err) {
       console.error("[summarizer] live call failed", errMsg(err));
       return summarizeMock(this.transcript, this.summary);
@@ -261,10 +266,12 @@ export class Orchestrator {
       this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
     } else {
       const theme = this.runtime.learned.key;
-      await this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my);
+      // A/B: race Cerebras and the GPU baseline concurrently so both timers run live.
+      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my)];
       if (this.runtime.abMode) {
-        await this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my);
+        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true));
       }
+      await Promise.all(tasks);
     }
   }
 
@@ -278,7 +285,13 @@ export class Orchestrator {
     totalMs: number,
     my: number,
     variant?: VariantInfo,
+    baseline = false,
   ): Promise<void> {
+    // The GPU baseline build needs BASELINE_* configured; skip (don't fake) if absent.
+    if (baseline && config.agents !== "mock" && !getBaseline()) {
+      console.warn("[ab] BASELINE_* not configured — skipping GPU baseline build");
+      return;
+    }
     this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant });
     const alive = (): boolean => my === this.runId;
     const onToken = (delta: string): void => this.send({ type: "prototype.token", id, delta });
@@ -291,8 +304,10 @@ export class Orchestrator {
       // Inject THIS variant's design language (not runtime.learned, which is null
       // on the first build) so the fan-out yields three visually distinct designs.
       // On later single builds, themeKey is already the learned theme's key.
+      // baseline=true routes the build through the GPU baseline model (honest A/B).
       const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
-      const r = await liveStream(intent, this.transcript.join("\n"), THEMES[themeKey], screenshot, onToken);
+      const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+      const r = await liveStream(intent, transcript, THEMES[themeKey], screenshot, onToken, baseline ? getBaseline()! : undefined);
       ({ html, ms, tokPerS, tokens } = r);
     }
     if (!alive()) return;
@@ -321,4 +336,8 @@ export class Orchestrator {
       tokPerS,
     });
   }
+}
+
+function withContext(transcript: string, context: string): string {
+  return context ? `${context}\n\nRolling transcript:\n${transcript}` : transcript;
 }
