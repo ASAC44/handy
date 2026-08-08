@@ -2,12 +2,70 @@ import type { RouterDecision, MeetingSummary, FactcheckResult } from "./schemas"
 import type { ThemeKey, ThemeTokens } from "./themes";
 
 export type AgentName = "router" | "summarizer" | "prototype" | "factcheck";
+/** Global on/off per agent — lets you isolate the audio path or a single agent for testing. */
+export type AgentToggles = Record<AgentName, boolean>;
 
 export interface VariantInfo {
   id: string;
   themeKey: ThemeKey;
   name: string;
   recommended: boolean;
+}
+
+export interface CursorPoint {
+  x: number;
+  y: number;
+  worldX: number;
+  worldY: number;
+  artifactId?: string;
+  updatedAt: number;
+}
+
+export interface ParticipantPresence {
+  id: string;
+  name: string;
+  color: string;
+  role?: "host" | "viewer";
+  connectedAt: number;
+  cursor?: CursorPoint;
+}
+
+export interface CursorPing {
+  x: number;
+  y: number;
+  worldX: number;
+  worldY: number;
+  updatedAt: number;
+}
+
+export type ContextStatus = "pending" | "accepted" | "rejected";
+
+export interface ContextFileInfo {
+  name: string;
+  relativePath: string;
+  size: number;
+  type?: string;
+}
+
+export interface ContextBundle {
+  id: string;
+  title: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  uploadedAt: number;
+  status: ContextStatus;
+  fileCount: number;
+  totalBytes: number;
+  files: ContextFileInfo[];
+  acceptedAt?: number;
+  rejectedAt?: number;
+  workspacePath?: string;
+}
+
+export interface ContextSnapshot {
+  meetingId: string;
+  workspaceRoot: string;
+  items: ContextBundle[];
 }
 
 /** Backend -> frontend events (the WebSocket protocol, spec section 7 + learned-style additions). */
@@ -27,7 +85,17 @@ export type ServerEvent =
   | { type: "factcheck.result"; result: FactcheckResult }
   | { type: "telemetry"; agent: AgentName; latencyMs: number; tokens: number; tokPerS: number }
   | { type: "mode.changed"; baseline: "cerebras" | "gpu" }
-  | { type: "meeting.end"; artifacts: number };
+  | { type: "agents.changed"; agents: AgentToggles }
+  | { type: "meeting.end"; artifacts: number }
+  | { type: "presence.snapshot"; selfId: string; participants: ParticipantPresence[] }
+  | { type: "presence.join"; participant: ParticipantPresence }
+  | { type: "presence.update"; participant: ParticipantPresence }
+  | { type: "presence.leave"; id: string }
+  | { type: "presence.cursor"; id: string; cursor: CursorPoint }
+  | { type: "presence.ping"; id: string; ping: CursorPing }
+  | { type: "context.snapshot"; context: ContextSnapshot }
+  | { type: "context.item"; item: ContextBundle }
+  | { type: "context.updated"; item: ContextBundle };
 
 /** Frontend -> backend events. */
 export type ClientEvent =
@@ -40,7 +108,14 @@ export type ClientEvent =
   | { type: "capture.status"; screen: boolean; speech: boolean; host?: string }
   | { type: "pick"; buildId: string; themeKey: ThemeKey }
   | { type: "resetTaste" }
-  | { type: "setAbMode"; enabled: boolean };
+  | { type: "setAbMode"; enabled: boolean }
+  | { type: "setAgent"; agent: AgentName; enabled: boolean }
+  | { type: "presence.hello"; name?: string; color?: string; role?: "host" | "viewer" }
+  | { type: "presence.cursor"; cursor: Omit<CursorPoint, "updatedAt"> }
+  | { type: "presence.ping"; ping: Omit<CursorPing, "updatedAt"> }
+  | { type: "context.accept"; id: string }
+  | { type: "context.reject"; id: string }
+  | { type: "context.clear" };
 
 export function encode(ev: ServerEvent | ClientEvent): string {
   return JSON.stringify(ev);
