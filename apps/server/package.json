@@ -1,0 +1,19 @@
+{
+  "name": "@sidebar/server",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sidebar/shared": "workspace:*",
+    "universal-llm-client": "link:universal-llm-client",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.0"
+  }
+}
