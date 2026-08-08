@@ -1,0 +1,122 @@
+{
+  "_schema": "Stable meeting-transcript fixtures for Sidebar. Stream `segments` in order (respecting `t`/`ms`) to emulate streaming ASR + live inference. Per segment: t=ms offset from meeting start, speaker, ms=spoken duration, partials?=progressive ASR partials shown before the final, text=final transcript. `expect`=ground-truth agent behaviour for that turn, usable as gold labels when evaluating model output: expect.router matches the router_decision schema; expect.summary matches meeting_summary (the full rolling summary AFTER this turn); expect.prototype.build names the canned prototype the hero agent should produce (intent + uses_screen mirror the router); expect.factcheck is the fact-check verdict. Segments without `expect` are pure chatter the router should skip.",
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "sprint-planning",
+      "title": "Q3 Sprint Planning",
+      "subtitle": "Replacing the sprint spreadsheet",
+      "participants": ["Maya", "Dev", "Priya"],
+      "build": "kanban",
+      "segments": [
+        { "t": 0, "speaker": "Maya", "ms": 3600, "text": "Alright, Q3 planning. The big problem: we track sprint work in a spreadsheet and nobody actually looks at it." },
+        { "t": 3600, "speaker": "Dev", "ms": 3000, "text": "Right, it's invisible. Half the team doesn't know what's in flight.",
+          "expect": {
+            "router": { "topic_shift": true, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Team wants a more visible way to track Q3 sprint work than the current spreadsheet.", "decisions": [], "action_items": [], "open_questions": ["What replaces the sprint spreadsheet?"] }
+          }
+        },
+        { "t": 6600, "speaker": "Priya", "ms": 3000, "text": "We need something visual. A board, columns, cards you can drag." },
+        { "t": 9600, "speaker": "Maya", "ms": 3400,
+          "partials": ["what if we built a kanban board with drag and", "what if we built a kanban board with drag-and-drop and a"],
+          "text": "What if we built a kanban board with drag-and-drop and a burndown chart?",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": true, "intent": "Kanban board with drag-and-drop columns and a sprint burndown chart", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Team is building a visual kanban board with a burndown to replace the sprint spreadsheet.", "decisions": ["Replace the sprint spreadsheet with a kanban board"], "action_items": [{ "owner": "Dev", "task": "Prototype a drag-and-drop board with a burndown chart" }], "open_questions": ["Self-host the board or adopt an existing tool?"] },
+            "prototype": { "build": "kanban", "intent": "Kanban board with drag-and-drop columns and a sprint burndown chart", "uses_screen": false }
+          }
+        },
+        { "t": 13000, "speaker": "Dev", "ms": 3200, "text": "Yes — To Do, In Progress, Done, and the burndown so we can see if we're on track." },
+        { "t": 16200, "speaker": "Priya", "ms": 2800, "text": "Can you make the cards match the mockup I've got on screen?",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": false, "prototype": { "trigger": true, "intent": "Restyle the board cards to match the on-screen mockup", "uses_screen": true }, "factcheck": { "trigger": false, "claims": [] } },
+            "prototype": { "build": "kanban", "intent": "Restyle the board cards to match the on-screen mockup", "uses_screen": true }
+          }
+        },
+        { "t": 19000, "speaker": "Maya", "ms": 2800, "text": "Perfect. Let's make this the Q3 board of record.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Replacing the Q3 sprint spreadsheet with a visual kanban board + burndown; it becomes the board of record.", "decisions": ["Replace the sprint spreadsheet with a kanban board", "Make the new board the Q3 board of record"], "action_items": [{ "owner": "Dev", "task": "Wire up drag-and-drop persistence" }, { "owner": "Priya", "task": "Apply the on-screen mockup styling to the cards" }], "open_questions": ["Self-host the board or adopt an existing tool?"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "growth-review",
+      "title": "Monthly Growth Review",
+      "subtitle": "Making the numbers visible",
+      "participants": ["Sam", "Lena", "Raj"],
+      "build": "dashboard",
+      "segments": [
+        { "t": 0, "speaker": "Sam", "ms": 3000, "text": "Growth review. Numbers first — where are we on MRR and churn?" },
+        { "t": 3000, "speaker": "Raj", "ms": 3800, "text": "MRR is at 142k, up 9% month over month. Churn ticked up to 4.1%.",
+          "expect": {
+            "router": { "topic_shift": true, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Monthly growth review: MRR $142k (+9% MoM), churn up to 4.1%.", "decisions": [], "action_items": [], "open_questions": ["Why did churn rise to 4.1% this month?"] }
+          }
+        },
+        { "t": 6800, "speaker": "Lena", "ms": 3200, "text": "Churn's the worry. I want to watch it weekly, not dig through sheets." },
+        { "t": 10000, "speaker": "Sam", "ms": 3400,
+          "partials": ["can we get a dashboard with MRR, churn and", "can we get a dashboard — MRR, churn, and a weekly active"],
+          "text": "Can we get a dashboard — MRR, churn, and a weekly active users chart?",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": true, "intent": "Metrics dashboard showing MRR, churn, and a weekly active users chart", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Building a live metrics dashboard (MRR, churn, WAU) so growth is visible weekly.", "decisions": ["Build a metrics dashboard for MRR, churn, and WAU"], "action_items": [{ "owner": "Raj", "task": "Pipe real MRR/churn/WAU data into the dashboard" }], "open_questions": ["Why did churn rise to 4.1% this month?"] },
+            "prototype": { "build": "dashboard", "intent": "Metrics dashboard showing MRR, churn, and a weekly active users chart", "uses_screen": false }
+          }
+        },
+        { "t": 13400, "speaker": "Raj", "ms": 3000, "text": "I'll pipe the real numbers in later. WAU's been climbing, around 12k." },
+        { "t": 16400, "speaker": "Lena", "ms": 3200, "text": "Our churn is industry-leading though — under 2%, best in the category.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": false, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": true, "claims": ["Company churn is under 2% and best in category"] } },
+            "factcheck": { "claim": "Our churn is under 2% — best in the category", "verdict": "contradicted", "confidence": 0.82, "source": "internal metrics — Raj reported 4.1% on this call" }
+          }
+        },
+        { "t": 19600, "speaker": "Sam", "ms": 3000, "text": "Ha — let's keep the dashboard honest, then. Ship it on the team page.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Shipping an honest metrics dashboard (MRR, churn, WAU) to the team page.", "decisions": ["Build a metrics dashboard for MRR, churn, and WAU", "Put it on the team page"], "action_items": [{ "owner": "Raj", "task": "Pipe real MRR/churn/WAU data into the dashboard" }], "open_questions": ["Why did churn rise to 4.1% this month?"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "launch-page",
+      "title": "Launch Page Jam",
+      "subtitle": "Waitlist landing page",
+      "participants": ["Ava", "Nora", "Theo"],
+      "build": "landing",
+      "segments": [
+        { "t": 0, "speaker": "Ava", "ms": 3200, "text": "We launch the waitlist in two weeks. We need a landing page that converts." },
+        { "t": 3200, "speaker": "Nora", "ms": 3200, "text": "Bold headline, one clear promise, email capture above the fold.",
+          "expect": {
+            "router": { "topic_shift": true, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Designing a high-converting waitlist landing page for the launch in two weeks.", "decisions": [], "action_items": [], "open_questions": ["What's the single clearest promise for the hero?"] }
+          }
+        },
+        { "t": 6400, "speaker": "Theo", "ms": 3000, "text": "Three feature cards under it. Keep it dark, high contrast." },
+        { "t": 9400, "speaker": "Nora", "ms": 3400,
+          "partials": ["mock up a landing page, big headline, a waitlist", "mock up a landing page — big headline, a waitlist signup, and three"],
+          "text": "Mock up a landing page: a big headline, a waitlist signup, and three feature cards.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": true, "intent": "Dark landing page with a bold hero headline, waitlist email capture, and three feature cards", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Building a dark, high-contrast waitlist landing page: hero headline, email capture, three feature cards.", "decisions": ["Ship a dark, high-contrast waitlist landing page"], "action_items": [{ "owner": "Theo", "task": "Design the hero and three feature cards" }], "open_questions": ["What's the single clearest promise for the hero?"] },
+            "prototype": { "build": "landing", "intent": "Dark landing page with a bold hero headline, waitlist email capture, and three feature cards", "uses_screen": false }
+          }
+        },
+        { "t": 12800, "speaker": "Theo", "ms": 2800, "text": "Use the hero visual from the deck that's on screen right now.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": false, "prototype": { "trigger": true, "intent": "Swap in the hero visual from the on-screen deck", "uses_screen": true }, "factcheck": { "trigger": false, "claims": [] } },
+            "prototype": { "build": "landing", "intent": "Swap in the hero visual from the on-screen deck", "uses_screen": true }
+          }
+        },
+        { "t": 15600, "speaker": "Ava", "ms": 2800, "text": "Love it. Headline should say what we do in five words.",
+          "expect": {
+            "router": { "topic_shift": false, "summary_update": true, "prototype": { "trigger": false, "intent": "", "uses_screen": false }, "factcheck": { "trigger": false, "claims": [] } },
+            "summary": { "tldr": "Dark waitlist landing page with a five-word headline, email capture, and three feature cards.", "decisions": ["Ship a dark, high-contrast waitlist landing page", "Lead with a five-word headline + email capture above the fold"], "action_items": [{ "owner": "Theo", "task": "Use the on-screen deck hero visual" }, { "owner": "Nora", "task": "Write a five-word headline" }], "open_questions": ["What's the single clearest promise for the hero?"] }
+          }
+        }
+      ]
+    }
+  ]
+}

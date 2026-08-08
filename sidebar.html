@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sidebar — Ambient Meeting Copilot (canvas + learned style)</title>
+<style>
+  :root{
+    --bg:#06080c; --bg2:#0a0e15; --panel:#0c111a; --panel2:#0f1622;
+    --border:#1a2331; --border2:#243247;
+    --text:#e8eef7; --muted:#8595a8; --dim:#566379;
+    --mint:#4dffd2; --mint-dim:#1f8f76; --blue:#5cc8ff; --cyan:#54e0ff;
+    --violet:#b39dff; --amber:#ffc857; --red:#ff5f56; --green:#5ce08a;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#1d2735;border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  .app{height:100vh;display:grid;grid-template-rows:46px 1fr 92px;gap:9px;padding:9px;min-width:1120px}
+  .topbar{display:flex;align-items:center;gap:16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:10px;padding:0 16px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.4px;font-size:15px}
+  .brand .logo{color:var(--mint);font-size:18px;text-shadow:0 0 14px rgba(77,255,210,.55)}
+  .brand .bsub{font-weight:500;color:var(--dim);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+  .topbar .spacer{flex:1}
+  .ambient{font-family:var(--mono);font-size:10px;color:var(--mint);border:1px solid rgba(77,255,210,.25);background:rgba(77,255,210,.06);padding:4px 9px;border-radius:6px;letter-spacing:.5px}
+  .status{display:flex;align-items:center;gap:13px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .live{display:flex;align-items:center;gap:7px;color:var(--red);font-weight:600;letter-spacing:1px}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,95,86,.55)}70%{box-shadow:0 0 0 7px rgba(255,95,86,0)}100%{box-shadow:0 0 0 0 rgba(255,95,86,0)}}
+  .model{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--border);padding:5px 10px;border-radius:7px;background:var(--bg2)}
+  .main{display:grid;grid-template-columns:330px 1fr;gap:9px;min-height:0}
+  .rail{display:grid;grid-template-rows:1.15fr 1.25fr .75fr;gap:9px;min-height:0}
+  .panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:11px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+  .panel-h .tag{margin-left:auto;font-size:9px;letter-spacing:.5px;padding:2px 7px;border-radius:99px;text-transform:none}
+  .tag.sum{background:rgba(92,200,255,.12);color:var(--blue)}
+  .tag.fc{background:rgba(179,157,255,.12);color:var(--violet)}
+  .panel-b{padding:11px 13px;overflow-y:auto;flex:1;min-height:0}
+  .rec{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1.6s infinite}
+  #trans .line{margin:0 0 9px;line-height:1.45;animation:slidein .25s ease}
+  @keyframes slidein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  #trans .sp{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--cyan);margin-right:6px;text-transform:uppercase}
+  #trans .partial{color:var(--dim);font-style:italic}
+  #trans .partial .sp{color:var(--dim)}
+  #trans .partial::after{content:"▌";color:var(--dim);animation:blink 1s steps(1) infinite}
+  #trans .router{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.3px;border-left:2px solid var(--border2);padding:3px 0 3px 8px;margin:7px 0;background:linear-gradient(90deg,rgba(84,224,255,.05),transparent)}
+  #trans .router b{color:var(--cyan);font-weight:600}
+  #trans .router .y{color:var(--mint)} #trans .router .n{color:var(--dim)}
+  @keyframes blink{50%{opacity:0}}
+  .sum-tldr{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:7px;padding:9px 11px;line-height:1.45;margin-bottom:11px;font-size:12.5px}
+  .sum-tldr .k{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--blue);display:block;margin-bottom:4px;text-transform:uppercase}
+  .sum-sec{margin-bottom:10px}
+  .sum-sec h4{margin:0 0 5px;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:600}
+  .sum-sec ul{margin:0;padding:0;list-style:none}
+  .sum-sec li{padding:4px 0 4px 16px;position:relative;line-height:1.4;animation:slidein .25s ease}
+  .sum-sec li::before{content:"";position:absolute;left:2px;top:10px;width:5px;height:5px;border-radius:50%;background:var(--mint-dim)}
+  .sum-sec.act li::before{border-radius:1px;background:var(--amber)}
+  .sum-sec.open li::before{background:var(--violet)}
+  .sum-sec .owner{font-family:var(--mono);font-size:10px;color:var(--amber);margin-right:6px}
+  .empty{color:var(--dim);font-style:italic;font-size:12px}
+  #fact .fc{border:1px solid var(--border);background:var(--bg2);border-radius:8px;padding:9px 11px;margin-bottom:8px;animation:slidein .25s ease}
+  #fact .claim{line-height:1.4;margin-bottom:7px}
+  #fact .row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;flex-wrap:wrap}
+  #fact .verdict{padding:2px 8px;border-radius:99px;letter-spacing:.5px;text-transform:uppercase}
+  #fact .v-checking{background:#1a2331;color:var(--muted)}
+  #fact .v-supported{background:rgba(92,224,138,.14);color:var(--green)}
+  #fact .v-contradicted{background:rgba(255,95,86,.14);color:var(--red)}
+  #fact .v-unverified{background:rgba(255,200,87,.14);color:var(--amber)}
+  #fact .conf{color:var(--dim)} #fact .src{color:var(--blue);width:100%}
+  .canvasCol{display:grid;grid-template-rows:auto 1fr;gap:9px;min-height:0}
+  .hud{display:flex;align-items:center;gap:18px;background:radial-gradient(120% 200% at 0% 0%,rgba(77,255,210,.05),transparent 60%),linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:11px;padding:10px 16px}
+  .hud .single{display:flex;align-items:center;gap:16px}
+  .hud .lat-label{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase}
+  .hud .lat-num{font-family:var(--mono);font-weight:700;font-size:38px;line-height:1;color:var(--mint);text-shadow:0 0 22px rgba(77,255,210,.42);font-variant-numeric:tabular-nums;min-width:135px}
+  .hud .lat-num.flash{animation:flash .5s}
+  @keyframes flash{0%{text-shadow:0 0 46px rgba(77,255,210,.95)}100%{text-shadow:0 0 22px rgba(77,255,210,.42)}}
+  .hud .lat-sub{font-size:11px;color:var(--muted)} .hud .lat-sub b{color:var(--mint)}
+  .hud .lat-state{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+  .hud .lat-state.go{color:var(--amber)} .hud .lat-state.ok{color:var(--green)}
+  .hud .versus{display:none;align-items:stretch;gap:12px;flex:1}
+  .canvasCol.ab .hud .single{display:none}
+  .canvasCol.ab .hud .versus{display:flex}
+  .vcard{flex:1;border:1px solid var(--border2);border-radius:9px;padding:8px 13px;background:var(--bg2)}
+  .vcard.cer{box-shadow:inset 0 0 0 1px rgba(77,255,210,.13)}
+  .vcard.gpu{box-shadow:inset 0 0 0 1px rgba(255,95,86,.13)}
+  .vhead{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--muted)}
+  .vhead .dot{width:7px;height:7px;border-radius:50%}
+  .cer .vhead .dot{background:var(--mint);box-shadow:0 0 9px var(--mint)}
+  .gpu .vhead .dot{background:var(--red);box-shadow:0 0 9px var(--red)}
+  .vtime{font-family:var(--mono);font-weight:700;font-size:28px;line-height:1.15;font-variant-numeric:tabular-nums}
+  .cer .vtime{color:var(--mint)} .gpu .vtime{color:var(--red)}
+  .vbar{height:4px;background:#141c28;border-radius:4px;margin:5px 0 4px;overflow:hidden}
+  .vbar i{display:block;height:100%;width:0%}
+  .cer .vbar i{background:linear-gradient(90deg,var(--mint-dim),var(--mint))}
+  .gpu .vbar i{background:linear-gradient(90deg,#7a2a26,var(--red))}
+  .vmeta{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .vs{display:flex;align-items:center;font-family:var(--mono);font-weight:700;color:var(--dim);font-size:12px}
+  .hud .cam{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .cam .cbtn{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg2);border:1px solid var(--border2);width:30px;height:30px;border-radius:7px;cursor:pointer;transition:.15s}
+  .cam .cbtn.wide{width:auto;padding:0 11px}
+  .cam .cbtn:hover{border-color:var(--mint);color:var(--mint)}
+  .cam .acount{font-family:var(--mono);font-size:10px;color:var(--dim);margin-right:4px}
+  .viewport{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:11px;background:#070a0f;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:26px 26px;cursor:grab}
+  .viewport.grabbing{cursor:grabbing}
+  .viewport::before{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.6);z-index:2}
+  #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+  #dragcatch{position:absolute;inset:0;z-index:5;display:none;cursor:grabbing}
+  #dragcatch.on{display:block}
+  .empty-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:.5px;text-align:center;z-index:1}
+  .empty-hint b{color:var(--muted)}
+  .artifact{position:absolute;width:440px;height:360px;background:var(--panel);border:1px solid var(--border2);border-radius:12px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55);display:flex;flex-direction:column;animation:pop .4s cubic-bezier(.2,.9,.3,1.3);transition:left .55s cubic-bezier(.2,.8,.2,1),top .55s cubic-bezier(.2,.8,.2,1),opacity .4s,transform .4s}
+  @keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  .artifact.cer{border-color:rgba(77,255,210,.4);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(77,255,210,.12)}
+  .artifact.gpu{border-color:rgba(255,95,86,.4);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,95,86,.12)}
+  .art-head{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--panel2),var(--panel))}
+  .art-badge{font-family:var(--mono);font-size:11px;color:var(--violet);text-shadow:0 0 10px rgba(179,157,255,.5)}
+  .art-side{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+  .cer .art-side{background:rgba(77,255,210,.12);color:var(--mint)}
+  .gpu .art-side{background:rgba(255,95,86,.12);color:var(--red)}
+  .art-side.match{background:rgba(77,255,210,.14);color:var(--mint)}
+  .art-vname{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 8px;border-radius:99px;background:rgba(179,157,255,.16);color:var(--violet);text-transform:uppercase;display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .art-vname i{color:var(--amber);font-style:normal}
+  .art-title{font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .art-screen{font-family:var(--mono);font-size:9px;color:var(--amber);border:1px solid rgba(255,200,87,.3);background:rgba(255,200,87,.08);padding:2px 6px;border-radius:5px;white-space:nowrap}
+  .art-time{font-family:var(--mono);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cer .art-time{color:var(--mint)} .gpu .art-time{color:var(--red)}
+  .art-body{position:relative;flex:1;background:#0e1320}
+  .art-body iframe{width:100%;height:100%;border:0;background:#0e1320}
+  .art-body .scan{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(77,255,210,.05));opacity:0}
+  .artifact.building .art-body .scan{opacity:1}
+  .artifact.building .art-body::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--mint),transparent);animation:scanline 1.1s linear infinite;z-index:3}
+  .artifact.gpu.building .art-body::after{background:linear-gradient(90deg,transparent,var(--red),transparent);animation-duration:2.6s}
+  @keyframes scanline{0%{top:0}100%{top:100%}}
+  .artifact.variant{height:406px;border-style:dashed}
+  .pick-overlay{position:absolute;inset:0;z-index:2;cursor:pointer}
+  .art-foot{display:flex;border-top:1px solid var(--border)}
+  .use-btn{flex:1;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--bg2);border:0;padding:9px;cursor:pointer;transition:.15s;letter-spacing:.3px}
+  .use-btn:hover{background:rgba(77,255,210,.1);color:var(--mint)}
+  .artifact.variant.hl{border-color:var(--mint);border-style:solid;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px var(--mint),0 0 26px rgba(77,255,210,.18)}
+  .artifact.variant.reco{border-color:rgba(255,200,87,.45)}
+  .artifact.dismiss{opacity:0;transform:scale(.92)}
+  .dna{position:absolute;top:12px;left:12px;width:196px;background:rgba(9,13,20,.84);backdrop-filter:blur(9px);border:1px solid var(--border2);border-radius:11px;padding:11px 12px;z-index:4;pointer-events:none;font-family:var(--mono)}
+  .dna-h{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:1.5px;color:var(--muted);margin-bottom:3px}
+  .dna-h .reset{pointer-events:auto;margin-left:auto;cursor:pointer;color:var(--dim);background:none;border:0;font-family:var(--mono);font-size:12px;padding:0 2px}
+  .dna-h .reset:hover{color:var(--mint)}
+  .dna-sub{font-size:9px;color:var(--dim);margin-bottom:9px;letter-spacing:.3px}
+  .dna-status{font-size:9px;padding:2px 7px;border-radius:99px;background:#1a2331;color:var(--dim);text-transform:capitalize;margin-bottom:9px;display:inline-block}
+  .dna-status.on{background:rgba(77,255,210,.14);color:var(--mint)}
+  .dna-sw{display:flex;gap:4px;margin-bottom:9px}
+  .dna-sw i{flex:1;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.07)}
+  .dna-sw .ph{flex:1;text-align:center;color:var(--dim);font-size:11px;border:1px dashed var(--border2);border-radius:5px;line-height:18px}
+  .dna-row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:2px 0}
+  .dna-row b{color:var(--text);font-weight:600}
+  .dna-learn{margin-top:8px;font-size:9px;color:var(--violet);letter-spacing:.3px}
+  .stage-banner{position:absolute;bottom:14px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(12,17,26,.95);border:1px solid var(--border2);border-radius:9px;padding:8px 16px;font-family:var(--mono);font-size:12px;color:var(--text);z-index:6;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
+  .stage-banner.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .stage-banner b{color:var(--amber)}
+  .bottom{display:grid;grid-template-columns:auto 1fr 240px auto;gap:14px;align-items:center;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:11px;padding:9px 14px}
+  .scenarios{display:flex;gap:7px}
+  .pill{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--bg2);border:1px solid var(--border2);padding:7px 11px;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .pill:hover{border-color:var(--mint);color:var(--text)}
+  .pill.active{border-color:var(--mint);color:var(--mint);background:rgba(77,255,210,.07);box-shadow:0 0 14px rgba(77,255,210,.1)}
+  .pill small{display:block;font-size:9px;color:var(--dim);letter-spacing:.3px;margin-top:1px}
+  .pill.active small{color:var(--mint-dim)}
+  .agents{display:flex;gap:9px;min-width:0}
+  .achip{flex:1;border:1px solid var(--border);border-radius:9px;padding:6px 10px;background:var(--bg2);min-width:0}
+  .achip .top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .achip .dot{width:6px;height:6px;border-radius:50%}
+  .achip.router .dot{background:var(--cyan)} .achip.sumr .dot{background:var(--blue)} .achip.proto .dot{background:var(--violet)}
+  .achip .nm{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .achip .tps{margin-left:auto;font-family:var(--mono);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+  .achip.router .tps{color:var(--cyan)} .achip.sumr .tps{color:var(--blue)} .achip.proto .tps{color:var(--violet)}
+  .achip .tps small{font-size:8px;font-weight:500;color:var(--dim)}
+  .achip .bar{height:3px;background:#141c28;border-radius:3px;margin-top:5px;overflow:hidden}
+  .achip .bar i{display:block;height:100%;width:0%;transition:width .2s}
+  .achip.router .bar i{background:var(--cyan)} .achip.sumr .bar i{background:var(--blue)} .achip.proto .bar i{background:var(--violet)}
+  .speedwrap{position:relative;height:60px;border:1px solid var(--border);border-radius:9px;background:var(--bg);overflow:hidden}
+  .speedwrap .cap{position:absolute;top:5px;left:9px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--dim);z-index:1;text-transform:uppercase}
+  #speed{display:block;width:100%;height:100%}
+  .controls{display:flex;align-items:center;gap:11px}
+  .btn{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg2);border:1px solid var(--border2);padding:9px 14px;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .btn:hover{border-color:var(--mint);color:var(--mint);box-shadow:0 0 14px rgba(77,255,210,.15)}
+  .abtoggle{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;user-select:none}
+  .switch{position:relative;width:38px;height:21px;border-radius:99px;background:#1a2331;border:1px solid var(--border2);transition:.2s}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--dim);transition:.2s}
+  .abtoggle input{display:none}
+  .abtoggle input:checked + .switch{background:rgba(255,95,86,.25);border-color:var(--red)}
+  .abtoggle input:checked + .switch::after{transform:translateX(17px);background:var(--red);box-shadow:0 0 9px var(--red)}
+  .toast{position:fixed;bottom:112px;left:calc(50% + 160px);transform:translateX(-50%) translateY(18px);background:rgba(12,17,26,.96);border:1px solid var(--border2);border-radius:9px;padding:9px 16px;font-family:var(--mono);font-size:12px;color:var(--text);opacity:0;transition:.35s;pointer-events:none;z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast b{color:var(--mint)}
+  .mockup-note{position:fixed;top:53px;right:13px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.5px;z-index:5}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
+    <span class="ambient">&#9889; transcript-driven &middot; learns your taste</span>
+    <div class="spacer"></div>
+    <div class="status"><span class="live"><i></i> REC</span> <span id="clock">00:00</span></div>
+    <div class="model" id="mtg">Q3 Sprint Planning</div>
+    <div class="model">gemma-4-31b</div>
+  </header>
+
+  <main class="main">
+    <aside class="rail">
+      <div class="panel">
+        <div class="panel-h">Live transcript <span class="rec"></span></div>
+        <div class="panel-b" id="trans"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">Rolling summary <span class="tag sum">summarizer</span></div>
+        <div class="panel-b">
+          <div class="sum-tldr"><span class="k">TL;DR</span><span id="sTldr">Listening&hellip;</span></div>
+          <div class="sum-sec"><h4>Decisions</h4><ul id="sDec"><li class="empty" style="list-style:none">&mdash;</li></ul></div>
+          <div class="sum-sec act"><h4>Action items</h4><ul id="sAct"><li class="empty" style="list-style:none">&mdash;</li></ul></div>
+          <div class="sum-sec open"><h4>Open questions</h4><ul id="sOpen"><li class="empty" style="list-style:none">&mdash;</li></ul></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">Fact-check <span class="tag fc">stretch</span></div>
+        <div class="panel-b" id="fact"><div class="empty">No checkable claims yet.</div></div>
+      </div>
+    </aside>
+
+    <section class="canvasCol" id="canvasCol">
+      <div class="hud">
+        <div class="single">
+          <div class="lat-label">idea&nbsp;&rarr;&nbsp;artifact</div>
+          <div class="lat-num" id="hudLat">0.00s</div>
+          <div>
+            <div class="lat-sub" id="latSub">Cerebras &middot; <b>~1900 tok/s</b></div>
+            <div class="lat-state" id="hudState">standby</div>
+          </div>
+        </div>
+        <div class="versus">
+          <div class="vcard cer"><div class="vhead"><span class="dot"></span>CEREBRAS &middot; gemma-4-31b</div><div class="vtime" id="cerT">0.00s</div><div class="vbar"><i id="cerB"></i></div><div class="vmeta" id="cerM">~1900 tok/s</div></div>
+          <div class="vs">VS</div>
+          <div class="vcard gpu"><div class="vhead"><span class="dot"></span>GPU BASELINE &middot; A100 vLLM</div><div class="vtime" id="gpuT">0.00s</div><div class="vbar"><i id="gpuB"></i></div><div class="vmeta" id="gpuM">~200 tok/s</div></div>
+        </div>
+        <div class="cam">
+          <span class="acount" id="acount">0 artifacts</span>
+          <button class="cbtn" id="zoomOut" title="zoom out">&minus;</button>
+          <button class="cbtn" id="zoomIn" title="zoom in">+</button>
+          <button class="cbtn wide" id="fitAll" title="fit all">fit</button>
+          <button class="cbtn wide" id="follow" title="follow latest build">follow</button>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <div class="empty-hint" id="emptyHint"><b>canvas</b><br>agents fan out design variants here &mdash; you pick, Sidebar learns</div>
+        <div id="world"></div>
+        <div class="dna" id="dna">
+          <div class="dna-h"><span>DESIGN DNA</span><button class="reset" id="resetTaste" title="forget learned style">&#10227;</button></div>
+          <div class="dna-sub">learned from your picks</div>
+          <span class="dna-status" id="dnaStatus">learning&hellip;</span>
+          <div class="dna-sw" id="dnaSw"><span class="ph">&mdash;</span></div>
+          <div id="dnaRows"><div class="dna-row"><span>awaiting your first pick</span></div></div>
+          <div class="dna-learn" id="dnaLearn"></div>
+        </div>
+        <div class="stage-banner" id="stageBanner">&#9670; Pick a direction &middot; Sidebar learns your taste &middot; auto <b id="stageCount">4</b>s</div>
+        <div id="dragcatch"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <div class="scenarios" id="scenarios"></div>
+    <div class="agents">
+      <div class="achip router"><div class="top"><span class="dot"></span><span class="nm">Router</span><span class="tps" id="tpsRouter">0<small> tok/s</small></span></div><div class="bar"><i id="barRouter"></i></div></div>
+      <div class="achip sumr"><div class="top"><span class="dot"></span><span class="nm">Summarizer</span><span class="tps" id="tpsSum">0<small> tok/s</small></span></div><div class="bar"><i id="barSum"></i></div></div>
+      <div class="achip proto"><div class="top"><span class="dot"></span><span class="nm">Prototype</span><span class="tps" id="tpsProto">0<small> tok/s</small></span></div><div class="bar"><i id="barProto"></i></div></div>
+    </div>
+    <div class="speedwrap"><span class="cap">inference stream</span><canvas id="speed"></canvas></div>
+    <div class="controls">
+      <button class="btn" id="replay">&#9654; Replay</button>
+      <label class="abtoggle" title="apply to the next build"><input type="checkbox" id="abchk"><span class="switch"></span> A/B race</label>
+    </div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+<div class="mockup-note">MOCKUP &middot; simulated inference &middot; no API calls</div>
+
+<!-- stable transcript fixtures (identical to test-transcripts.json) -->
+<script type="application/json" id="fixtures">
+{"version":1,"scenarios":[
+{"id":"sprint-planning","title":"Q3 Sprint Planning","subtitle":"Replacing the sprint spreadsheet","participants":["Maya","Dev","Priya"],"build":"kanban","segments":[
+{"t":0,"speaker":"Maya","ms":3600,"text":"Alright, Q3 planning. The big problem: we track sprint work in a spreadsheet and nobody actually looks at it."},
+{"t":3600,"speaker":"Dev","ms":3000,"text":"Right, it's invisible. Half the team doesn't know what's in flight.","expect":{"router":{"topic_shift":true,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Team wants a more visible way to track Q3 sprint work than the current spreadsheet.","decisions":[],"action_items":[],"open_questions":["What replaces the sprint spreadsheet?"]}}},
+{"t":6600,"speaker":"Priya","ms":3000,"text":"We need something visual. A board, columns, cards you can drag."},
+{"t":9600,"speaker":"Maya","ms":3400,"partials":["what if we built a kanban board with drag and","what if we built a kanban board with drag-and-drop and a"],"text":"What if we built a kanban board with drag-and-drop and a burndown chart?","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":true,"intent":"Kanban board with drag-and-drop columns and a sprint burndown chart","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Team is building a visual kanban board with a burndown to replace the sprint spreadsheet.","decisions":["Replace the sprint spreadsheet with a kanban board"],"action_items":[{"owner":"Dev","task":"Prototype a drag-and-drop board with a burndown chart"}],"open_questions":["Self-host the board or adopt an existing tool?"]},"prototype":{"build":"kanban","intent":"Kanban board with drag-and-drop columns and a sprint burndown chart","uses_screen":false}}},
+{"t":13000,"speaker":"Dev","ms":3200,"text":"Yes — To Do, In Progress, Done, and the burndown so we can see if we're on track."},
+{"t":16200,"speaker":"Priya","ms":2800,"text":"Can you make the cards match the mockup I've got on screen?","expect":{"router":{"topic_shift":false,"summary_update":false,"prototype":{"trigger":true,"intent":"Restyle the board cards to match the on-screen mockup","uses_screen":true},"factcheck":{"trigger":false,"claims":[]}},"prototype":{"build":"kanban","intent":"Restyle the board cards to match the on-screen mockup","uses_screen":true}}},
+{"t":19000,"speaker":"Maya","ms":2800,"text":"Perfect. Let's make this the Q3 board of record.","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Replacing the Q3 sprint spreadsheet with a visual kanban board + burndown; it becomes the board of record.","decisions":["Replace the sprint spreadsheet with a kanban board","Make the new board the Q3 board of record"],"action_items":[{"owner":"Dev","task":"Wire up drag-and-drop persistence"},{"owner":"Priya","task":"Apply the on-screen mockup styling to the cards"}],"open_questions":["Self-host the board or adopt an existing tool?"]}}}
+]},
+{"id":"growth-review","title":"Monthly Growth Review","subtitle":"Making the numbers visible","participants":["Sam","Lena","Raj"],"build":"dashboard","segments":[
+{"t":0,"speaker":"Sam","ms":3000,"text":"Growth review. Numbers first — where are we on MRR and churn?"},
+{"t":3000,"speaker":"Raj","ms":3800,"text":"MRR is at 142k, up 9% month over month. Churn ticked up to 4.1%.","expect":{"router":{"topic_shift":true,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Monthly growth review: MRR $142k (+9% MoM), churn up to 4.1%.","decisions":[],"action_items":[],"open_questions":["Why did churn rise to 4.1% this month?"]}}},
+{"t":6800,"speaker":"Lena","ms":3200,"text":"Churn's the worry. I want to watch it weekly, not dig through sheets."},
+{"t":10000,"speaker":"Sam","ms":3400,"partials":["can we get a dashboard with MRR, churn and","can we get a dashboard — MRR, churn, and a weekly active"],"text":"Can we get a dashboard — MRR, churn, and a weekly active users chart?","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":true,"intent":"Metrics dashboard showing MRR, churn, and a weekly active users chart","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Building a live metrics dashboard (MRR, churn, WAU) so growth is visible weekly.","decisions":["Build a metrics dashboard for MRR, churn, and WAU"],"action_items":[{"owner":"Raj","task":"Pipe real MRR/churn/WAU data into the dashboard"}],"open_questions":["Why did churn rise to 4.1% this month?"]},"prototype":{"build":"dashboard","intent":"Metrics dashboard showing MRR, churn, and a weekly active users chart","uses_screen":false}}},
+{"t":13400,"speaker":"Raj","ms":3000,"text":"I'll pipe the real numbers in later. WAU's been climbing, around 12k."},
+{"t":16400,"speaker":"Lena","ms":3200,"text":"Our churn is industry-leading though — under 2%, best in the category.","expect":{"router":{"topic_shift":false,"summary_update":false,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":true,"claims":["Company churn is under 2% and best in category"]}},"factcheck":{"claim":"Our churn is under 2% — best in the category","verdict":"contradicted","confidence":0.82,"source":"internal metrics — Raj reported 4.1% on this call"}}},
+{"t":19600,"speaker":"Sam","ms":3000,"text":"Ha — let's keep the dashboard honest, then. Ship it on the team page.","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Shipping an honest metrics dashboard (MRR, churn, WAU) to the team page.","decisions":["Build a metrics dashboard for MRR, churn, and WAU","Put it on the team page"],"action_items":[{"owner":"Raj","task":"Pipe real MRR/churn/WAU data into the dashboard"}],"open_questions":["Why did churn rise to 4.1% this month?"]}}}
+]},
+{"id":"launch-page","title":"Launch Page Jam","subtitle":"Waitlist landing page","participants":["Ava","Nora","Theo"],"build":"landing","segments":[
+{"t":0,"speaker":"Ava","ms":3200,"text":"We launch the waitlist in two weeks. We need a landing page that converts."},
+{"t":3200,"speaker":"Nora","ms":3200,"text":"Bold headline, one clear promise, email capture above the fold.","expect":{"router":{"topic_shift":true,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Designing a high-converting waitlist landing page for the launch in two weeks.","decisions":[],"action_items":[],"open_questions":["What's the single clearest promise for the hero?"]}}},
+{"t":6400,"speaker":"Theo","ms":3000,"text":"Three feature cards under it. Keep it dark, high contrast."},
+{"t":9400,"speaker":"Nora","ms":3400,"partials":["mock up a landing page, big headline, a waitlist","mock up a landing page — big headline, a waitlist signup, and three"],"text":"Mock up a landing page: a big headline, a waitlist signup, and three feature cards.","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":true,"intent":"Dark landing page with a bold hero headline, waitlist email capture, and three feature cards","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Building a dark, high-contrast waitlist landing page: hero headline, email capture, three feature cards.","decisions":["Ship a dark, high-contrast waitlist landing page"],"action_items":[{"owner":"Theo","task":"Design the hero and three feature cards"}],"open_questions":["What's the single clearest promise for the hero?"]},"prototype":{"build":"landing","intent":"Dark landing page with a bold hero headline, waitlist email capture, and three feature cards","uses_screen":false}}},
+{"t":12800,"speaker":"Theo","ms":2800,"text":"Use the hero visual from the deck that's on screen right now.","expect":{"router":{"topic_shift":false,"summary_update":false,"prototype":{"trigger":true,"intent":"Swap in the hero visual from the on-screen deck","uses_screen":true},"factcheck":{"trigger":false,"claims":[]}},"prototype":{"build":"landing","intent":"Swap in the hero visual from the on-screen deck","uses_screen":true}}},
+{"t":15600,"speaker":"Ava","ms":2800,"text":"Love it. Headline should say what we do in five words.","expect":{"router":{"topic_shift":false,"summary_update":true,"prototype":{"trigger":false,"intent":"","uses_screen":false},"factcheck":{"trigger":false,"claims":[]}},"summary":{"tldr":"Dark waitlist landing page with a five-word headline, email capture, and three feature cards.","decisions":["Ship a dark, high-contrast waitlist landing page","Lead with a five-word headline + email capture above the fold"],"action_items":[{"owner":"Theo","task":"Use the on-screen deck hero visual"},{"owner":"Nora","task":"Write a five-word headline"}],"open_questions":["What's the single clearest promise for the hero?"]}}}
+]}
+]}
+</script>
+<script src="sidebar-canvas-demo.js"></script>
+</body>
+</html>
