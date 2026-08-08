@@ -5,11 +5,11 @@ import { ROUTER_SYSTEM, RouterDecisionSchema, type RouterDecision } from "@sideb
 /** Cheap gatekeeper: strict structured output deciding which agents act. */
 export async function routeLive(segment: string, summaryJson: string): Promise<RouterDecision> {
   const model = routerModel();
-  return model.generateStructured(fromZod(RouterDecisionSchema, { name: "router_decision" }), [
+  return (await model.generateStructured(fromZod(RouterDecisionSchema as never, { name: "router_decision" }) as never, [
     { role: "system", content: ROUTER_SYSTEM },
     {
       role: "user",
       content: `Latest transcript segment:\n"${segment}"\n\nRolling summary (JSON):\n${summaryJson}`,
     },
-  ]);
+  ])) as RouterDecision;
 }

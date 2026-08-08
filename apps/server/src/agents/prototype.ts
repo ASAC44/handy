@@ -62,13 +62,24 @@ export async function liveStream(
   }
   const ms = Math.round(performance.now() - t0);
   const tokens = Math.round(html.length / 4);
-  return { html: stripFences(html), ms, tokens, tokPerS: ms > 0 ? Math.round((tokens / ms) * 1000) : 0 };
+  return { html: extractHtml(html), ms, tokens, tokPerS: ms > 0 ? Math.round((tokens / ms) * 1000) : 0 };
 }
 
 export function getBaseline(): AIModel | null {
   return baselineModel();
 }
 
-function stripFences(s: string): string {
-  return s.replace(/^```(?:html)?\s*/i, "").replace(/```\s*$/i, "").trim();
+/**
+ * Pull a clean HTML document out of a model response: strip markdown fences and
+ * any prose before `<!doctype>`/`<html>` or after `</html>`. Gemma usually emits
+ * a bare document, but this keeps a stray preamble ("Here's the HTML:") or a code
+ * fence from breaking the rendered artifact.
+ */
+function extractHtml(s: string): string {
+  let h = s.replace(/^\s*```(?:html)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const start = h.search(/<!doctype html|<html[\s>]/i);
+  if (start > 0) h = h.slice(start);
+  const end = h.toLowerCase().lastIndexOf("</html>");
+  if (end !== -1) h = h.slice(0, end + "</html>".length);
+  return h.trim();
 }

@@ -8,11 +8,11 @@ export async function summarizeLive(
   prev: MeetingSummary | null,
 ): Promise<MeetingSummary> {
   const model = summarizerModel();
-  return model.generateStructured(fromZod(MeetingSummarySchema, { name: "meeting_summary" }), [
+  return (await model.generateStructured(fromZod(MeetingSummarySchema as never, { name: "meeting_summary" }) as never, [
     { role: "system", content: SUMMARIZER_SYSTEM },
     {
       role: "user",
       content: `Rolling transcript:\n${transcript}\n\nPrevious summary (JSON or "none"):\n${prev ? JSON.stringify(prev) : "none"}`,
     },
-  ]);
+  ])) as MeetingSummary;
 }
