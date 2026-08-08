@@ -15,6 +15,7 @@ export type ServerEvent =
   | { type: "meeting.start"; scenarioId: string; title: string; participants: string[] }
   | { type: "transcript.partial"; text: string; ts: number; speaker?: string }
   | { type: "transcript.final"; text: string; ts: number; speaker?: string }
+  | { type: "capture.status"; screen: boolean; speech: boolean; lastFrameTs?: number; host?: string }
   | { type: "router.decision"; decision: RouterDecision }
   | { type: "summary.update"; summary: MeetingSummary }
   | { type: "fanout.start"; buildId: string; intent: string; usesScreen: boolean; variants: VariantInfo[] }
@@ -31,6 +32,12 @@ export type ServerEvent =
 /** Frontend -> backend events. */
 export type ClientEvent =
   | { type: "start"; scenarioId?: string }
+  | { type: "live.start"; title?: string; host?: string }
+  | { type: "live.stop" }
+  | { type: "transcript.partial"; text: string; speaker?: string }
+  | { type: "transcript.final"; text: string; speaker?: string }
+  | { type: "screen.frame"; dataUri: string; width: number; height: number; ts: number }
+  | { type: "capture.status"; screen: boolean; speech: boolean; host?: string }
   | { type: "pick"; buildId: string; themeKey: ThemeKey }
   | { type: "resetTaste" }
   | { type: "setAbMode"; enabled: boolean };

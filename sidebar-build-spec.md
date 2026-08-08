@@ -170,8 +170,10 @@ Cheap gatekeeper so the heavy agents don't fire on every chunk.
 - **Render safety:** inject into `<iframe sandbox="allow-scripts">` with no `allow-same-origin`. Generated code cannot touch the parent.
 - **Optional self-correct (only if latency budget allows):** a second pass — "fix any errors, keep it self-contained" — gated behind a flag; off for the speed demo.
 
-### 4.7 Fact-check agent (stretch, Gemma 4 + web search tool)
-- **Params:** `reasoning_effort` off, `temperature` 0.2, tool calling enabled (web search), `strict: true` on the final structured answer.
+### 4.7 Fact-check agent (stretch, Gemma 4 + Tavily web search)
+- **Approach:** retrieve-then-ground. For each routed claim we call the **Tavily Search API** (`POST https://api.tavily.com/search`, `search_depth: basic`, `include_answer: false`) ourselves, then hand Gemma the result snippets (`results[].content` + source `url`) to judge each claim. We do the search rather than model tool-calling — it's deterministic, adds no extra round-trips, and fits the `generateStructured` path. Falls back to the model's own knowledge (`FACTCHECK_SYSTEM_UNGROUNDED`) when no `TAVILY_API_KEY` is set. Configured via `FACTCHECK_SEARCH` (`tavily` | `none`).
+- **Free tier:** Tavily Researcher (free) — 1,000 credits/mo, monthly-renewing, no credit card; 1 credit per basic search.
+- **Params:** `reasoning_effort` off, `temperature` 0.2, `strict: true` on the final structured answer.
 - **Output schema** (`factcheck_result`):
 
 ```json
@@ -184,7 +186,8 @@ Cheap gatekeeper so the heavy agents don't fire on every chunk.
         "claim":      { "type": "string" },
         "verdict":    { "type": "string", "enum": ["supported", "contradicted", "unverified"] },
         "confidence": { "type": "number" },
-        "source":     { "type": "string" }
+        "source":     { "type": "string" },
+        "note":       { "type": "string" }
       },
       "required": ["claim", "verdict", "confidence", "source"]
     }}
@@ -193,6 +196,7 @@ Cheap gatekeeper so the heavy agents don't fire on every chunk.
 }
 ```
 
+- **Temporal nuance:** the current date is injected into the prompt and the optional `note` field carries one-clause context (e.g. "as of <date>, …"). For claims that are partially true or in transition (recently changed, announced-but-unreleased), the agent prefers `unverified` + a `note` over a flat supported/contradicted, and weights newer evidence over older.
 - **Note:** critical path is the search round-trip, not generation. Label it as a feature, never as a speed showcase.
 
 ### 4.8 Orchestrator

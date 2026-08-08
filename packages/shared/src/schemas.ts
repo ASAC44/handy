@@ -41,6 +41,8 @@ export const FactcheckCheckSchema = z.object({
   verdict: VerdictSchema,
   confidence: z.number(),
   source: z.string(),
+  /** Optional one-clause context for nuanced or time-sensitive verdicts (e.g. "as of <date>, …"). */
+  note: z.string().optional(),
 });
 export type FactcheckCheck = z.infer<typeof FactcheckCheckSchema>;
 
