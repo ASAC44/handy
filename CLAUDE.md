@@ -25,12 +25,20 @@ bun run dev:server       # just the Bun WebSocket server (bun --watch)
 bun run dev:web          # just the Vite app
 bun run typecheck        # tsc --noEmit across shared + server + web — THE check gate
 bun run build            # production web build
+bun run asr:gen          # (re)generate fixtures/audio/* from transcripts via ElevenLabs TTS
+bun run asr:bench        # score local Gemma ASR against those fixtures (WER) — needs Ollama
 ```
 
 There is **no test runner and no linter**. `bun run typecheck` is the only automated
 check — run it before claiming a change is done. `test-transcripts.json` is *not* a
 test suite; it is the fixture stream (see below). To check a single scenario, set
 `FIXTURE_SCENARIO` and run the app.
+
+`fixtures/audio/` holds committed, deterministic meeting audio (16 kHz mono WAV) TTS'd
+from `test-transcripts.json` — the input for ASR benchmarking (`scripts/`, see
+`fixtures/audio/README.md`). Generation needs an ElevenLabs key with the
+`text_to_speech` permission; the committed bytes are the fixture, so the bench never
+calls the network.
 
 ## Architecture
 
