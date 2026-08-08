@@ -1,0 +1,5 @@
+# Audio fixtures are byte-exact determinism anchors for ASR testing — never apply
+# EOL/encoding normalization to them.
+*.wav binary
+*.flac binary
+*.mp3 binary
