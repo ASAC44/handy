@@ -4,7 +4,7 @@ An **ambient panel of AI agents that works alongside you in a live meeting** —
 
 The hero is the **real-time prototype agent**: a spoken idea becomes a working, screen-aware HTML proof-of-concept in ~2s — fast enough that the artifact appears *while the idea is still alive in the room*. When the first idea is built, the agent **fans out three design languages in parallel**; you pick one and Sidebar **learns your taste** (a "Design DNA" that every later build inherits — real preference learning injected into the prototype prompt).
 
-> Status: **scaffold**. Runs end-to-end today in **mock mode** (replays the stable transcript fixtures, no API key). Flip `AGENTS=live` for real Cerebras inference. ASR, web-search fact-check, and a hosted GPU baseline are TODO.
+> Status: **hackathon MVP**. Runs end-to-end in fixture mode, and has a local live-room mode where one participant machine captures screen frames + speech/manual transcript while every viewer watches the same WebSocket event stream. Flip `AGENTS=live` for real Cerebras inference. Deepgram-grade ASR, web-search fact-check, and a hosted GPU baseline are TODO.
 
 ## Layout
 
@@ -33,6 +33,44 @@ Open http://localhost:5173 and pick a scenario at the bottom. It streams the
 fixture transcript over the WebSocket, the router fires, the summary updates,
 and the prototype agent fans out three designs onto the canvas — pick one and
 watch the Design DNA lock in.
+
+## Fast live-room test (participant machine + Tailscale Funnel)
+
+This is the fastest production-shaped path: one participant opens Sidebar in
+host mode on their own machine, captures their screen, and hosts the shared UI.
+Everyone else opens the same URL as viewers.
+
+```bash
+bun install
+cp .env.example .env
+bun run host                 # builds web and serves app + /ws on :3001
+```
+
+In another terminal:
+
+```bash
+bun run funnel               # HTTPS Funnel :8443 -> local :3001
+```
+
+Open the Tailscale Funnel HTTPS URL with `?host=1` on the participant machine.
+Press **Live**, then **Screen**, then **Mic**. Share the same URL without
+`?host=1` with viewers.
+
+To turn off the public Funnel listener:
+
+```bash
+bun run funnel:off
+```
+
+Notes:
+- Screen frames are sampled in the host browser, downscaled, and sent only to the
+  local Bun server for screen-aware prototype prompts; raw frames are not
+  rebroadcast to viewers.
+- Chrome's built-in speech recognition is used when available. The manual
+  transcript box is the fallback and still exercises the full agent pipeline.
+- In `AGENTS=mock`, live-room transcript chunks use lightweight local routing
+  heuristics so the demo works without keys. In `AGENTS=live`, the same chunks
+  go through Cerebras/Gemma.
 
 ## Going live (real Cerebras inference)
 
@@ -73,13 +111,16 @@ Frontend → backend: `start`, `pick` (learn this design language), `resetTaste`
 | `bun run dev` | server + web together (concurrently) |
 | `bun run dev:server` | just the Bun WebSocket server |
 | `bun run dev:web` | just the Vite app |
+| `bun run host` | build the web app and serve app + `/ws` from Bun on `:3001` |
+| `bun run funnel` | publish `https://<machine>.<tailnet>.ts.net:8443/` to local `:3001` |
+| `bun run funnel:off` | turn off the `:8443` Funnel listener |
 | `bun run typecheck` | `tsc --noEmit` across all three packages |
 | `bun run build` | production web build |
 
 ## Roadmap
 
-- Streaming **ASR** (Deepgram) as a real `SOURCE=asr` — measure its latency first.
-- **Screen capture** → base64 frame → multimodal prototype calls (`uses_screen`).
+- Streaming **ASR** (Deepgram) as a real `SOURCE=asr` — browser speech/manual input is the fast MVP path.
+- Better screen capture controls: frame dedup, preview, and user-visible privacy state.
 - **Fact-check** web-search tool wiring (currently model self-reports).
 - **Honest A/B**: point `BASELINE_*` at a GPU-hosted open model and race it.
 - Prompt caching + token-bucket rate budget (orchestrator).

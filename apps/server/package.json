@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@sidebar/shared": "workspace:*",
-    "universal-llm-client": "link:universal-llm-client",
+    "universal-llm-client": "^4.5.2",
     "zod": "^4.0.0"
   },
   "devDependencies": {
