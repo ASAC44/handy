@@ -17,7 +17,9 @@
     "funnel:off": "tailscale funnel --https=8443 off",
     "build": "cd apps/web && bun run build",
     "asr:gen": "bun scripts/gen-fixture-audio.ts",
+    "meetings:gen": "bun scripts/gen-meeting-audio.ts",
     "asr:bench": "bun scripts/asr-bench.ts",
+    "meetings:bench": "bun scripts/asr-bench.ts --set meetings",
     "typecheck": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p packages/shared && node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p apps/server && node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p apps/web"
   },
   "devDependencies": {

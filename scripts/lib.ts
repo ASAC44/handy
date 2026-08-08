@@ -13,6 +13,10 @@ export const TRANSCRIPTS = resolve(REPO_ROOT, "test-transcripts.json");
 export const AUDIO_DIR = resolve(REPO_ROOT, "fixtures", "audio");
 export const MANIFEST_PATH = resolve(AUDIO_DIR, "manifest.json");
 
+/** Realism set (naturalistic v3 meetings) — separate from the canonical agent fixtures. */
+export const MEETINGS_DIR = resolve(REPO_ROOT, "fixtures", "meetings");
+export const MEETINGS_MANIFEST_PATH = resolve(MEETINGS_DIR, "manifest.json");
+
 /** Both ASR consumers (Scribe pcm_16000, Gemma WAV) want 16 kHz mono 16-bit. */
 export const SAMPLE_RATE = 16000;
 
@@ -107,6 +111,77 @@ export function pcmToWav(pcm: Uint8Array, rate = SAMPLE_RATE): Uint8Array {
 /** N milliseconds of digital silence as 16-bit PCM (all zero bytes). */
 export function silencePcm(ms: number, rate = SAMPLE_RATE): Uint8Array {
   return new Uint8Array(Math.round((ms / 1000) * rate) * 2);
+}
+
+export function msToSamples(ms: number, rate = SAMPLE_RATE): number {
+  return Math.round((ms / 1000) * rate);
+}
+export function samplesToMs(samples: number, rate = SAMPLE_RATE): number {
+  return Math.round((samples / rate) * 1000);
+}
+export function pcmSamples(pcm: Uint8Array): number {
+  return Math.floor(pcm.byteLength / 2);
+}
+
+export interface Placement {
+  pcm: Uint8Array; // S16LE mono
+  startSample: number; // offset into the mix
+  gain: number; // 0..1 (overlapping/background turns are ducked)
+}
+
+/**
+ * Mix S16LE clips onto one timeline (overlaps allowed). Accumulates in float to
+ * avoid wrap, then hard-clamps to int16 — true simultaneous cross-talk that no
+ * single TTS call produces.
+ */
+export function mixDown(placements: Placement[]): Uint8Array {
+  let total = 0;
+  for (const p of placements) total = Math.max(total, p.startSample + pcmSamples(p.pcm));
+  const acc = new Float64Array(total);
+  for (const p of placements) {
+    const dv = new DataView(p.pcm.buffer, p.pcm.byteOffset, p.pcm.byteLength);
+    const n = pcmSamples(p.pcm);
+    for (let i = 0; i < n; i++) acc[p.startSample + i]! += dv.getInt16(i * 2, true) * p.gain;
+  }
+  const out = new Uint8Array(total * 2);
+  const odv = new DataView(out.buffer);
+  for (let i = 0; i < total; i++) {
+    let s = Math.round(acc[i]!);
+    if (s > 32767) s = 32767;
+    else if (s < -32768) s = -32768;
+    odv.setInt16(i * 2, s, true);
+  }
+  return out;
+}
+
+// ── Realism-set ("meetings") manifest ───────────────────────────────────────
+export type TurnKind = "talk" | "offtopic" | "crosstalk";
+export interface MeetingClip {
+  index: number;
+  speaker: string;
+  voice_id: string;
+  voice_name: string;
+  file: string; // relative to fixtures/meetings/
+  text: string; // clean gold (no tags), in the spoken language
+  lang: string;
+  kind: TurnKind;
+  /** Where this clip starts within meeting.wav (ms); crosstalk overlaps the prior turn. */
+  startMs: number;
+}
+export interface MeetingScenario {
+  id: string;
+  title: string;
+  lang: string;
+  full: string; // realistic mixed track, relative to fixtures/meetings/
+  clips: MeetingClip[];
+}
+export interface MeetingManifest {
+  generator: string;
+  model_id: string;
+  sample_rate: number;
+  format: "wav";
+  seed: number;
+  scenarios: MeetingScenario[];
 }
 
 // ── Word error rate ─────────────────────────────────────────────────────────

@@ -14,20 +14,39 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { AUDIO_DIR, MANIFEST_PATH, wer, type Manifest } from "./lib";
+import { AUDIO_DIR, MANIFEST_PATH, MEETINGS_DIR, MEETINGS_MANIFEST_PATH, wer } from "./lib";
 
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const MODEL = process.env.GEMMA_ASR_MODEL ?? "gemma4:e4b-it-qat";
 
+/** Common shape across both manifests (canonical + meetings) — only what the bench reads. */
+interface BenchClip {
+  index: number;
+  speaker: string;
+  file: string;
+  text: string;
+  lang?: string;
+  kind?: string;
+}
+interface BenchManifest {
+  seed: number;
+  sample_rate: number;
+  scenarios: { id: string; title: string; clips: BenchClip[] }[];
+}
+
+type FixtureSet = "canonical" | "meetings";
+
 interface Args {
   scenario?: string;
   show: boolean;
+  set: FixtureSet;
 }
 function parseArgs(argv: string[]): Args {
-  const out: Args = { show: false };
+  const out: Args = { show: false, set: "canonical" };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--scenario") out.scenario = argv[++i];
     else if (argv[i] === "--show") out.show = true;
+    else if (argv[i] === "--set") out.set = argv[++i] === "meetings" ? "meetings" : "canonical";
   }
   return out;
 }
@@ -78,13 +97,17 @@ function percentile(sorted: number[], p: number): number {
 }
 
 async function main(): Promise<void> {
-  let manifest: Manifest;
-  try {
-    manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf8")) as Manifest;
-  } catch {
-    throw new Error(`no manifest at ${MANIFEST_PATH} — run \`bun run asr:gen\` first.`);
-  }
   const args = parseArgs(process.argv.slice(2));
+  const manifestPath = args.set === "meetings" ? MEETINGS_MANIFEST_PATH : MANIFEST_PATH;
+  const baseDir = args.set === "meetings" ? MEETINGS_DIR : AUDIO_DIR;
+  const genCmd = args.set === "meetings" ? "meetings:gen" : "asr:gen";
+
+  let manifest: BenchManifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as BenchManifest;
+  } catch {
+    throw new Error(`no manifest at ${manifestPath} — run \`bun run ${genCmd}\` first.`);
+  }
   const scenarios = manifest.scenarios.filter((s) => !args.scenario || s.id === args.scenario);
   if (!scenarios.length) throw new Error(`no scenario "${args.scenario}" in manifest`);
 
@@ -92,17 +115,18 @@ async function main(): Promise<void> {
     throw new Error(`Ollama not reachable at ${OLLAMA}. Start it (\`ollama serve\`) and pull ${MODEL}.`);
   }
 
-  console.log(`▚ asr-bench — backend=gemma-local model=${MODEL} via ${OLLAMA}`);
+  console.log(`▚ asr-bench — set=${args.set} backend=gemma-local model=${MODEL} via ${OLLAMA}`);
   console.log(`  fixtures: ${manifest.scenarios.length} scenario(s), seed=${manifest.seed}, ${manifest.sample_rate}Hz WAV\n`);
 
   let totEdits = 0;
   let totWords = 0;
   const latencies: number[] = [];
+  const byLang = new Map<string, { edits: number; words: number }>();
 
   for (const scn of scenarios) {
     console.log(`── ${scn.id} (${scn.title})`);
     for (const clip of scn.clips) {
-      const wavPath = resolve(AUDIO_DIR, clip.file);
+      const wavPath = resolve(baseDir, clip.file);
       const t0 = performance.now();
       let hyp = "";
       let err = "";
@@ -120,8 +144,14 @@ async function main(): Promise<void> {
       const w = wer(clip.text, hyp);
       totEdits += w.sub + w.del + w.ins;
       totWords += w.n;
+      const lang = clip.lang ?? "en";
+      const bucket = byLang.get(lang) ?? { edits: 0, words: 0 };
+      bucket.edits += w.sub + w.del + w.ins;
+      bucket.words += w.n;
+      byLang.set(lang, bucket);
       const flag = w.wer === 0 ? "✓" : pct(w.wer).padStart(6);
-      console.log(`  [${String(clip.index).padStart(2, "0")}] ${clip.speaker.padEnd(6)} ${flag}  ${ms}ms  (S${w.sub} D${w.del} I${w.ins} / ${w.n}w)`);
+      const meta = [clip.lang, clip.kind && clip.kind !== "talk" ? clip.kind : ""].filter(Boolean).join(",");
+      console.log(`  [${String(clip.index).padStart(2, "0")}] ${clip.speaker.padEnd(6)} ${flag}  ${ms}ms  (S${w.sub} D${w.del} I${w.ins} / ${w.n}w)${meta ? `  [${meta}]` : ""}`);
       if (args.show || w.wer > 0) {
         console.log(`        ref: ${clip.text}`);
         console.log(`        hyp: ${hyp || "(empty)"}`);
@@ -133,6 +163,11 @@ async function main(): Promise<void> {
   const sorted = [...latencies].sort((a, b) => a - b);
   console.log("══ aggregate");
   console.log(`  WER (micro): ${pct(totWords ? totEdits / totWords : 0)}  (${totEdits} edits / ${totWords} words)`);
+  if (byLang.size > 1) {
+    for (const [lang, b] of [...byLang].sort()) {
+      console.log(`    ${lang}: ${pct(b.words ? b.edits / b.words : 0)}  (${b.edits}/${b.words}w)`);
+    }
+  }
   console.log(`  latency: p50 ${percentile(sorted, 50)}ms  p95 ${percentile(sorted, 95)}ms  (n=${latencies.length})`);
 }
 
