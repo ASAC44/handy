@@ -12,7 +12,7 @@ export class Session {
   }
 
   onMessage(raw: string): void {
-    room.receive(raw);
+    room.receive(raw, this.ws);
   }
 
   dispose(): void {

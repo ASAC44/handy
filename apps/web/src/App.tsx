@@ -31,7 +31,7 @@ export function App() {
       <main className="main">
         <Rail state={state} />
         <section className="canvasCol">
-          <Hud state={state} />
+          <Hud state={state} send={send} hostMode={hostMode} />
           <Canvas state={state} send={send} />
         </section>
       </main>

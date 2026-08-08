@@ -6,7 +6,7 @@ const SCENARIOS = [
   { id: "growth-review", title: "Growth Review", sub: "dashboard" },
   { id: "launch-page", title: "Launch Page Jam", sub: "landing" },
 ];
-const AGENTS: AgentName[] = ["router", "summarizer", "prototype"];
+const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck"];
 
 export function Bottom({
   state,
@@ -40,8 +40,15 @@ export function Bottom({
       <div className="agents">
         {AGENTS.map((ag) => {
           const t = state.telemetry[ag];
+          const on = state.agents[ag];
           return (
-            <div className={"achip " + ag} key={ag}>
+            <div
+              className={"achip " + ag + (on ? "" : " off")}
+              key={ag}
+              onClick={() => send({ type: "setAgent", agent: ag, enabled: !on })}
+              style={{ opacity: on ? 1 : 0.34, cursor: "pointer" }}
+              title={`${ag}: ${on ? "on — click to disable" : "off — click to enable"}`}
+            >
               <div className="top">
                 <span className="dot" />
                 <span className="nm">{ag}</span>

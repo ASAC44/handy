@@ -18,6 +18,7 @@ export function CaptureDock({
   const [asrId, setAsrId] = useState<AsrProviderId>(() => (localStorage.getItem("sidebar.asr") as AsrProviderId) || "elevenlabs");
   const [manual, setManual] = useState("");
   const [error, setError] = useState("");
+  const [level, setLevel] = useState(0);
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -40,6 +41,7 @@ export function CaptureDock({
   const persistHost = (value: string): void => {
     setHost(value);
     localStorage.setItem("sidebar.host", value);
+    send({ type: "presence.hello", name: value, role: "host" });
   };
 
   const sendStatus = (screen = screenOnRef.current, speech = speechOnRef.current): void => {
@@ -48,6 +50,7 @@ export function CaptureDock({
 
   const startRoom = (): void => {
     setError("");
+    send({ type: "presence.hello", name: host, role: "host" });
     send({ type: "live.start", title: "Live Meeting", host });
     sendStatus();
   };
