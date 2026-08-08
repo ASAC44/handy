@@ -1,0 +1,228 @@
+{
+  "generator": "scripts/gen-fixture-audio.ts",
+  "model_id": "eleven_multilingual_v2",
+  "sample_rate": 16000,
+  "format": "wav",
+  "seed": 20240628,
+  "voices": {
+    "Maya": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "name": "Rachel"
+    },
+    "Dev": {
+      "voice_id": "pNInz6obpgDQGcFmaJgB",
+      "name": "Adam"
+    },
+    "Priya": {
+      "voice_id": "AZnzlk1XvdvUeBnXmlld",
+      "name": "Domi"
+    },
+    "Sam": {
+      "voice_id": "ErXwobaYiN019PkySvjV",
+      "name": "Antoni"
+    },
+    "Raj": {
+      "voice_id": "TxGEqnHWrfWFTfGW9XjX",
+      "name": "Josh"
+    },
+    "Lena": {
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "name": "Sarah"
+    },
+    "Ava": {
+      "voice_id": "MF3mGyEYCl7XYWbV9V6O",
+      "name": "Elli"
+    },
+    "Nora": {
+      "voice_id": "XB0fDUnXU5powFXDhCwa",
+      "name": "Charlotte"
+    },
+    "Theo": {
+      "voice_id": "2EiwWnXFnvU5JabPnv8n",
+      "name": "Clyde"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "sprint-planning",
+      "title": "Q3 Sprint Planning",
+      "full": "sprint-planning/full.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Maya",
+          "file": "sprint-planning/00-Maya.wav",
+          "text": "Alright, Q3 planning. The big problem: we track sprint work in a spreadsheet and nobody actually looks at it.",
+          "t": 0,
+          "ms": 3600
+        },
+        {
+          "index": 1,
+          "speaker": "Dev",
+          "file": "sprint-planning/01-Dev.wav",
+          "text": "Right, it's invisible. Half the team doesn't know what's in flight.",
+          "t": 3600,
+          "ms": 3000
+        },
+        {
+          "index": 2,
+          "speaker": "Priya",
+          "file": "sprint-planning/02-Priya.wav",
+          "text": "We need something visual. A board, columns, cards you can drag.",
+          "t": 6600,
+          "ms": 3000
+        },
+        {
+          "index": 3,
+          "speaker": "Maya",
+          "file": "sprint-planning/03-Maya.wav",
+          "text": "What if we built a kanban board with drag-and-drop and a burndown chart?",
+          "t": 9600,
+          "ms": 3400
+        },
+        {
+          "index": 4,
+          "speaker": "Dev",
+          "file": "sprint-planning/04-Dev.wav",
+          "text": "Yes — To Do, In Progress, Done, and the burndown so we can see if we're on track.",
+          "t": 13000,
+          "ms": 3200
+        },
+        {
+          "index": 5,
+          "speaker": "Priya",
+          "file": "sprint-planning/05-Priya.wav",
+          "text": "Can you make the cards match the mockup I've got on screen?",
+          "t": 16200,
+          "ms": 2800
+        },
+        {
+          "index": 6,
+          "speaker": "Maya",
+          "file": "sprint-planning/06-Maya.wav",
+          "text": "Perfect. Let's make this the Q3 board of record.",
+          "t": 19000,
+          "ms": 2800
+        }
+      ]
+    },
+    {
+      "id": "growth-review",
+      "title": "Monthly Growth Review",
+      "full": "growth-review/full.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Sam",
+          "file": "growth-review/00-Sam.wav",
+          "text": "Growth review. Numbers first — where are we on MRR and churn?",
+          "t": 0,
+          "ms": 3000
+        },
+        {
+          "index": 1,
+          "speaker": "Raj",
+          "file": "growth-review/01-Raj.wav",
+          "text": "MRR is at 142k, up 9% month over month. Churn ticked up to 4.1%.",
+          "t": 3000,
+          "ms": 3800
+        },
+        {
+          "index": 2,
+          "speaker": "Lena",
+          "file": "growth-review/02-Lena.wav",
+          "text": "Churn's the worry. I want to watch it weekly, not dig through sheets.",
+          "t": 6800,
+          "ms": 3200
+        },
+        {
+          "index": 3,
+          "speaker": "Sam",
+          "file": "growth-review/03-Sam.wav",
+          "text": "Can we get a dashboard — MRR, churn, and a weekly active users chart?",
+          "t": 10000,
+          "ms": 3400
+        },
+        {
+          "index": 4,
+          "speaker": "Raj",
+          "file": "growth-review/04-Raj.wav",
+          "text": "I'll pipe the real numbers in later. WAU's been climbing, around 12k.",
+          "t": 13400,
+          "ms": 3000
+        },
+        {
+          "index": 5,
+          "speaker": "Lena",
+          "file": "growth-review/05-Lena.wav",
+          "text": "Our churn is industry-leading though — under 2%, best in the category.",
+          "t": 16400,
+          "ms": 3200
+        },
+        {
+          "index": 6,
+          "speaker": "Sam",
+          "file": "growth-review/06-Sam.wav",
+          "text": "Ha — let's keep the dashboard honest, then. Ship it on the team page.",
+          "t": 19600,
+          "ms": 3000
+        }
+      ]
+    },
+    {
+      "id": "launch-page",
+      "title": "Launch Page Jam",
+      "full": "launch-page/full.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Ava",
+          "file": "launch-page/00-Ava.wav",
+          "text": "We launch the waitlist in two weeks. We need a landing page that converts.",
+          "t": 0,
+          "ms": 3200
+        },
+        {
+          "index": 1,
+          "speaker": "Nora",
+          "file": "launch-page/01-Nora.wav",
+          "text": "Bold headline, one clear promise, email capture above the fold.",
+          "t": 3200,
+          "ms": 3200
+        },
+        {
+          "index": 2,
+          "speaker": "Theo",
+          "file": "launch-page/02-Theo.wav",
+          "text": "Three feature cards under it. Keep it dark, high contrast.",
+          "t": 6400,
+          "ms": 3000
+        },
+        {
+          "index": 3,
+          "speaker": "Nora",
+          "file": "launch-page/03-Nora.wav",
+          "text": "Mock up a landing page: a big headline, a waitlist signup, and three feature cards.",
+          "t": 9400,
+          "ms": 3400
+        },
+        {
+          "index": 4,
+          "speaker": "Theo",
+          "file": "launch-page/04-Theo.wav",
+          "text": "Use the hero visual from the deck that's on screen right now.",
+          "t": 12800,
+          "ms": 2800
+        },
+        {
+          "index": 5,
+          "speaker": "Ava",
+          "file": "launch-page/05-Ava.wav",
+          "text": "Love it. Headline should say what we do in five words.",
+          "t": 15600,
+          "ms": 2800
+        }
+      ]
+    }
+  ]
+}
