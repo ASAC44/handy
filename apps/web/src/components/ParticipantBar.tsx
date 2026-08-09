@@ -114,7 +114,7 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
               {cap.playback.durationSec ? ` / ${clock(cap.playback.durationSec)}` : ""}
             </span>
             <button className="capBtn stop" onClick={() => cap.stop()}>
-              Stop
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-stop"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Stop
             </button>
           </span>
         ) : !cap.speechOn ? (
@@ -146,7 +146,7 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
         ) : null}
         {cap.speechOn && !cap.playback ? (
           <button className="capBtn stop" onClick={() => cap.stop()}>
-            Leave audio
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-stop"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Leave audio
           </button>
         ) : null}
       </div>
