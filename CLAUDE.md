@@ -30,6 +30,7 @@ bun run asr:bench        # score local Gemma ASR against those fixtures (WER) â€
 bun run meetings:gen     # (re)generate fixtures/meetings/* â€” naturalistic v3 meetings
 bun run meetings:bench   # WER on the realism-set clips (asr-bench --set meetings)
                          #   --backend both -> Gemma local vs ElevenLabs Scribe head-to-head
+bun run asr:livesim      # simulate the live on-device path: app's energy-VAD over meeting.wav -> Gemma
 ```
 
 There is **no test runner and no linter**. `bun run typecheck` is the only automated
