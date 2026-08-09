@@ -23,6 +23,10 @@ export const config = {
   /** ElevenLabs Scribe v2 Realtime — client-side ASR via a single-use token minted server-side. */
   elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
 
+  /** Shared meeting password. When set, locks the whole experience (host + guests):
+   *  the WS, ASR endpoints, and uploads all require it. Empty = open (local dev). */
+  meetingPassword: process.env.MEETING_PASSWORD ?? "",
+
   /** Local Gemma ASR: Ollama (OpenAI-compatible /v1 input_audio) for on-device, all-Gemma transcription. */
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   gemmaAsrModel: process.env.GEMMA_ASR_MODEL ?? "gemma4:e4b-it-qat",

@@ -7,6 +7,21 @@ import { room } from "./room";
 
 assertLiveReady();
 
+/** Constant-time string compare (avoids leaking the password via timing). */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+/** True when no password is configured, or the request carries the right one. */
+function authed(req: Request, url: URL): boolean {
+  if (!config.meetingPassword) return true;
+  const key = req.headers.get("x-sidebar-key") ?? url.searchParams.get("key") ?? "";
+  return safeEqual(key, config.meetingPassword);
+}
+
 const webRoot = resolve(process.cwd(), "apps/web/dist");
 // Real (symlink-resolved) web root for the containment check; falls back to the
 // plain path if dist isn't built yet (realpathSync throws on a missing dir).
@@ -136,19 +151,34 @@ const server = Bun.serve<WsData>({
   fetch(req, srv) {
     const url = new URL(req.url);
     if (url.pathname === "/ws") {
+      // Gate the live experience behind the meeting password (host + guests).
+      if (!authed(req, url)) return new Response("Unauthorized", { status: 401 });
       if (srv.upgrade(req, { data: { session: null } })) return undefined;
       return new Response("WebSocket upgrade failed", { status: 426 });
     }
     if (url.pathname === "/health") {
       return Response.json({ ok: true, agents: config.agents, source: config.source, model: config.modelId });
     }
+    // Auth probe for the lock screen: is a password required, and is this key valid?
+    if (url.pathname === "/gate") {
+      return Response.json({ required: !!config.meetingPassword, authed: authed(req, url) });
+    }
     if (url.pathname === "/context/upload" && req.method === "OPTIONS") return room.contextOptions();
-    if (url.pathname === "/context/upload" && req.method === "POST") return room.uploadContext(req);
+    if (url.pathname === "/context/upload" && req.method === "POST") {
+      if (!authed(req, url)) return new Response("Unauthorized", { status: 401, headers: { "access-control-allow-origin": "*" } });
+      return room.uploadContext(req);
+    }
     // Mint a single-use ElevenLabs Scribe v2 Realtime token so the browser can
     // stream mic audio directly to ElevenLabs without ever seeing the API key.
-    if (url.pathname === "/asr/token") return mintScribeToken();
+    if (url.pathname === "/asr/token") {
+      if (!authed(req, url)) return new Response("Unauthorized", { status: 401 });
+      return mintScribeToken();
+    }
     // On-device ASR: proxy a WAV clip to local Gemma 4 E4B on Ollama.
-    if (url.pathname === "/asr/gemma" && req.method === "POST") return gemmaTranscribe(req);
+    if (url.pathname === "/asr/gemma" && req.method === "POST") {
+      if (!authed(req, url)) return new Response("Unauthorized", { status: 401 });
+      return gemmaTranscribe(req);
+    }
     return serveWeb(url.pathname);
   },
   websocket: {
