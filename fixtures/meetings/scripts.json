@@ -81,30 +81,30 @@
       "id": "growth-sync-en",
       "title": "Growth Sync (English)",
       "lang": "en",
-      "setting": "English twin of growth-sync-ptbr — a tired Monday metrics sync. Churn is creeping up; someone is sick of the spreadsheet scavenger hunt; a dashboard gets wished for offhand between a puppy and a butchered coffee order. Slower, more pauses, longer.",
+      "setting": "English twin of growth-sync-ptbr — a tired but lively Monday metrics sync. Churn is creeping up; someone's sick of the spreadsheet scavenger hunt; a dashboard gets wished for offhand amid puppy chaos and a possessed coffee machine. Quick, funny, real — minimal dead air.",
       "participants": [
-        { "name": "Sam", "voice_id": "Fahco4VZzobUeiPqni1S", "voice_name": "v1" },
-        { "name": "Priya", "voice_id": "2t85BBUECtLLKQzxLD95", "voice_name": "v2" },
-        { "name": "Marcus", "voice_id": "MClEFoImJXBTgLwdLI5n", "voice_name": "v3" },
-        { "name": "Lena", "voice_id": "xKhbyU7E3bC6T89Kn26c", "voice_name": "v4" }
+        { "name": "Sam", "voice_id": "Fahco4VZzobUeiPqni1S", "voice_name": "male-a" },
+        { "name": "Priya", "voice_id": "DODLEQrClDo8wCz460ld", "voice_name": "Lauren" },
+        { "name": "Marcus", "voice_id": "xKhbyU7E3bC6T89Kn26c", "voice_name": "male-b" },
+        { "name": "Lena", "voice_id": "MClEFoImJXBTgLwdLI5n", "voice_name": "Ivy" }
       ],
       "turns": [
-        { "speaker": "Sam", "kind": "offtopic", "say": "Okay... [exhales] give it a sec, I think Marcus is still joining. Morning, everyone. How was the weekend?", "text": "Okay, give it a sec, I think Marcus is still joining. Morning, everyone. How was the weekend?" },
-        { "speaker": "Marcus", "kind": "offtopic", "say": "[laughs] Yeah, sorry — I'm here. Barely. I, uh... did not sleep. New puppy.", "text": "Yeah, sorry, I'm here. Barely. I, uh, did not sleep. New puppy." },
-        { "speaker": "Priya", "kind": "offtopic", "say": "Aww. Okay but... [pauses] we should probably start, I've got another thing at ten.", "text": "Aww. Okay but we should probably start, I've got another thing at ten." },
-        { "speaker": "Sam", "say": "Yeah, yeah. Let's do numbers. Marcus, churn — where'd we land?", "text": "Yeah, yeah. Let's do numbers. Marcus, churn, where'd we land?" },
-        { "speaker": "Marcus", "note": "numbers", "say": "So... [pauses] churn ticked up. We're at, like, four-point-one this month. Up from three-point-six.", "text": "So churn ticked up. We're at, like, four point one this month. Up from three point six." },
-        { "speaker": "Lena", "say": "[sighs] That's the third month it's crept up now, right?", "text": "That's the third month it's crept up now, right?" },
-        { "speaker": "Marcus", "say": "Yeah. And honestly... I had to dig through, like, three different sheets just to even tell you that number.", "text": "Yeah. And honestly, I had to dig through, like, three different sheets just to even tell you that number." },
-        { "speaker": "Priya", "note": "pain point", "say": "Same. [exhales] Every Monday it's the same scavenger hunt. I just... I never actually know where we stand without, like, half an hour of exporting stuff.", "text": "Same. Every Monday it's the same scavenger hunt. I just, I never actually know where we stand without, like, half an hour of exporting stuff." },
-        { "speaker": "Sam", "kind": "crosstalk", "overlapMs": 800, "say": "[overlapping] —right, every single week—", "text": "right, every single week" },
-        { "speaker": "Lena", "note": "buildable intent (dashboard) — buried & softened: WAU implied ('whoever's sticking around'), metrics not recited as a clean triplet", "say": "Honestly I just wish there was, like... one place I could just glance at. The churn, the revenue trend... whoever's actually sticking around. Without opening a single thing.", "text": "Honestly I just wish there was, like, one place I could just glance at. The churn, the revenue trend, whoever's actually sticking around. Without opening a single thing." },
-        { "speaker": "Marcus", "say": "Yeah. And that it just... updates itself. [laughs] I am so tired of CSVs.", "text": "Yeah. And that it just updates itself. I am so tired of CSVs." },
-        { "speaker": "Priya", "kind": "crosstalk", "overlapMs": 750, "say": "[overlapping] —oh my God, the CSVs—", "text": "oh my God, the CSVs" },
-        { "speaker": "Sam", "kind": "offtopic", "say": "Okay. Noted. [pauses] Um... totally unrelated, did anyone else's coffee order get completely butchered this morning, or is it just me?", "text": "Okay. Noted. Um, totally unrelated, did anyone else's coffee order get completely butchered this morning, or is it just me?" },
-        { "speaker": "Lena", "kind": "offtopic", "say": "[laughs] Mine just said... Lemma. Close enough, I guess.", "text": "Mine just said Lemma. Close enough, I guess." },
-        { "speaker": "Sam", "say": "Ha. Okay — focus, focus. Marcus, can you pull the churn cohorts before Thursday?", "text": "Ha. Okay, focus, focus. Marcus, can you pull the churn cohorts before Thursday?" },
-        { "speaker": "Marcus", "say": "Yeah, I'll... I'll get it over to you.", "text": "Yeah, I'll, I'll get it over to you." }
+        { "speaker": "Sam", "kind": "offtopic", "say": "Okay, we're rolling. Morning! How was everyone's weekend — someone make it sound fun.", "text": "Okay, we're rolling. Morning! How was everyone's weekend, someone make it sound fun." },
+        { "speaker": "Marcus", "kind": "offtopic", "say": "[laughs] Mine was a disaster. Got a puppy Saturday, haven't slept since. It ate an entire shoe, Sam. A WHOLE shoe.", "text": "Mine was a disaster. Got a puppy Saturday, haven't slept since. It ate an entire shoe, Sam. A whole shoe." },
+        { "speaker": "Priya", "kind": "offtopic", "say": "[laughs] Just the one shoe? Rookie numbers.", "text": "Just the one shoe? Rookie numbers." },
+        { "speaker": "Sam", "say": "[laughs] Okay, okay — before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me.", "text": "Okay, okay, before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me." },
+        { "speaker": "Marcus", "note": "numbers", "say": "Ugh, don't. It's up again. Four-one this month, we were at three-six.", "text": "Ugh, don't. It's up again. Four one this month, we were at three six." },
+        { "speaker": "Lena", "say": "[groans] That's three months straight it's been climbing.", "text": "That's three months straight it's been climbing." },
+        { "speaker": "Priya", "note": "pain point", "say": "And I always find out by digging through, like, four spreadsheets. Every Monday it's a little archaeology dig.", "text": "And I always find out by digging through, like, four spreadsheets. Every Monday it's a little archaeology dig." },
+        { "speaker": "Marcus", "kind": "crosstalk", "overlapMs": 700, "say": "[overlapping] —the archaeology dig, exactly—", "text": "the archaeology dig, exactly" },
+        { "speaker": "Sam", "say": "Right? By the time I've actually got the number, it's already out of date.", "text": "Right? By the time I've actually got the number, it's already out of date." },
+        { "speaker": "Lena", "note": "buildable intent (dashboard) — buried & softened: retention implied ('who's actually still with us'), metrics not a clean triplet", "say": "Honestly? I just want one screen I can glance at and go, okay we're fine, or, oh no. The churn, the revenue, who's actually still with us. That's it. That's the whole wish.", "text": "Honestly? I just want one screen I can glance at and go, okay we're fine, or, oh no. The churn, the revenue, who's actually still with us. That's it. That's the whole wish." },
+        { "speaker": "Marcus", "say": "And it updates itself. I never want to touch another CSV as long as I live.", "text": "And it updates itself. I never want to touch another CSV as long as I live." },
+        { "speaker": "Priya", "kind": "crosstalk", "overlapMs": 650, "say": "[overlapping] —death to CSVs—", "text": "death to CSVs" },
+        { "speaker": "Sam", "kind": "offtopic", "say": "[laughs] Strong. Okay, completely unrelated — is the coffee machine possessed? Mine handed me hot water and contempt this morning.", "text": "Strong. Okay, completely unrelated, is the coffee machine possessed? Mine handed me hot water and contempt this morning." },
+        { "speaker": "Lena", "kind": "offtopic", "say": "[laughs] It spelled my name Lemma. I've accepted it. I'm Lemma now.", "text": "It spelled my name Lemma. I've accepted it. I'm Lemma now." },
+        { "speaker": "Sam", "say": "[laughs] Welcome, Lemma. Okay — Marcus, can you get me the churn cohorts by Thursday, before I lose it?", "text": "Welcome, Lemma. Okay, Marcus, can you get me the churn cohorts by Thursday, before I lose it?" },
+        { "speaker": "Marcus", "say": "On it. Right after the puppy's nap.", "text": "On it. Right after the puppy's nap." }
       ]
     }
   ]

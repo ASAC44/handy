@@ -402,9 +402,9 @@
           "index": 0,
           "speaker": "Sam",
           "voice_id": "Fahco4VZzobUeiPqni1S",
-          "voice_name": "v1",
+          "voice_name": "male-a",
           "file": "growth-sync-en/00-Sam.wav",
-          "text": "Okay, give it a sec, I think Marcus is still joining. Morning, everyone. How was the weekend?",
+          "text": "Okay, we're rolling. Morning! How was everyone's weekend, someone make it sound fun.",
           "lang": "en",
           "kind": "offtopic",
           "startMs": 0
@@ -412,167 +412,167 @@
         {
           "index": 1,
           "speaker": "Marcus",
-          "voice_id": "MClEFoImJXBTgLwdLI5n",
-          "voice_name": "v3",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "male-b",
           "file": "growth-sync-en/01-Marcus.wav",
-          "text": "Yeah, sorry, I'm here. Barely. I, uh, did not sleep. New puppy.",
+          "text": "Mine was a disaster. Got a puppy Saturday, haven't slept since. It ate an entire shoe, Sam. A whole shoe.",
           "lang": "en",
           "kind": "offtopic",
-          "startMs": 9100
+          "startMs": 6540
         },
         {
           "index": 2,
           "speaker": "Priya",
-          "voice_id": "2t85BBUECtLLKQzxLD95",
-          "voice_name": "v2",
+          "voice_id": "DODLEQrClDo8wCz460ld",
+          "voice_name": "Lauren",
           "file": "growth-sync-en/02-Priya.wav",
-          "text": "Aww. Okay but we should probably start, I've got another thing at ten.",
+          "text": "Just the one shoe? Rookie numbers.",
           "lang": "en",
           "kind": "offtopic",
-          "startMs": 19140
+          "startMs": 14820
         },
         {
           "index": 3,
           "speaker": "Sam",
           "voice_id": "Fahco4VZzobUeiPqni1S",
-          "voice_name": "v1",
+          "voice_name": "male-a",
           "file": "growth-sync-en/03-Sam.wav",
-          "text": "Yeah, yeah. Let's do numbers. Marcus, churn, where'd we land?",
+          "text": "Okay, okay, before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 27470
+          "startMs": 18190
         },
         {
           "index": 4,
           "speaker": "Marcus",
-          "voice_id": "MClEFoImJXBTgLwdLI5n",
-          "voice_name": "v3",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "male-b",
           "file": "growth-sync-en/04-Marcus.wav",
-          "text": "So churn ticked up. We're at, like, four point one this month. Up from three point six.",
+          "text": "Ugh, don't. It's up again. Four one this month, we were at three six.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 32540
+          "startMs": 26700
         },
         {
           "index": 5,
           "speaker": "Lena",
-          "voice_id": "xKhbyU7E3bC6T89Kn26c",
-          "voice_name": "v4",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "Ivy",
           "file": "growth-sync-en/05-Lena.wav",
-          "text": "That's the third month it's crept up now, right?",
+          "text": "That's three months straight it's been climbing.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 42080
+          "startMs": 31840
         },
         {
           "index": 6,
-          "speaker": "Marcus",
-          "voice_id": "MClEFoImJXBTgLwdLI5n",
-          "voice_name": "v3",
-          "file": "growth-sync-en/06-Marcus.wav",
-          "text": "Yeah. And honestly, I had to dig through, like, three different sheets just to even tell you that number.",
+          "speaker": "Priya",
+          "voice_id": "DODLEQrClDo8wCz460ld",
+          "voice_name": "Lauren",
+          "file": "growth-sync-en/06-Priya.wav",
+          "text": "And I always find out by digging through, like, four spreadsheets. Every Monday it's a little archaeology dig.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 44700
+          "startMs": 35580
         },
         {
           "index": 7,
-          "speaker": "Priya",
-          "voice_id": "2t85BBUECtLLKQzxLD95",
-          "voice_name": "v2",
-          "file": "growth-sync-en/07-Priya.wav",
-          "text": "Same. Every Monday it's the same scavenger hunt. I just, I never actually know where we stand without, like, half an hour of exporting stuff.",
+          "speaker": "Marcus",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "male-b",
+          "file": "growth-sync-en/07-Marcus.wav",
+          "text": "the archaeology dig, exactly",
           "lang": "en",
-          "kind": "talk",
-          "startMs": 51080
+          "kind": "crosstalk",
+          "startMs": 40640
         },
         {
           "index": 8,
           "speaker": "Sam",
           "voice_id": "Fahco4VZzobUeiPqni1S",
-          "voice_name": "v1",
+          "voice_name": "male-a",
           "file": "growth-sync-en/08-Sam.wav",
-          "text": "right, every single week",
+          "text": "Right? By the time I've actually got the number, it's already out of date.",
           "lang": "en",
-          "kind": "crosstalk",
-          "startMs": 59960
+          "kind": "talk",
+          "startMs": 42920
         },
         {
           "index": 9,
           "speaker": "Lena",
-          "voice_id": "xKhbyU7E3bC6T89Kn26c",
-          "voice_name": "v4",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "Ivy",
           "file": "growth-sync-en/09-Lena.wav",
-          "text": "Honestly I just wish there was, like, one place I could just glance at. The churn, the revenue trend, whoever's actually sticking around. Without opening a single thing.",
+          "text": "Honestly? I just want one screen I can glance at and go, okay we're fine, or, oh no. The churn, the revenue, who's actually still with us. That's it. That's the whole wish.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 61810
+          "startMs": 46690
         },
         {
           "index": 10,
           "speaker": "Marcus",
-          "voice_id": "MClEFoImJXBTgLwdLI5n",
-          "voice_name": "v3",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "male-b",
           "file": "growth-sync-en/10-Marcus.wav",
-          "text": "Yeah. And that it just updates itself. I am so tired of CSVs.",
+          "text": "And it updates itself. I never want to touch another CSV as long as I live.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 71920
+          "startMs": 62480
         },
         {
           "index": 11,
           "speaker": "Priya",
-          "voice_id": "2t85BBUECtLLKQzxLD95",
-          "voice_name": "v2",
+          "voice_id": "DODLEQrClDo8wCz460ld",
+          "voice_name": "Lauren",
           "file": "growth-sync-en/11-Priya.wav",
-          "text": "oh my God, the CSVs",
+          "text": "death to CSVs",
           "lang": "en",
           "kind": "crosstalk",
-          "startMs": 78450
+          "startMs": 66150
         },
         {
           "index": 12,
           "speaker": "Sam",
           "voice_id": "Fahco4VZzobUeiPqni1S",
-          "voice_name": "v1",
+          "voice_name": "male-a",
           "file": "growth-sync-en/12-Sam.wav",
-          "text": "Okay. Noted. Um, totally unrelated, did anyone else's coffee order get completely butchered this morning, or is it just me?",
+          "text": "Strong. Okay, completely unrelated, is the coffee machine possessed? Mine handed me hot water and contempt this morning.",
           "lang": "en",
           "kind": "offtopic",
-          "startMs": 80750
+          "startMs": 68210
         },
         {
           "index": 13,
           "speaker": "Lena",
-          "voice_id": "xKhbyU7E3bC6T89Kn26c",
-          "voice_name": "v4",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "Ivy",
           "file": "growth-sync-en/13-Lena.wav",
-          "text": "Mine just said Lemma. Close enough, I guess.",
+          "text": "It spelled my name Lemma. I've accepted it. I'm Lemma now.",
           "lang": "en",
           "kind": "offtopic",
-          "startMs": 91690
+          "startMs": 76990
         },
         {
           "index": 14,
           "speaker": "Sam",
           "voice_id": "Fahco4VZzobUeiPqni1S",
-          "voice_name": "v1",
+          "voice_name": "male-a",
           "file": "growth-sync-en/14-Sam.wav",
-          "text": "Ha. Okay, focus, focus. Marcus, can you pull the churn cohorts before Thursday?",
+          "text": "Welcome, Lemma. Okay, Marcus, can you get me the churn cohorts by Thursday, before I lose it?",
           "lang": "en",
           "kind": "talk",
-          "startMs": 95490
+          "startMs": 83590
         },
         {
           "index": 15,
           "speaker": "Marcus",
-          "voice_id": "MClEFoImJXBTgLwdLI5n",
-          "voice_name": "v3",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "male-b",
           "file": "growth-sync-en/15-Marcus.wav",
-          "text": "Yeah, I'll, I'll get it over to you.",
+          "text": "On it. Right after the puppy's nap.",
           "lang": "en",
           "kind": "talk",
-          "startMs": 102300
+          "startMs": 91200
         }
       ]
     }
