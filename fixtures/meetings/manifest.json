@@ -391,6 +391,190 @@
           "startMs": 56810
         }
       ]
+    },
+    {
+      "id": "growth-sync-en",
+      "title": "Growth Sync (English)",
+      "lang": "en",
+      "full": "growth-sync-en/meeting.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Sam",
+          "voice_id": "Fahco4VZzobUeiPqni1S",
+          "voice_name": "v1",
+          "file": "growth-sync-en/00-Sam.wav",
+          "text": "Okay, give it a sec, I think Marcus is still joining. Morning, everyone. How was the weekend?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 0
+        },
+        {
+          "index": 1,
+          "speaker": "Marcus",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "v3",
+          "file": "growth-sync-en/01-Marcus.wav",
+          "text": "Yeah, sorry, I'm here. Barely. I, uh, did not sleep. New puppy.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 9100
+        },
+        {
+          "index": 2,
+          "speaker": "Priya",
+          "voice_id": "2t85BBUECtLLKQzxLD95",
+          "voice_name": "v2",
+          "file": "growth-sync-en/02-Priya.wav",
+          "text": "Aww. Okay but we should probably start, I've got another thing at ten.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 19140
+        },
+        {
+          "index": 3,
+          "speaker": "Sam",
+          "voice_id": "Fahco4VZzobUeiPqni1S",
+          "voice_name": "v1",
+          "file": "growth-sync-en/03-Sam.wav",
+          "text": "Yeah, yeah. Let's do numbers. Marcus, churn, where'd we land?",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 27470
+        },
+        {
+          "index": 4,
+          "speaker": "Marcus",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "v3",
+          "file": "growth-sync-en/04-Marcus.wav",
+          "text": "So churn ticked up. We're at, like, four point one this month. Up from three point six.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 32540
+        },
+        {
+          "index": 5,
+          "speaker": "Lena",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "v4",
+          "file": "growth-sync-en/05-Lena.wav",
+          "text": "That's the third month it's crept up now, right?",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 42080
+        },
+        {
+          "index": 6,
+          "speaker": "Marcus",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "v3",
+          "file": "growth-sync-en/06-Marcus.wav",
+          "text": "Yeah. And honestly, I had to dig through, like, three different sheets just to even tell you that number.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 44700
+        },
+        {
+          "index": 7,
+          "speaker": "Priya",
+          "voice_id": "2t85BBUECtLLKQzxLD95",
+          "voice_name": "v2",
+          "file": "growth-sync-en/07-Priya.wav",
+          "text": "Same. Every Monday it's the same scavenger hunt. I just, I never actually know where we stand without, like, half an hour of exporting stuff.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 51080
+        },
+        {
+          "index": 8,
+          "speaker": "Sam",
+          "voice_id": "Fahco4VZzobUeiPqni1S",
+          "voice_name": "v1",
+          "file": "growth-sync-en/08-Sam.wav",
+          "text": "right, every single week",
+          "lang": "en",
+          "kind": "crosstalk",
+          "startMs": 59960
+        },
+        {
+          "index": 9,
+          "speaker": "Lena",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "v4",
+          "file": "growth-sync-en/09-Lena.wav",
+          "text": "Honestly I just wish there was, like, one place I could just glance at. The churn, the revenue trend, whoever's actually sticking around. Without opening a single thing.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 61810
+        },
+        {
+          "index": 10,
+          "speaker": "Marcus",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "v3",
+          "file": "growth-sync-en/10-Marcus.wav",
+          "text": "Yeah. And that it just updates itself. I am so tired of CSVs.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 71920
+        },
+        {
+          "index": 11,
+          "speaker": "Priya",
+          "voice_id": "2t85BBUECtLLKQzxLD95",
+          "voice_name": "v2",
+          "file": "growth-sync-en/11-Priya.wav",
+          "text": "oh my God, the CSVs",
+          "lang": "en",
+          "kind": "crosstalk",
+          "startMs": 78450
+        },
+        {
+          "index": 12,
+          "speaker": "Sam",
+          "voice_id": "Fahco4VZzobUeiPqni1S",
+          "voice_name": "v1",
+          "file": "growth-sync-en/12-Sam.wav",
+          "text": "Okay. Noted. Um, totally unrelated, did anyone else's coffee order get completely butchered this morning, or is it just me?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 80750
+        },
+        {
+          "index": 13,
+          "speaker": "Lena",
+          "voice_id": "xKhbyU7E3bC6T89Kn26c",
+          "voice_name": "v4",
+          "file": "growth-sync-en/13-Lena.wav",
+          "text": "Mine just said Lemma. Close enough, I guess.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 91690
+        },
+        {
+          "index": 14,
+          "speaker": "Sam",
+          "voice_id": "Fahco4VZzobUeiPqni1S",
+          "voice_name": "v1",
+          "file": "growth-sync-en/14-Sam.wav",
+          "text": "Ha. Okay, focus, focus. Marcus, can you pull the churn cohorts before Thursday?",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 95490
+        },
+        {
+          "index": 15,
+          "speaker": "Marcus",
+          "voice_id": "MClEFoImJXBTgLwdLI5n",
+          "voice_name": "v3",
+          "file": "growth-sync-en/15-Marcus.wav",
+          "text": "Yeah, I'll, I'll get it over to you.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 102300
+        }
+      ]
     }
   ]
 }
