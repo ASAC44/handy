@@ -7,6 +7,14 @@
  */
 export type AsrProviderId = "elevenlabs" | "webspeech" | "gemma-local";
 
+/** Per-utterance timing — providers with measurable segmentation (Gemma local). */
+export interface AsrMetrics {
+  /** Captured utterance length (ms). */
+  segmentMs: number;
+  /** Server round-trip to transcribe it (ms). */
+  transcribeMs: number;
+}
+
 export interface AsrCallbacks {
   /** Interim, still-changing transcript for the in-flight utterance. */
   onPartial(text: string): void;
@@ -16,6 +24,8 @@ export interface AsrCallbacks {
   onError(message: string): void;
   /** 0..1 mic input level for a live meter (providers with audio access only). */
   onLevel?(level: number): void;
+  /** Timing for the just-finalized utterance, to surface the live latency. */
+  onMetrics?(m: AsrMetrics): void;
 }
 
 export interface AsrProvider {

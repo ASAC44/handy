@@ -1,17 +1,19 @@
 import type { AsrProvider, AsrProviderId, AsrProviderMeta } from "./types";
 import { ElevenLabsScribeProvider } from "./elevenlabs";
 import { WebSpeechProvider, webSpeechAvailable } from "./webspeech";
-import { GemmaLocalProvider } from "./gemmaLocal";
+import { GemmaLocalProvider, GEMMA_VAD_DEFAULTS, type GemmaVad } from "./gemmaLocal";
 
-export type { AsrProvider, AsrProviderId, AsrProviderMeta, AsrCallbacks } from "./types";
+export type { AsrProvider, AsrProviderId, AsrProviderMeta, AsrCallbacks, AsrMetrics } from "./types";
 export { webSpeechAvailable } from "./webspeech";
+export { GEMMA_VAD_DEFAULTS, type GemmaVad } from "./gemmaLocal";
 
-export function createAsrProvider(id: AsrProviderId): AsrProvider {
+/** `vad` is only used by the Gemma-local provider; pass the object the UI mutates to retune live. */
+export function createAsrProvider(id: AsrProviderId, vad?: GemmaVad): AsrProvider {
   switch (id) {
     case "elevenlabs":
       return new ElevenLabsScribeProvider();
     case "gemma-local":
-      return new GemmaLocalProvider();
+      return new GemmaLocalProvider(vad ?? { ...GEMMA_VAD_DEFAULTS });
     case "webspeech":
     default:
       return new WebSpeechProvider();

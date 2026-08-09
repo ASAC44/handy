@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .conn.off{color:var(--red);border-color:rgba(178,58,44,.3);background:rgba(178,58,44,.06)}
 
 /* ── Capture / host controls ─────────────────────────────────────────── */
-.captureDock{display:flex;align-items:center;gap:7px;min-width:0;flex:1;max-width:820px}
+.captureDock{display:flex;align-items:center;gap:7px;min-width:0;flex:1;max-width:820px;position:relative}
 .hostName,.manualLine{height:30px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:11px;padding:0 9px;min-width:0}
 .hostName{width:80px}
 .manualLine{flex:1;min-width:150px}
@@ -71,6 +71,14 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .capBtn.stop{border-color:rgba(178,58,44,.38);color:var(--red);background:rgba(178,58,44,.06)}
 .asrSelect{height:30px;border:1px solid var(--border2);border-radius:8px;background:var(--panel2);color:var(--text);font-family:var(--mono);font-size:10px;padding:0 8px;cursor:pointer}
 .asrSelect:focus{outline:none;border-color:var(--mint)}
+.vadPanel{position:absolute;top:38px;left:0;z-index:40;display:flex;flex-direction:column;gap:8px;width:308px;padding:12px 13px;background:var(--panel2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.4)}
+.vadHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.vadReset{background:none;border:none;color:var(--blue);font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;cursor:pointer;padding:0}
+.vadReset:hover{color:var(--mint)}
+.vadRow{display:grid;grid-template-columns:80px 1fr 50px;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.vadRow input[type=range]{width:100%;height:3px;accent-color:var(--mint);cursor:pointer}
+.vadRow b{color:var(--text);text-align:right;font-weight:500}
+.vadMetric{margin-top:2px;font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--mint);background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:7px 9px}
 .shareUrl{height:30px;display:inline-flex;align-items:center;border:1px solid rgba(52,92,156,.3);border-radius:8px;background:rgba(52,92,156,.06);color:var(--blue);font-family:var(--mono);font-size:10px;text-decoration:none;padding:0 10px;white-space:nowrap}
 .capError{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red);font-family:var(--mono);font-size:10px}
 .watchDock{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:6px 10px;white-space:nowrap}

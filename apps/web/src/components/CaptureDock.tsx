@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClientEvent } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
-import { asrProviders, createAsrProvider, webSpeechAvailable, type AsrProvider, type AsrProviderId } from "../asr";
+import { asrProviders, createAsrProvider, webSpeechAvailable, GEMMA_VAD_DEFAULTS, type AsrProvider, type AsrProviderId, type AsrMetrics, type GemmaVad } from "../asr";
 import { InviteButton } from "./InviteButton";
 
 export function CaptureDock({
@@ -20,6 +20,10 @@ export function CaptureDock({
   const [manual, setManual] = useState("");
   const [error, setError] = useState("");
   const [level, setLevel] = useState(0);
+  const [metric, setMetric] = useState<AsrMetrics | null>(null);
+  const [showVad, setShowVad] = useState(false);
+  const vadRef = useRef<GemmaVad>(loadVad());
+  const [vadView, setVadView] = useState<GemmaVad>(() => ({ ...vadRef.current }));
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -30,6 +34,14 @@ export function CaptureDock({
   const speechOnRef = useRef(false);
 
   const providers = asrProviders();
+
+  // Mutate the SAME object the running provider reads, so VAD changes apply live.
+  const setVad = (patch: Partial<GemmaVad>): void => {
+    Object.assign(vadRef.current, patch);
+    const next = { ...vadRef.current };
+    setVadView(next);
+    localStorage.setItem("sidebar.vad", JSON.stringify(next));
+  };
 
   useEffect(() => {
     return () => {
@@ -115,7 +127,7 @@ export function CaptureDock({
   // Gemma E4B). Transcripts are forwarded as the existing transcript.* events; a
   // final segment also snaps a fresh screen frame so the build sees current context.
   const startWith = async (id: AsrProviderId): Promise<void> => {
-    const provider = createAsrProvider(id);
+    const provider = createAsrProvider(id, vadRef.current);
     try {
       await provider.start({
         onPartial: (text) => send({ type: "transcript.partial", text, speaker: host }),
@@ -125,6 +137,7 @@ export function CaptureDock({
         },
         onError: (msg) => setError(msg),
         onLevel: (lvl) => setLevel(lvl),
+        onMetrics: (m) => setMetric(m),
       });
       asrRef.current = provider;
       speechOnRef.current = true;
@@ -154,6 +167,7 @@ export function CaptureDock({
     speechOnRef.current = false;
     setSpeechOn(false);
     setLevel(0);
+    setMetric(null);
     sendStatus(screenOnRef.current, false);
   };
 
@@ -194,6 +208,38 @@ export function CaptureDock({
 
   return (
     <div className="captureDock">
+      {asrId === "gemma-local" && showVad ? (
+        <div className="vadPanel">
+          <div className="vadHead">
+            <span>on-device VAD · latency knobs</span>
+            <button className="vadReset" onClick={() => setVad({ ...GEMMA_VAD_DEFAULTS })}>
+              reset
+            </button>
+          </div>
+          <label className="vadRow">
+            <span>finalize silence</span>
+            <input type="range" min={150} max={1500} step={50} value={vadView.silenceMs} onChange={(e) => setVad({ silenceMs: +e.target.value })} />
+            <b>{vadView.silenceMs}ms</b>
+          </label>
+          <label className="vadRow">
+            <span>max segment</span>
+            <input type="range" min={2000} max={15000} step={500} value={vadView.maxUtterMs} onChange={(e) => setVad({ maxUtterMs: +e.target.value })} />
+            <b>{(vadView.maxUtterMs / 1000).toFixed(1)}s</b>
+          </label>
+          <label className="vadRow">
+            <span>mic onset</span>
+            <input type="range" min={4} max={50} step={1} value={Math.round(vadView.startRms * 1000)} onChange={(e) => setVad({ startRms: +e.target.value / 1000 })} />
+            <b>{vadView.startRms.toFixed(3)}</b>
+          </label>
+          <div className="vadMetric">
+            {metric
+              ? `last: ${(metric.segmentMs / 1000).toFixed(1)}s segment · ${Math.round(metric.transcribeMs)}ms transcribe · ~${((vadView.silenceMs + metric.transcribeMs) / 1000).toFixed(1)}s to appear`
+              : speechOn
+                ? "speak to measure…"
+                : "start the mic, then speak"}
+          </div>
+        </div>
+      ) : null}
       <input className="hostName" value={host} onChange={(e) => persistHost(e.target.value)} placeholder="your name" aria-label="Host name" />
       <button className="capBtn primary" onClick={startRoom}>
         Live
@@ -219,6 +265,11 @@ export function CaptureDock({
           </option>
         ))}
       </select>
+      {asrId === "gemma-local" ? (
+        <button className={"capBtn" + (showVad ? " on" : "")} onClick={() => setShowVad((v) => !v)} title="On-device VAD latency knobs">
+          VAD
+        </button>
+      ) : null}
       <button className={"capBtn" + (speechOn ? " on" : "")} onClick={speechOn ? stopSpeech : () => void startSpeech()}>
         Mic
       </button>
@@ -267,4 +318,14 @@ function withHostParam(): string {
   const url = new URL(location.href);
   url.searchParams.set("host", "1");
   return url.pathname + url.search + url.hash;
+}
+
+function loadVad(): GemmaVad {
+  try {
+    const raw = localStorage.getItem("sidebar.vad");
+    if (raw) return { ...GEMMA_VAD_DEFAULTS, ...(JSON.parse(raw) as Partial<GemmaVad>) };
+  } catch {
+    /* ignore malformed cache */
+  }
+  return { ...GEMMA_VAD_DEFAULTS };
 }
