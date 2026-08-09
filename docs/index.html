@@ -264,14 +264,8 @@ section{padding:84px 0}
   letter-spacing:-.02em;margin:14px 0 0;line-height:1.08;position:relative}
 .cta-card h2 em{font-style:italic;color:var(--mint)}
 .cta-card p{color:var(--muted);font-size:16.5px;margin:14px auto 0;max-width:46ch;position:relative}
-.form{display:flex;gap:10px;max-width:440px;margin:26px auto 0;position:relative}
-.form input{flex:1;height:48px;border-radius:11px;border:1px solid var(--border2);background:var(--card2);
-  padding:0 16px;font-family:var(--mono);font-size:13px;color:var(--ink)}
-.form input:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-soft)}
-.form input::placeholder{color:var(--dim)}
-.form .btn.solid{height:48px;padding:0 22px;font-size:13px}
-.form-ok{font-family:var(--mono);font-size:13px;color:var(--mint);margin:26px auto 0;
-  display:flex;gap:9px;align-items:center;justify-content:center}
+.cta-actions{display:flex;gap:11px;justify-content:center;margin:26px 0 0;flex-wrap:wrap;position:relative}
+.cta-actions .btn{padding:12px 22px;font-size:13px}
 .cta-card .fine{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:16px;letter-spacing:.03em;position:relative}
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
@@ -323,7 +317,7 @@ footer .colophon b{color:var(--muted)}
       <a href="#how">How it works</a>
       <a href="#team">Team</a>
     </div>
-    <a href="#waitlist" class="btn solid">Join the waitlist</a>
+    <a class="btn solid" href="https://github.com/igorls/sidebar" target="_blank" rel="noopener">View on GitHub</a>
   </div>
 </nav>
 
@@ -337,7 +331,7 @@ footer .colophon b{color:var(--muted)}
         idea into a working prototype in about a second and a half — fast enough that the room reacts
         to the thing, not the promise.</p>
       <div class="actions">
-        <a href="#waitlist" class="btn solid">Join the waitlist</a>
+        <a class="btn solid" href="https://github.com/igorls/sidebar" target="_blank" rel="noopener">View on GitHub</a>
         <a href="#speed" class="btn ghost">See the speed cliff &rarr;</a>
       </div>
       <div class="meta">
@@ -616,19 +610,18 @@ footer .colophon b{color:var(--muted)}
 </section>
 
 <!-- ── CTA ──────────────────────────────────────────────────────────────── -->
-<section id="waitlist" class="cta">
+<section id="repo" class="cta">
   <div class="wrap">
     <div class="cta-card rv">
-      <span class="eyebrow" style="position:relative">Early access</span>
+      <span class="eyebrow" style="position:relative">See it for yourself</span>
       <h2>Make your next meeting <em>build something.</em></h2>
-      <p>Sidebar is a hackathon MVP today, and it already runs end-to-end. Leave an email and we'll reach
-        out when the live room opens up.</p>
-      <form class="form" id="waitForm" novalidate>
-        <input id="waitEmail" type="email" inputmode="email" autocomplete="email"
-               placeholder="you@work.com" aria-label="Work email" required />
-        <button type="submit" class="btn solid">Join the waitlist</button>
-      </form>
-      <div class="fine">No spam. The demo runs with no API keys in mock mode.</div>
+      <p>Sidebar is a hackathon MVP that already runs end-to-end — locally, in mock mode, with no API
+        keys. Read the build, run it, or race the speed cliff yourself.</p>
+      <div class="cta-actions">
+        <a class="btn solid" href="https://github.com/igorls/sidebar" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+        <a class="btn ghost" href="#how">How it works</a>
+      </div>
+      <div class="fine">Runs locally in mock mode — no API keys needed.</div>
     </div>
   </div>
 </section>
@@ -639,11 +632,10 @@ footer .colophon b{color:var(--muted)}
     <div class="row">
       <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
       <div class="fl">
-        <a href="https://github.com/igorls/gemma-cerebras-hackathon">Repository</a>
+        <a href="https://github.com/igorls/sidebar" target="_blank" rel="noopener">Repository</a>
         <a href="#speed">Speed</a>
         <a href="#agents">The panel</a>
         <a href="#team">Team</a>
-        <a href="#waitlist">Waitlist</a>
       </div>
     </div>
     <div class="colophon">
@@ -735,18 +727,6 @@ footer .colophon b{color:var(--muted)}
     else { said.querySelector(".cur") && said.querySelector(".cur").remove(); setTimeout(runTimers, 280); }
   }
   setTimeout(type, 650);
-
-  /* ── Waitlist (client-side only — honest about being a demo) ─────────── */
-  var form = document.getElementById("waitForm");
-  if (form) form.addEventListener("submit", function(e){
-    e.preventDefault();
-    var email = document.getElementById("waitEmail").value.trim();
-    if (!email || email.indexOf("@") < 1) { document.getElementById("waitEmail").focus(); return; }
-    var ok = document.createElement("div");
-    ok.className = "form-ok";
-    ok.innerHTML = "&#10003; You're on the list — we'll be in touch at " + email;
-    form.replaceWith(ok);
-  });
 })();
 </script>
 </body>
