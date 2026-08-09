@@ -13,6 +13,7 @@ import { DragLayer, type DragLayerHandle } from "./components/DragLayer";
 import { RecapView } from "./components/RecapView";
 import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
+import { Logo } from "./components/Logo";
 
 /** Builds the .main grid-template-columns: a fixed track per visible rail with
  *  the canvas always taking the remaining 1fr in the middle. */
@@ -82,7 +83,7 @@ function Lock({ onSubmit, error, busy }: { onSubmit: (pw: string) => void; error
         }}
       >
         <div className="lockBrand">
-          <span className="logo">&#9624;</span> Sidebar
+          <span className="logo"><Logo /></span> Sidebar
         </div>
         <div className="lockTitle">This meeting is locked</div>
         <input
@@ -108,7 +109,7 @@ function Removed() {
     <div className="lockScreen">
       <div className="lockCard">
         <div className="lockBrand">
-          <span className="logo">&#9624;</span> Sidebar
+          <span className="logo"><Logo /></span> Sidebar
         </div>
         <div className="lockTitle">You were removed from the meeting</div>
         <button className="lockBtn" onClick={() => location.reload()}>
@@ -124,7 +125,7 @@ function Left() {
     <div className="lockScreen">
       <div className="lockCard">
         <div className="lockBrand">
-          <span className="logo">&#9624;</span> Sidebar
+          <span className="logo"><Logo /></span> Sidebar
         </div>
         <div className="lockTitle">You left the meeting</div>
         <button className="lockBtn" onClick={() => location.reload()}>
@@ -183,7 +184,7 @@ function Meeting() {
     <div className={"app" + (hostMode ? "" : " viewer") + (dragging ? " dragging" : "")}>
       <header className="topbar">
         <div className="brand">
-          <span className="logo">&#9624;</span> Sidebar <span className="bsub">ambient meeting copilot</span>
+          <span className="logo"><Logo /></span> Sidebar <span className="bsub">meeting agents</span>
         </div>
         <span className={"conn " + (state.connected ? "on" : "off")}>
           {state.connected ? "● connected" : "○ offline"}
