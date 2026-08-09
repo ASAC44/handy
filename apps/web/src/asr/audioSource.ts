@@ -51,6 +51,12 @@ export async function fileSource(ctx: AudioContext, pb: Playback, onEnded: () =>
   const buffer = await ctx.decodeAudioData(pb.data.slice(0));
   const src = ctx.createBufferSource();
   src.buffer = buffer;
+  // Route the recording to the speakers too, so it's audible for a demo recording. (The
+  // VAD path is a separate, muted tap the provider wires from `node`.) The mic never does
+  // this — playing the mic back to the speakers would feed back.
+  const monitor = ctx.createGain();
+  src.connect(monitor);
+  monitor.connect(ctx.destination);
   let stopped = false;
   src.onended = () => {
     if (!stopped) onEnded();
@@ -67,6 +73,11 @@ export async function fileSource(ctx: AudioContext, pb: Playback, onEnded: () =>
         src.stop();
       } catch {
         /* already stopped */
+      }
+      try {
+        monitor.disconnect();
+      } catch {
+        /* already detached */
       }
     },
   };
