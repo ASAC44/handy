@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sidebar — ship the idea while it's still being spoken</title>
+<meta name="description" content="Sidebar is an ambient panel of AI agents for live meetings. It turns a spoken idea into a working prototype in about a second and a half — fast enough that the room reacts to the thing, not the promise. Built on Cerebras + Gemma 4." />
+<meta property="og:title" content="Sidebar — ambient meeting copilot" />
+<meta property="og:description" content="A spoken idea becomes a running prototype in ~1.5s. Built on Cerebras + Gemma 4." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ───────────────────────────────────────────────────────────────────────────
+   Sidebar — landing page. "Studio Paper": warm editorial light, with a dark
+   "canvas" inset standing in for the live product. Type does the talking.
+   Self-contained: single file, no build step. Fonts from Google (system fallback).
+   ─────────────────────────────────────────────────────────────────────────── */
+:root{
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* Paper — warm light editorial */
+  --paper:#ece8df; --paper2:#f4f1ea; --card:#fbf9f4; --card2:#fffefb;
+  --border:#e2ddd0; --border2:#d3ccba;
+  --ink:#211e18; --muted:#5f5848; --dim:#857c69;
+  --mint:#16715c; --mint-soft:rgba(22,113,92,.08); --mint-line:rgba(22,113,92,.28);
+  --blue:#345c9c; --amber:#9a6f12; --violet:#6a57a3; --rose:#a8516a; --red:#b23a2c;
+  --shadow:0 1px 2px rgba(48,40,28,.05), 0 14px 40px rgba(48,40,28,.08);
+  --shadow-lg:0 24px 70px rgba(48,40,28,.18);
+
+  /* The "canvas" — the app's Midnight prototype theme, used for product insets */
+  --screen:#0e1320; --screen2:#121829; --screen-card:#1a2236;
+  --s-ink:#e8edf7; --s-mut:#8d9bb5; --s-border:#232c44;
+  --s-ac:#6ee7b7; --s-ac2:#7c9cff;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background-image:
+    radial-gradient(140% 90% at 82% -8%, var(--paper2), transparent 55%),
+    radial-gradient(70% 50% at -5% 0%, rgba(22,113,92,.05), transparent 60%);
+}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(22,113,92,.18)}
+:focus-visible{outline:2px solid var(--mint);outline-offset:3px;border-radius:3px}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+
+/* ── eyebrow / marginalia: the recurring "system voice" label ───────────── */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);
+  font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--mint)}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--mint-line)}
+.idx{font-family:var(--mono);color:var(--dim);font-size:11px;letter-spacing:.1em}
+
+/* ── Nav / masthead ─────────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+  background:rgba(236,232,223,.82);border-bottom:1px solid var(--border)}
+.nav .row{display:flex;align-items:center;gap:26px;height:62px}
+.brand{display:flex;align-items:baseline;gap:11px;font-family:var(--serif);
+  font-weight:600;font-size:23px;letter-spacing:-.015em}
+.brand .logo{align-self:center;color:var(--mint);font-size:16px}
+.brand .bsub{font-family:var(--mono);font-weight:500;color:var(--dim);font-size:9.5px;
+  letter-spacing:.18em;text-transform:uppercase}
+.nav .links{display:flex;gap:24px;margin-left:auto;font-family:var(--mono);font-size:12px;
+  letter-spacing:.04em;color:var(--muted)}
+.nav .links a{position:relative;padding:4px 0}
+.nav .links a::after{content:"";position:absolute;left:0;bottom:0;height:1px;width:0;
+  background:var(--mint);transition:width .22s ease}
+.nav .links a:hover{color:var(--ink)} .nav .links a:hover::after{width:100%}
+.btn{font-family:var(--mono);font-size:12px;letter-spacing:.03em;font-weight:500;
+  border-radius:9px;padding:9px 16px;cursor:pointer;transition:.16s;white-space:nowrap;
+  border:1px solid var(--mint-line);background:var(--mint-soft);color:var(--mint)}
+.btn:hover{background:rgba(22,113,92,.14);transform:translateY(-1px)}
+.btn.solid{background:var(--mint);color:var(--card2);border-color:var(--mint)}
+.btn.solid:hover{background:#125e4d}
+.btn.ghost{background:transparent;border-color:var(--border2);color:var(--muted)}
+.btn.ghost:hover{border-color:var(--mint-line);color:var(--mint)}
+@media(max-width:860px){.nav .links{display:none}}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+.hero{padding:72px 0 36px}
+.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:48px;align-items:center}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5.4vw,68px);
+  line-height:1.03;letter-spacing:-.025em;margin:20px 0 0}
+.hero h1 em{font-style:italic;color:var(--mint)}
+.hero .lede{font-size:18.5px;color:var(--muted);max-width:34ch;margin:22px 0 0;line-height:1.55}
+.hero .actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.hero .actions .btn{padding:12px 20px;font-size:13px}
+.hero .meta{display:flex;gap:22px;margin-top:30px;font-family:var(--mono);font-size:11px;
+  color:var(--dim);letter-spacing:.04em;flex-wrap:wrap}
+.hero .meta b{color:var(--ink);font-weight:600}
+.hero .meta .dot{color:var(--mint)}
+
+/* ── Hero signature: the idea→artifact race ─────────────────────────────── */
+.race{background:var(--card);border:1px solid var(--border);border-radius:18px;
+  box-shadow:var(--shadow-lg);overflow:hidden}
+.race-h{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.race-h .rec{width:8px;height:8px;border-radius:50%;background:var(--red);
+  box-shadow:0 0 0 0 rgba(178,58,44,.5);animation:pulse 1.8s infinite}
+.race-h .who{margin-left:auto;color:var(--mint);text-transform:none;letter-spacing:.02em}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(178,58,44,.45)}70%{box-shadow:0 0 0 7px rgba(178,58,44,0)}100%{box-shadow:0 0 0 0 rgba(178,58,44,0)}}
+.spoken{padding:15px 16px;border-bottom:1px solid var(--border);background:var(--card2)}
+.spoken .sp{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+.spoken .said{font-family:var(--serif);font-size:17.5px;line-height:1.4;margin-top:5px;min-height:1.4em}
+.spoken .said .cur{display:inline-block;width:2px;height:1em;background:var(--mint);
+  margin-left:1px;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.ticks{display:flex;gap:7px;padding:11px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tick{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--dim);
+  border:1px solid var(--border2);border-radius:99px;padding:4px 9px;display:inline-flex;gap:6px;
+  align-items:center;opacity:.45;transition:.3s}
+.tick i{width:5px;height:5px;border-radius:50%;background:var(--dim)}
+.tick.on{opacity:1;color:var(--mint);border-color:var(--mint-line);background:var(--mint-soft)}
+.tick.on i{background:var(--mint)}
+
+/* the dark canvas inset — looks like a real prototype the product emitted */
+.screen{background:var(--screen);padding:14px 16px 16px}
+.screen .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--s-mut)}
+.art{margin-top:9px;border:1px solid var(--s-border);border-radius:10px;background:var(--screen2);
+  padding:11px;opacity:0;transform:translateY(6px);transition:opacity .5s ease,transform .5s ease}
+.art.in{opacity:1;transform:none}
+.art .at{font-family:var(--serif);color:var(--s-ink);font-size:13px;margin:0 0 8px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.kpi{background:var(--screen-card);border:1px solid var(--s-border);border-radius:7px;padding:7px 8px}
+.kpi .k{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--s-mut)}
+.kpi .v{font-family:var(--serif);color:var(--s-ink);font-size:16px;font-weight:600;margin-top:2px}
+.kpi .v small{font-family:var(--mono);font-size:8px;color:var(--s-ac);font-weight:400;margin-left:3px}
+.bars{display:flex;align-items:flex-end;gap:5px;height:42px;padding-top:4px}
+.bars i{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--s-ac2),var(--s-ac));
+  min-height:3px;height:var(--h,30%);transform:scaleY(0);transform-origin:bottom;transition:transform .5s ease var(--d,0s)}
+.art.in .bars i{transform:scaleY(1)}
+
+/* dual timer */
+.timers{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border)}
+.timer{background:var(--card);padding:13px 16px}
+.timer .eng{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--dim);display:flex;
+  align-items:center;gap:6px}
+.timer .eng b{color:var(--ink);font-weight:600}
+.timer .t{font-family:var(--mono);font-weight:600;font-size:30px;letter-spacing:-.02em;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.timer.fast{background:var(--mint-soft)} .timer.fast .t{color:var(--mint)}
+.timer.fast .eng b{color:var(--mint)}
+.timer.slow .t{color:var(--dim)} .timer.slow.run .t{color:var(--red)}
+.timer .note{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:2px;letter-spacing:.02em}
+.timer.fast .badge{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mint);border:1px solid var(--mint-line);border-radius:99px;padding:1px 6px;margin-left:auto}
+.timer .eng .badge.slow{color:var(--dim);border-color:var(--border2)}
+
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:34px}.hero{padding:48px 0 24px}}
+
+/* ── ribbon ─────────────────────────────────────────────────────────────── */
+.ribbon{border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  background:var(--card2);margin-top:42px}
+.ribbon .row{display:flex;flex-wrap:wrap;gap:10px 30px;padding:16px 0;font-family:var(--mono);
+  font-size:11px;letter-spacing:.05em;color:var(--muted);align-items:center;justify-content:center}
+.ribbon b{color:var(--ink)} .ribbon .s{color:var(--mint)}
+
+/* ── generic section ────────────────────────────────────────────────────── */
+section{padding:84px 0}
+.sec-head{max-width:62ch}
+.sec-head h2{font-family:var(--serif);font-weight:500;font-size:clamp(28px,3.6vw,42px);
+  letter-spacing:-.02em;line-height:1.1;margin:16px 0 0}
+.sec-head h2 em{font-style:italic;color:var(--mint)}
+.sec-head p{font-size:17px;color:var(--muted);margin:14px 0 0;max-width:54ch}
+
+/* ── Speed cliff ────────────────────────────────────────────────────────── */
+.cliff{background:var(--card);border:1px solid var(--border);border-radius:18px;
+  box-shadow:var(--shadow);padding:30px 30px 24px;margin-top:40px}
+.cbar{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center;padding:14px 0}
+.cbar+.cbar{border-top:1px solid var(--border)}
+.cbar .lab{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.02em}
+.cbar .lab b{display:block;color:var(--ink);font-size:13px;font-weight:600;letter-spacing:0}
+.cbar .lab .sub{color:var(--dim);font-size:10.5px}
+.track{position:relative;height:38px;border-radius:9px;background:var(--paper2);
+  border:1px solid var(--border);overflow:hidden}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:8px;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.fill.f-fast{background:linear-gradient(90deg,var(--mint),#3aa589)}
+.fill.f-mid{background:linear-gradient(90deg,var(--amber),#c79a3a)}
+.fill.f-slow{background:linear-gradient(90deg,var(--rose),var(--red))}
+.cbar .time{position:absolute;top:50%;transform:translateY(-50%);right:13px;font-family:var(--mono);
+  font-weight:600;font-size:15px;color:#fff;letter-spacing:-.01em;mix-blend-mode:normal;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cbar.fast .time{left:5%;right:auto;transform:translateY(-50%);color:var(--mint);text-shadow:none}
+.cliff .foot{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:18px;
+  padding-top:16px;border-top:1px solid var(--border);letter-spacing:.02em;line-height:1.6}
+.cliff .foot b{color:var(--ink)}
+
+/* ── Agents (the panel) ─────────────────────────────────────────────────── */
+.agents{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:40px}
+.agent{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 22px 20px;
+  box-shadow:var(--shadow);transition:.18s;position:relative}
+.agent:hover{transform:translateY(-3px);border-color:var(--border2);box-shadow:var(--shadow-lg)}
+.agent.hero-a{grid-column:1/-1;border-color:var(--mint-line);background:
+  linear-gradient(180deg,var(--mint-soft),var(--card) 38%)}
+.agent .role{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.agent .nm{font-family:var(--serif);font-size:21px;font-weight:600;margin:9px 0 0;letter-spacing:-.01em;
+  display:flex;align-items:center;gap:9px}
+.agent .nm .star{color:var(--mint);font-size:14px}
+.agent p{margin:9px 0 0;font-size:14.5px;color:var(--muted);line-height:1.55}
+.agent .tags{display:flex;gap:6px;margin-top:13px;flex-wrap:wrap}
+.agent .tg{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--muted);
+  border:1px solid var(--border2);border-radius:99px;padding:3px 8px;background:var(--card2)}
+.agent.hero-a .tg{border-color:var(--mint-line);color:var(--mint)}
+@media(max-width:760px){.agents{grid-template-columns:1fr}}
+
+/* ── Design DNA ─────────────────────────────────────────────────────────── */
+.dna{display:grid;grid-template-columns:.9fr 1.1fr;gap:42px;align-items:center;margin-top:40px}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.sw{border-radius:13px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);
+  transition:.2s;cursor:default}
+.sw:hover{transform:translateY(-4px)}
+.sw.pick{outline:2px solid var(--mint);outline-offset:2px}
+.sw .top{height:78px;padding:11px;display:flex;flex-direction:column;justify-content:space-between}
+.sw .chip{width:38px;height:7px;border-radius:99px}
+.sw .ln{height:6px;border-radius:99px;width:70%}
+.sw .ln.s{width:46%;margin-top:5px}
+.sw .cap{padding:9px 11px;background:var(--card);font-family:var(--mono);font-size:10px;
+  letter-spacing:.03em;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.sw .cap b{color:var(--ink);font-weight:600;font-family:var(--sans);font-size:12px}
+.sw .cap .got{color:var(--mint);font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:0}
+.sw.pick .cap .got{opacity:1}
+.dna .note{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:16px;letter-spacing:.02em}
+.dna .note b{color:var(--mint)}
+@media(max-width:820px){.dna{grid-template-columns:1fr;gap:28px}}
+
+/* ── The room (capabilities) ────────────────────────────────────────────── */
+.room{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.cap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;
+  box-shadow:var(--shadow);transition:.18s}
+.cap:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.cap .ic{font-family:var(--mono);font-size:12px;color:var(--mint);border:1px solid var(--mint-line);
+  width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:var(--mint-soft)}
+.cap h3{font-family:var(--serif);font-size:18px;font-weight:600;margin:13px 0 0;letter-spacing:-.01em}
+.cap p{margin:7px 0 0;font-size:14px;color:var(--muted);line-height:1.5}
+.cap p em{font-style:normal;color:var(--ink);font-weight:500}
+@media(max-width:900px){.room{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.room{grid-template-columns:1fr}}
+
+/* ── How it works ───────────────────────────────────────────────────────── */
+.flow{border-top:1px solid var(--border);margin-top:40px}
+.step{display:grid;grid-template-columns:74px 200px 1fr;gap:24px;align-items:baseline;
+  padding:24px 4px;border-bottom:1px solid var(--border)}
+.step .n{font-family:var(--mono);font-size:13px;color:var(--mint);letter-spacing:.1em;font-weight:500}
+.step h4{font-family:var(--serif);font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+.step p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55}
+.step:hover{background:var(--card2)}
+@media(max-width:760px){.step{grid-template-columns:54px 1fr;gap:14px}.step p{grid-column:2}}
+
+/* ── CTA ────────────────────────────────────────────────────────────────── */
+.cta{margin:30px 0 90px}
+.cta-card{background:linear-gradient(165deg,var(--card2),var(--paper2));border:1px solid var(--border2);
+  border-radius:22px;box-shadow:var(--shadow-lg);padding:54px 44px;text-align:center;position:relative;overflow:hidden}
+.cta-card::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(60% 80% at 50% -20%, rgba(22,113,92,.10), transparent 70%);pointer-events:none}
+.cta-card h2{font-family:var(--serif);font-weight:500;font-size:clamp(28px,4vw,44px);
+  letter-spacing:-.02em;margin:14px 0 0;line-height:1.08;position:relative}
+.cta-card h2 em{font-style:italic;color:var(--mint)}
+.cta-card p{color:var(--muted);font-size:16.5px;margin:14px auto 0;max-width:46ch;position:relative}
+.form{display:flex;gap:10px;max-width:440px;margin:26px auto 0;position:relative}
+.form input{flex:1;height:48px;border-radius:11px;border:1px solid var(--border2);background:var(--card2);
+  padding:0 16px;font-family:var(--mono);font-size:13px;color:var(--ink)}
+.form input:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-soft)}
+.form input::placeholder{color:var(--dim)}
+.form .btn.solid{height:48px;padding:0 22px;font-size:13px}
+.form-ok{font-family:var(--mono);font-size:13px;color:var(--mint);margin:26px auto 0;
+  display:flex;gap:9px;align-items:center;justify-content:center}
+.cta-card .fine{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:16px;letter-spacing:.03em;position:relative}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--border);background:var(--card2);padding:34px 0 40px}
+footer .row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer .brand{font-size:19px} footer .brand .bsub{font-size:9px}
+footer .fl{display:flex;gap:22px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.03em}
+footer .fl a:hover{color:var(--mint)}
+footer .colophon{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:20px;
+  line-height:1.7;letter-spacing:.02em;max-width:72ch}
+footer .colophon b{color:var(--muted)}
+
+/* ── Team / built by ────────────────────────────────────────────────────── */
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:36px;max-width:780px}
+.member{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:17px 19px;box-shadow:var(--shadow);transition:.18s}
+.member:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--mint-line)}
+.member .av{width:54px;height:54px;border-radius:50%;flex:none;background:var(--mint-soft);
+  border:1px solid var(--border2);object-fit:cover}
+.member .who{min-width:0;display:flex;flex-direction:column}
+.member .nm{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.member .rl{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.03em;margin-top:3px}
+.member .gh{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;
+  color:var(--mint);margin-top:8px}
+.member:hover .gh{text-decoration:underline}
+.member .gh svg{flex:none}
+@media(max-width:680px){.team-grid{grid-template-columns:1fr}}
+
+/* ── scroll reveal ──────────────────────────────────────────────────────── */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.rv.shown{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;transition:none}
+  .art{opacity:1;transform:none}.art .bars i{transform:scaleY(1);transition:none}
+  .race-h .rec,.spoken .said .cur{animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="wrap row">
+    <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
+    <div class="links">
+      <a href="#speed">Speed</a>
+      <a href="#agents">The panel</a>
+      <a href="#room">The room</a>
+      <a href="#how">How it works</a>
+      <a href="#team">Team</a>
+    </div>
+    <a href="#waitlist" class="btn solid">Join the waitlist</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Ambient meeting copilot</span>
+      <h1>Ship the idea <em>while it's still being spoken.</em></h1>
+      <p class="lede">Sidebar is a panel of AI agents that listens to your meeting and turns a spoken
+        idea into a working prototype in about a second and a half — fast enough that the room reacts
+        to the thing, not the promise.</p>
+      <div class="actions">
+        <a href="#waitlist" class="btn solid">Join the waitlist</a>
+        <a href="#speed" class="btn ghost">See the speed cliff &rarr;</a>
+      </div>
+      <div class="meta">
+        <span>Built on <b>Cerebras&nbsp;+&nbsp;Gemma&nbsp;4</b></span>
+        <span class="dot">&bull;</span>
+        <span><b>~1,588</b> tok/s</span>
+        <span class="dot">&bull;</span>
+        <span>screen-aware &bull; multiplayer</span>
+      </div>
+    </div>
+
+    <!-- signature: the idea→artifact race -->
+    <div class="race rv" aria-hidden="true">
+      <div class="race-h"><span class="rec"></span> Live meeting <span class="who">3 in the room</span></div>
+      <div class="spoken">
+        <div class="sp">Priya &mdash; speaking</div>
+        <div class="said" id="said"><span class="cur"></span></div>
+      </div>
+      <div class="ticks" id="ticks">
+        <span class="tick" data-t="router"><i></i> router</span>
+        <span class="tick" data-t="summary"><i></i> summary</span>
+        <span class="tick" data-t="proto"><i></i> prototype</span>
+      </div>
+      <div class="screen">
+        <div class="lbl">prototype.stream &mdash; sandboxed</div>
+        <div class="art" id="art">
+          <p class="at">Growth Dashboard</p>
+          <div class="kpis">
+            <div class="kpi"><div class="k">MRR</div><div class="v">$142k<small>&#9650;9%</small></div></div>
+            <div class="kpi"><div class="k">Churn</div><div class="v">4.1%<small>&#9660;.6</small></div></div>
+            <div class="kpi"><div class="k">WAU</div><div class="v">12.0k<small>&#9650;4%</small></div></div>
+          </div>
+          <div class="bars">
+            <i style="--h:46%;--d:.05s"></i><i style="--h:58%;--d:.1s"></i><i style="--h:54%;--d:.15s"></i>
+            <i style="--h:70%;--d:.2s"></i><i style="--h:66%;--d:.25s"></i><i style="--h:82%;--d:.3s"></i>
+            <i style="--h:78%;--d:.35s"></i><i style="--h:96%;--d:.4s"></i>
+          </div>
+        </div>
+      </div>
+      <div class="timers">
+        <div class="timer fast" id="tFast">
+          <div class="eng"><b>Cerebras</b> gemma-4-31b <span class="badge">live</span></div>
+          <div class="t" id="fastT">0.00s</div>
+          <div class="note">idea &rarr; rendered artifact</div>
+        </div>
+        <div class="timer slow" id="tSlow">
+          <div class="eng">Local GPU <b>same 31B</b> <span class="badge slow">baseline</span></div>
+          <div class="t" id="slowT">0.0s</div>
+          <div class="note" id="slowN">still streaming&hellip;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- credibility ribbon -->
+  <div class="ribbon">
+    <div class="wrap row">
+      <span><span class="s">&#9624;</span> Self-contained HTML</span>
+      <span>Rendered in a <b>sandboxed iframe</b></span>
+      <span>Strict <b>structured outputs</b></span>
+      <span>On-device or cloud <b>transcription</b></span>
+      <span>In-memory <b>&mdash; no database</b></span>
+      <span>Runs on <b>Bun</b></span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Speed cliff ──────────────────────────────────────────────────────── -->
+<section id="speed">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The cliff</span>
+      <h2>At GPU latency the artifact is a tombstone. <em>At Cerebras latency it's alive.</em></h2>
+      <p>Turning a spoken idea into running code is a token-heavy chain, not a single generation. The
+        only variable below is the engine — same prototype prompt, same Gemma&nbsp;4 family. Watch what
+        speed does to the moment.</p>
+    </div>
+
+    <div class="cliff rv" id="cliff">
+      <div class="cbar fast">
+        <div class="lab"><b>Cerebras gemma-4-31b</b><span class="sub">~1,588 tok/s</span></div>
+        <div class="track"><div class="fill f-fast" data-w="4"></div><span class="time">~1.5s</span></div>
+      </div>
+      <div class="cbar">
+        <div class="lab"><b>Local GPU &mdash; gemma4:12b</b><span class="sub">~100 tok/s &middot; smaller model</span></div>
+        <div class="track"><div class="fill f-mid" data-w="37"></div><span class="time">~16.8s</span></div>
+      </div>
+      <div class="cbar">
+        <div class="lab"><b>Local GPU &mdash; gemma4:31b</b><span class="sub">~50 tok/s &middot; the same model</span></div>
+        <div class="track"><div class="fill f-slow" data-w="100"></div><span class="time">~46s</span></div>
+      </div>
+      <p class="foot">On the <b>same 31B model</b>, the local GPU is <b>~31&times; slower</b> — a build
+        that lands in 1.5s on Cerebras takes ~46s locally, long after the conversation has moved on. Even
+        the smaller 12B only closes the gap to ~15&times;. That cliff <b>is</b> the product.
+        Sidebar runs an honest A/B in-app and holds on the dual timer.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── The panel ────────────────────────────────────────────────────────── -->
+<section id="agents">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The panel</span>
+      <h2>Four agents in the margin. <em>A cheap router conducts.</em></h2>
+      <p>Every utterance hits a fast structured router that decides who acts — so the heavy agents never
+        fire on every sentence. The work happens quietly alongside the conversation.</p>
+    </div>
+
+    <div class="agents">
+      <div class="agent hero-a rv">
+        <div class="role">Hero agent</div>
+        <div class="nm"><span class="star">&#9733;</span> Prototype</div>
+        <p>A spoken idea — plus the screen, when you point at it — becomes one self-contained HTML
+          document, streamed token-by-token and rendered live in a sandboxed iframe. Striking and
+          runnable in ~1.5s, while the idea is still on the table.</p>
+        <div class="tags"><span class="tg">streamed HTML</span><span class="tg">screen-aware</span><span class="tg">sandboxed</span><span class="tg">~1.5s</span></div>
+      </div>
+      <div class="agent rv">
+        <div class="role">Always on</div>
+        <div class="nm">Summarizer</div>
+        <p>A rolling, structured record that updates as you talk: a one-line TL;DR, decisions, action
+          items with owners, and the open questions still in the air.</p>
+        <div class="tags"><span class="tg">decisions</span><span class="tg">owners</span><span class="tg">open questions</span></div>
+      </div>
+      <div class="agent rv">
+        <div class="role">On checkable claims</div>
+        <div class="nm">Fact-check</div>
+        <p>Routed claims are searched on the live web with Tavily, then Gemma judges each against the
+          snippets — verdict, confidence, and a real source URL. Time-sensitive claims lean honest.</p>
+        <div class="tags"><span class="tg">retrieve-then-ground</span><span class="tg">cited</span></div>
+      </div>
+      <div class="agent rv">
+        <div class="role">The conductor</div>
+        <div class="nm">Router</div>
+        <p>A strict structured decision per chunk: topic shift, summary update, whether to build (with a
+          one-line intent), whether to fact-check. Conservative by design, cold by sampling.</p>
+        <div class="tags"><span class="tg">strict JSON</span><span class="tg">tiny budget</span></div>
+      </div>
+      <div class="agent rv">
+        <div class="role">The learning loop</div>
+        <div class="nm">Design DNA</div>
+        <p>The first build fans out three design languages in parallel. You pick one, and that taste is
+          injected into every later prototype — and the closing recap. Preference learning carried
+          through to inference.</p>
+        <div class="tags"><span class="tg">fan-out &times;3</span><span class="tg">pick once</span><span class="tg">inherited</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Design DNA ───────────────────────────────────────────────────────── -->
+<section>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Design DNA</span>
+      <h2>Pick a style once. <em>Every build after inherits it.</em></h2>
+      <p>The first idea fans out three ways at once — you choose the one that feels right. From then on,
+        the prototype agent builds in your taste, no prompting required.</p>
+    </div>
+
+    <div class="dna">
+      <div class="swatches rv">
+        <div class="sw" style="--a:#6ee7b7;--b:#7c9cff">
+          <div class="top" style="background:#0e1320">
+            <span class="chip" style="background:#6ee7b7"></span>
+            <div><span class="ln" style="background:#232c44"></span><span class="ln s" style="background:#1a2236"></span></div>
+          </div>
+          <div class="cap"><b>Midnight</b><span class="got">picked</span></div>
+        </div>
+        <div class="sw pick" style="--a:#e8883a;--b:#cf6a4c">
+          <div class="top" style="background:#f6efe4">
+            <span class="chip" style="background:#e8883a"></span>
+            <div><span class="ln" style="background:#e3d6c2"></span><span class="ln s" style="background:#efe5d5"></span></div>
+          </div>
+          <div class="cap"><b>Warm</b><span class="got">picked</span></div>
+        </div>
+        <div class="sw" style="--a:#c77dff;--b:#3fe0ff">
+          <div class="top" style="background:#080611">
+            <span class="chip" style="background:#c77dff"></span>
+            <div><span class="ln" style="background:#2a1f4d"></span><span class="ln s" style="background:#160f29"></span></div>
+          </div>
+          <div class="cap"><b>Neon</b><span class="got">picked</span></div>
+        </div>
+      </div>
+      <div class="rv">
+        <p style="font-size:17px;color:var(--muted);margin:0">Three real design systems — editorial serif,
+          geometric dark, neon mono — fanned out the moment you describe the first thing. Whichever you
+          pick becomes a hard visual constraint baked into the system prompt, so the second build, the
+          tenth, and the final meeting recap all look of-a-piece.</p>
+        <p class="note">runtime &rarr; <b>learn(chosen)</b> &rarr; injected into every prototype + the recap</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── The room ─────────────────────────────────────────────────────────── -->
+<section id="room">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The room</span>
+      <h2>One link. <em>Everyone watches it happen.</em></h2>
+      <p>Sidebar is multiplayer. A host captures screen and speech; guests open an invite link and watch
+        the same canvas build itself in real time.</p>
+    </div>
+
+    <div class="room">
+      <div class="cap rv"><div class="ic">&#9673;</div><h3>Screen-aware</h3>
+        <p>Point at a diagram and say "build it like <em>this</em>." Gemma&nbsp;4 reads the shared screen —
+          frames go only to the server, never rebroadcast to viewers.</p></div>
+      <div class="cap rv"><div class="ic">&#9612;</div><h3>On-device or cloud ASR</h3>
+        <p>Per participant: <em>ElevenLabs Scribe</em>, on-device <em>WebGPU Whisper</em> or <em>Gemma on
+          Ollama</em>, or Web Speech. Private stays on your machine.</p></div>
+      <div class="cap rv"><div class="ic">&#9758;</div><h3>Host &amp; guests</h3>
+        <p>A host passcode and unique, revocable invite links. Live presence — cursors, pings, a
+          participant bar — so you see who's in the margin with you.</p></div>
+      <div class="cap rv"><div class="ic">&#9744;</div><h3>Meeting context</h3>
+        <p>Drop files into the meeting. Accept a bundle and its contents feed the router, summarizer, and
+          prototype agent — grounded in <em>your</em> material.</p></div>
+      <div class="cap rv"><div class="ic">&#8635;</div><h3>Honest A/B</h3>
+        <p>Race Cerebras against a real GPU baseline — same model, same prompt — with both timers running
+          live. No throttling, no faking the slow side.</p></div>
+      <div class="cap rv"><div class="ic">&#9636;</div><h3>Shareable recap</h3>
+        <p>End the meeting and a closing agent streams a self-contained HTML recap — summary, decisions,
+          action items, prototypes built — in your learned style.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ─────────────────────────────────────────────────────── -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">How it works</span>
+      <h2>From a sentence to a shareable artifact.</h2>
+    </div>
+    <div class="flow rv">
+      <div class="step"><span class="n">01</span><h4>Speak</h4><p>Speech becomes transcript — on-device or via ElevenLabs Scribe — and lands as a chunk.</p></div>
+      <div class="step"><span class="n">02</span><h4>Route</h4><p>A strict structured router decides who should act: summarize, build, fact-check — or stay quiet.</p></div>
+      <div class="step"><span class="n">03</span><h4>Fan out</h4><p>The first buildable idea streams three design languages in parallel, each rendered live.</p></div>
+      <div class="step"><span class="n">04</span><h4>Pick</h4><p>You choose the one that fits — or a short timeout takes the recommended cut.</p></div>
+      <div class="step"><span class="n">05</span><h4>Learn</h4><p>That taste becomes the Design DNA, injected into every later build for the rest of the meeting.</p></div>
+      <div class="step"><span class="n">06</span><h4>Recap</h4><p>When it ends, a closing agent drafts a shareable HTML recap in the same learned style.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Team ─────────────────────────────────────────────────────────────── -->
+<section id="team">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Built by</span>
+      <h2>A two-person build.</h2>
+      <p>Sidebar was made for the Cerebras &times; Google&nbsp;DeepMind Gemma&nbsp;4 hackathon. Say hi, or
+        poke at the code on GitHub.</p>
+    </div>
+    <div class="team-grid rv">
+      <a class="member" href="https://github.com/igorls" target="_blank" rel="noopener">
+        <img class="av" src="https://github.com/igorls.png?size=128" alt="Igor Lins e Silva" loading="lazy" width="54" height="54" />
+        <span class="who">
+          <span class="nm">Igor Lins e Silva</span>
+          <span class="rl">Agents, server &amp; realtime &middot; universal-llm-client</span>
+          <span class="gh"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.02-1.49-2.22.48-2.69-.94-2.69-.94-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> @igorls</span>
+        </span>
+      </a>
+      <a class="member" href="https://github.com/domiscd" target="_blank" rel="noopener">
+        <img class="av" src="https://github.com/domiscd.png?size=128" alt="Dominique Deschatre" loading="lazy" width="54" height="54" />
+        <span class="who">
+          <span class="nm">Dominique Deschatre</span>
+          <span class="rl">Frontend, meeting UI &amp; the draggable canvas</span>
+          <span class="gh"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.02-1.49-2.22.48-2.69-.94-2.69-.94-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> @domiscd</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ──────────────────────────────────────────────────────────────── -->
+<section id="waitlist" class="cta">
+  <div class="wrap">
+    <div class="cta-card rv">
+      <span class="eyebrow" style="position:relative">Early access</span>
+      <h2>Make your next meeting <em>build something.</em></h2>
+      <p>Sidebar is a hackathon MVP today, and it already runs end-to-end. Leave an email and we'll reach
+        out when the live room opens up.</p>
+      <form class="form" id="waitForm" novalidate>
+        <input id="waitEmail" type="email" inputmode="email" autocomplete="email"
+               placeholder="you@work.com" aria-label="Work email" required />
+        <button type="submit" class="btn solid">Join the waitlist</button>
+      </form>
+      <div class="fine">No spam. The demo runs with no API keys in mock mode.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
+      <div class="fl">
+        <a href="https://github.com/igorls/gemma-cerebras-hackathon">Repository</a>
+        <a href="#speed">Speed</a>
+        <a href="#agents">The panel</a>
+        <a href="#team">Team</a>
+        <a href="#waitlist">Waitlist</a>
+      </div>
+    </div>
+    <div class="colophon">
+      Built for the <b>Cerebras &times; Google&nbsp;DeepMind Gemma&nbsp;4</b> hackathon, on
+      <b>Cerebras&nbsp;+&nbsp;Gemma&nbsp;4&nbsp;31B</b> via <b>universal-llm-client</b>, on <b>Bun</b>.
+      Status: hackathon MVP — runs end-to-end in mock mode with no keys. Benchmark figures are from an
+      in-repo honest A/B; your latency depends on the engine you race against.
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  /* ── Scroll reveal ──────────────────────────────────────────────────── */
+  var rv = document.querySelectorAll(".rv");
+  if (reduce || !("IntersectionObserver" in window)) {
+    rv.forEach(function(el){ el.classList.add("shown"); });
+  } else {
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("shown"); io.unobserve(e.target); } });
+    }, { threshold:.16 });
+    rv.forEach(function(el){ io.observe(el); });
+  }
+
+  /* ── Speed-cliff bars fill when in view ─────────────────────────────── */
+  var cliff = document.getElementById("cliff");
+  function fillBars(){ cliff.querySelectorAll(".fill").forEach(function(f){ f.style.width = f.dataset.w + "%"; }); }
+  if (cliff){
+    if (reduce || !("IntersectionObserver" in window)) { fillBars(); }
+    else {
+      var io2 = new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ fillBars(); io2.unobserve(e.target); } });
+      }, { threshold:.4 });
+      io2.observe(cliff);
+    }
+  }
+
+  /* ── Hero race: type the idea, fire the agents, render, run the timers ─ */
+  var said = document.getElementById("said");
+  var line = "A growth dashboard — MRR, churn, weekly actives, with a little bar chart.";
+  var fastEl = document.getElementById("fastT"), slowEl = document.getElementById("slowT");
+  var slowN = document.getElementById("slowN"), tSlow = document.getElementById("tSlow");
+  var art = document.getElementById("art");
+  var ticks = { router:0, summary:1, proto:2 };
+  var tickEls = document.querySelectorAll("#ticks .tick");
+
+  function setSaid(txt){ said.innerHTML = txt + '<span class="cur"></span>'; }
+
+  if (reduce) {
+    setSaid(line);
+    tickEls.forEach(function(t){ t.classList.add("on"); });
+    art.classList.add("in");
+    fastEl.textContent = "1.49s"; slowEl.textContent = "46s";
+    slowN.textContent = "the moment has passed"; tSlow.classList.add("run");
+    return;
+  }
+
+  var FAST_LOCK = 1490; // ms — Cerebras idea→artifact
+  function runTimers(){
+    var start = Date.now(), fastDone = false, raf;
+    function tick(){
+      var ms = Date.now() - start;
+      if (!fastDone){
+        if (ms >= FAST_LOCK){ fastEl.textContent = "1.49s"; fastDone = true; art.classList.add("in"); }
+        else fastEl.textContent = (ms/1000).toFixed(2) + "s";
+      }
+      // slow side keeps climbing toward ~46s, then settles
+      var s = Math.min(46, ms/1000 * 3.1);
+      tSlow.classList.add("run");
+      slowEl.textContent = (s>=46 ? "46" : s.toFixed(1)) + "s";
+      if (s >= 46) slowN.textContent = "the moment has passed";
+      if (ms < 15200) raf = requestAnimationFrame(tick);
+      else { fastEl.textContent = "1.49s"; slowEl.textContent = "46s"; }
+    }
+    tick();
+  }
+
+  // type the spoken line, light the agent ticks mid-stream, then start timers
+  var i = 0;
+  function type(){
+    setSaid(line.slice(0, i));
+    if (i === 18) tickEls[ticks.router].classList.add("on");
+    if (i === 34) tickEls[ticks.summary].classList.add("on");
+    if (i === 52) tickEls[ticks.proto].classList.add("on");
+    i++;
+    if (i <= line.length) setTimeout(type, 30);
+    else { said.querySelector(".cur") && said.querySelector(".cur").remove(); setTimeout(runTimers, 280); }
+  }
+  setTimeout(type, 650);
+
+  /* ── Waitlist (client-side only — honest about being a demo) ─────────── */
+  var form = document.getElementById("waitForm");
+  if (form) form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = document.getElementById("waitEmail").value.trim();
+    if (!email || email.indexOf("@") < 1) { document.getElementById("waitEmail").focus(); return; }
+    var ok = document.createElement("div");
+    ok.className = "form-ok";
+    ok.innerHTML = "&#10003; You're on the list — we'll be in touch at " + email;
+    form.replaceWith(ok);
+  });
+})();
+</script>
+</body>
+</html>
