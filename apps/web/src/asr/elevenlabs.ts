@@ -1,4 +1,5 @@
 import type { AsrCallbacks, AsrProvider } from "./types";
+import { authHeaders } from "../auth";
 
 /**
  * ElevenLabs Scribe v2 Realtime provider.
@@ -23,7 +24,7 @@ export interface ElevenLabsOptions {
 }
 
 async function defaultGetToken(): Promise<string> {
-  const res = await fetch(TOKEN_URL, { signal: AbortSignal.timeout(8000) });
+  const res = await fetch(TOKEN_URL, { signal: AbortSignal.timeout(8000), headers: authHeaders() });
   const body = (await res.json().catch(() => ({}))) as { token?: string; error?: string };
   if (!res.ok || !body.token) throw new Error(body.error || `ASR token mint failed (HTTP ${res.status})`);
   return body.token;

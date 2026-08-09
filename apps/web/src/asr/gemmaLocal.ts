@@ -1,4 +1,5 @@
 import type { AsrCallbacks, AsrProvider } from "./types";
+import { authHeaders } from "../auth";
 
 /**
  * On-device, all-Gemma ASR: capture mic audio, segment it into utterances with a
@@ -122,7 +123,7 @@ export class GemmaLocalProvider implements AsrProvider {
       const t0 = performance.now();
       const res = await fetch(ENDPOINT, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...authHeaders() },
         body: JSON.stringify({ audio_base64: bytesToBase64(wav) }),
       });
       const body = (await res.json().catch(() => ({}))) as { text?: string; error?: string };

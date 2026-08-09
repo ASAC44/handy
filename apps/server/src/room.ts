@@ -22,7 +22,7 @@ const PRESENCE_NAMES = ["Host", "Priya", "Maya", "Dev", "Alex", "Jordan", "Sam",
 const CONTEXT_CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",
-  "access-control-allow-headers": "content-type",
+  "access-control-allow-headers": "content-type, x-sidebar-key",
 };
 
 export class Room implements MeetingRuntime {
@@ -153,6 +153,9 @@ export class Room implements MeetingRuntime {
       case "context.clear":
         if (this.isHost(ws)) void this.clearContext();
         break;
+      case "host.kick":
+        if (this.isHost(ws)) this.kick(ev.id, ws);
+        break;
       case "start":
         void this.orch.start(ev.scenarioId);
         break;
@@ -277,6 +280,27 @@ export class Room implements MeetingRuntime {
 
   private isHost(ws: ServerWebSocket<WsData>): boolean {
     return this.presence.get(ws)?.role === "host";
+  }
+
+  /** Host removes a participant: tell them they're out, then drop the socket. The
+   *  close handler broadcasts presence.leave. (A short delay lets the message flush.) */
+  private kick(id: string, by: ServerWebSocket<WsData>): void {
+    for (const [ws, p] of this.presence) {
+      if (p.id !== id || ws === by) continue; // can't kick yourself
+      try {
+        ws.send(encode({ type: "kicked" }));
+      } catch {
+        /* socket already gone */
+      }
+      setTimeout(() => {
+        try {
+          ws.close(4001, "removed by host");
+        } catch {
+          /* already closed */
+        }
+      }, 60);
+      return;
+    }
   }
 
   private async acceptContext(id: string): Promise<void> {
