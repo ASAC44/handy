@@ -1,0 +1,20 @@
+# Keep the build context small and never bake secrets or host-built artifacts into the
+# image. The working tree is bind-mounted at runtime anyway (hot-reload), so anything
+# excluded here is still available to the running container via the mount.
+.git
+.gitignore
+node_modules
+**/node_modules
+dist
+**/dist
+.vite
+.env
+.env.local
+*.log
+.DS_Store
+.playwright-mcp
+scratchpad
+# Large committed audio fixtures — only the bench scripts use them, not the server.
+fixtures/audio
+fixtures/meetings
+*.png
