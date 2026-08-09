@@ -28,6 +28,10 @@ export interface AsrCallbacks {
   onMetrics?(m: AsrMetrics): void;
   /** Engine setup progress (e.g. on-device model download/warm-up). */
   onStatus?(m: { text: string; progress?: number }): void;
+  /** Playback progress while decoding a recording (elapsed/total seconds). */
+  onProgress?(p: { elapsedSec: number; durationSec: number }): void;
+  /** Capture finished on its own — a played-back recording reached its end. */
+  onEnded?(): void;
 }
 
 export interface AsrProvider {

@@ -116,6 +116,17 @@ export class Orchestrator {
     this.runId++;
   }
 
+  /** Reset all in-memory meeting state: cancel in-flight work, drop the transcript
+   *  and rolling summary, and reset the live turn sequence. The room emits the
+   *  matching `meeting.clear` event; this just zeroes the orchestrator's state. */
+  clear(): void {
+    this.stop();
+    this.transcript = [];
+    this.summary = null;
+    this.liveQueue = Promise.resolve();
+    liveTurnSeq = 0;
+  }
+
   async start(scenarioId?: string): Promise<void> {
     const my = ++this.runId;
     const scn = getScenario(scenarioId ?? config.scenario);

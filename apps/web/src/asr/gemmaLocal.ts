@@ -1,5 +1,6 @@
 import type { AsrCallbacks, AsrProvider } from "./types";
 import { authHeaders } from "../auth";
+import { micSource, fileSource, type Playback, type WiredSource } from "./audioSource";
 
 /**
  * On-device, all-Gemma ASR: capture mic audio, segment it into utterances with a
@@ -25,7 +26,7 @@ export interface GemmaVad {
   prerollMs: number; // keep a little audio before onset so words aren't clipped
 }
 export const GEMMA_VAD_DEFAULTS: GemmaVad = {
-  startRms: 0.02, // noise floor — raise to ignore quiet/background talk
+  startRms: 0.05, // noise floor — raise to ignore quiet/background talk
   endRms: 0.008,
   silenceMs: 700,
   minSpeechMs: 350,
@@ -38,11 +39,13 @@ export class GemmaLocalProvider implements AsrProvider {
   readonly label = "Gemma 4 E4B (local)";
 
   private ctx: AudioContext | null = null;
-  private stream: MediaStream | null = null;
-  private source: MediaStreamAudioSourceNode | null = null;
+  private wired: WiredSource | null = null;
   private node: ScriptProcessorNode | null = null;
   private sink: GainNode | null = null;
   private stopped = false;
+  private progressTimer: ReturnType<typeof setInterval> | null = null;
+  private cb: AsrCallbacks | null = null;
+  private rate = TARGET_RATE;
 
   private capturing = false;
   private speech: Float32Array[] = [];
@@ -50,9 +53,15 @@ export class GemmaLocalProvider implements AsrProvider {
   private silenceFrames = 0;
   private speechFrames = 0;
   private muted = false;
+  private pending = 0; // in-flight transcribe requests (so playback ends only once they drain)
+  private endWhenDrained = false;
 
-  /** `vad` is held by reference — the host UI mutates this same object to retune live. */
-  constructor(private vad: GemmaVad = { ...GEMMA_VAD_DEFAULTS }) {}
+  /** `vad` is held by reference — the host UI mutates this same object to retune live.
+   *  `playback`, when set, decodes a recording through this same pipeline instead of the mic. */
+  constructor(
+    private vad: GemmaVad = { ...GEMMA_VAD_DEFAULTS },
+    private playback?: Playback,
+  ) {}
 
   /** Push-to-talk: drop any in-flight utterance and capture nothing while muted (nothing
    *  is sent to the server — the genuinely private path). */
@@ -69,17 +78,16 @@ export class GemmaLocalProvider implements AsrProvider {
 
   async start(cb: AsrCallbacks): Promise<void> {
     this.stopped = false;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Microphone unavailable — open over https:// or http://localhost (secure context required)");
-    }
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-    });
+    this.cb = cb;
     this.ctx = new AudioContext({ sampleRate: TARGET_RATE });
     const rate = this.ctx.sampleRate;
+    this.rate = rate;
     const frameMs = (FRAME / rate) * 1000;
 
-    this.source = this.ctx.createMediaStreamSource(this.stream);
+    this.wired = this.playback
+      ? await fileSource(this.ctx, this.playback, () => this.onPlaybackEnd())
+      : await micSource(this.ctx);
+    if (this.wired.durationSec > 0) this.startProgress();
     this.node = this.ctx.createScriptProcessor(FRAME, 1, 1);
     this.sink = this.ctx.createGain();
     this.sink.gain.value = 0;
@@ -124,15 +132,46 @@ export class GemmaLocalProvider implements AsrProvider {
         if (voicedMs >= this.vad.minSpeechMs) void this.transcribe(clip, rate, cb);
       }
     };
-    this.source.connect(this.node);
+    this.wired.node.connect(this.node);
     this.node.connect(this.sink);
     this.sink.connect(this.ctx.destination);
+  }
+
+  /** Recording reached its end: finalize any in-flight clip, then tell the UI we're done
+   *  once the last transcribe request has come back (so the final line isn't dropped). */
+  private onPlaybackEnd(): void {
+    if (this.stopped) return;
+    const frameMs = (FRAME / this.rate) * 1000;
+    const voicedMs = (this.speechFrames - this.silenceFrames) * frameMs;
+    if (this.capturing && voicedMs >= this.vad.minSpeechMs && this.cb) {
+      void this.transcribe(this.speech, this.rate, this.cb);
+    }
+    this.capturing = false;
+    this.speech = [];
+    this.stopProgress();
+    const dur = this.wired?.durationSec ?? 0;
+    this.cb?.onProgress?.({ elapsedSec: dur, durationSec: dur });
+    if (this.pending === 0) this.cb?.onEnded?.();
+    else this.endWhenDrained = true;
+  }
+
+  private startProgress(): void {
+    this.progressTimer = setInterval(() => {
+      if (this.stopped || !this.wired) return;
+      this.cb?.onProgress?.({ elapsedSec: this.wired.elapsedSec(), durationSec: this.wired.durationSec });
+    }, 250);
+  }
+
+  private stopProgress(): void {
+    if (this.progressTimer) clearInterval(this.progressTimer);
+    this.progressTimer = null;
   }
 
   private async transcribe(chunks: Float32Array[], rate: number, cb: AsrCallbacks): Promise<void> {
     let samples = 0;
     for (const c of chunks) samples += c.length;
     const segmentMs = (samples / rate) * 1000;
+    this.pending++;
     try {
       const wav = encodeWav(chunks, rate);
       const t0 = performance.now();
@@ -153,6 +192,12 @@ export class GemmaLocalProvider implements AsrProvider {
       if (text && !this.stopped) cb.onFinal(text);
     } catch (err) {
       cb.onError(err instanceof Error ? err.message : "Gemma ASR request failed");
+    } finally {
+      this.pending--;
+      if (this.endWhenDrained && this.pending === 0 && !this.stopped) {
+        this.endWhenDrained = false;
+        cb.onEnded?.();
+      }
     }
   }
 
@@ -161,20 +206,22 @@ export class GemmaLocalProvider implements AsrProvider {
     this.capturing = false;
     this.speech = [];
     this.preroll = [];
+    this.endWhenDrained = false;
+    this.stopProgress();
     try {
       this.node?.disconnect();
-      this.source?.disconnect();
+      this.wired?.node.disconnect();
       this.sink?.disconnect();
     } catch {
       /* nodes may already be detached */
     }
     this.node = null;
-    this.source = null;
     this.sink = null;
-    this.stream?.getTracks().forEach((t) => t.stop());
-    this.stream = null;
+    this.wired?.stop();
+    this.wired = null;
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
+    this.cb = null;
   }
 }
 
