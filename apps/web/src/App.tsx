@@ -5,7 +5,9 @@ import { Hud } from "./components/Hud";
 import { Canvas } from "./components/Canvas";
 import { Bottom } from "./components/Bottom";
 import { CaptureDock } from "./components/CaptureDock";
+import { ParticipantBar } from "./components/ParticipantBar";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
 
 type GateState = "checking" | "locked" | "open";
@@ -105,6 +107,7 @@ function Removed() {
 
 function Meeting() {
   const { state, send, setAbMode } = useSidebar();
+  const cap = useCapture(send);
   const hostMode = new URLSearchParams(location.search).has("host");
   if (state.kicked) return <Removed />;
   return (
@@ -118,10 +121,10 @@ function Meeting() {
         </span>
         <CaptureDock hostMode={hostMode} state={state} send={send} />
         <div className="spacer" />
-        {state.capture.speech ? (
+        {cap.speechOn ? (
           <div className="status">
             <span className="live">
-              <i /> REC
+              <i /> {cap.mode === "ptt" ? (cap.talking ? "TALK" : "PTT") : "REC"}
             </span>
           </div>
         ) : null}
@@ -136,6 +139,7 @@ function Meeting() {
         </section>
       </main>
       {hostMode ? <Bottom state={state} send={send} setAbMode={setAbMode} /> : null}
+      <ParticipantBar cap={cap} state={state} />
     </div>
   );
 }

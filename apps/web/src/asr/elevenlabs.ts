@@ -41,6 +41,11 @@ export class ElevenLabsScribeProvider implements AsrProvider {
   private node: ScriptProcessorNode | null = null;
   private sink: GainNode | null = null;
   private stopped = false;
+  private muted = false;
+
+  setMuted(muted: boolean): void {
+    this.muted = muted; // push-to-talk: keep the WS open, just stop sending audio
+  }
 
   constructor(private opts: ElevenLabsOptions = {}) {}
 
@@ -112,7 +117,7 @@ export class ElevenLabsScribeProvider implements AsrProvider {
       if (this.stopped) return;
       const f32 = e.inputBuffer.getChannelData(0);
       cb.onLevel?.(rms(f32));
-      if (ws.readyState !== WebSocket.OPEN) return;
+      if (this.muted || ws.readyState !== WebSocket.OPEN) return;
       ws.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: floatToPcm16Base64(f32) }));
     };
     this.source.connect(this.node);

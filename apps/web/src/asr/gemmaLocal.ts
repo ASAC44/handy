@@ -49,9 +49,23 @@ export class GemmaLocalProvider implements AsrProvider {
   private preroll: Float32Array[] = [];
   private silenceFrames = 0;
   private speechFrames = 0;
+  private muted = false;
 
   /** `vad` is held by reference — the host UI mutates this same object to retune live. */
   constructor(private vad: GemmaVad = { ...GEMMA_VAD_DEFAULTS }) {}
+
+  /** Push-to-talk: drop any in-flight utterance and capture nothing while muted (nothing
+   *  is sent to the server — the genuinely private path). */
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    if (muted) {
+      this.capturing = false;
+      this.speech = [];
+      this.preroll = [];
+      this.silenceFrames = 0;
+      this.speechFrames = 0;
+    }
+  }
 
   async start(cb: AsrCallbacks): Promise<void> {
     this.stopped = false;
@@ -75,6 +89,7 @@ export class GemmaLocalProvider implements AsrProvider {
       const frame = new Float32Array(e.inputBuffer.getChannelData(0)); // copy; buffer is reused
       const rms = rmsOf(frame);
       cb.onLevel?.(rms);
+      if (this.muted) return; // push-to-talk released — capture/segment nothing
 
       // preroll length tracks the (live-tunable) prerollMs.
       const prerollFrames = Math.max(1, Math.round(this.vad.prerollMs / frameMs));

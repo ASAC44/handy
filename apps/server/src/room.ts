@@ -167,11 +167,14 @@ export class Room implements MeetingRuntime {
         this.orch.stop();
         this.send({ type: "meeting.end", artifacts: 0 });
         break;
+      // Attribute by the sender's presence, not a client-supplied name — in the
+      // shared listening room every participant's mic is its own clean track, so
+      // "who said it" is known by construction (no diarization).
       case "transcript.partial":
-        this.orch.ingestPartial(ev.text, ev.speaker);
+        this.orch.ingestPartial(ev.text, this.presence.get(ws)?.name);
         break;
       case "transcript.final":
-        this.orch.ingestFinal(ev.text, ev.speaker);
+        this.orch.ingestFinal(ev.text, this.presence.get(ws)?.name);
         break;
       case "screen.frame":
         this.latestScreenDataUri = ev.dataUri;
