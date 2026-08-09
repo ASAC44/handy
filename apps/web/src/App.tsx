@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useSidebar } from "./ws";
 import { Rail } from "./components/Rail";
-import { Hud } from "./components/Hud";
+import { ContextStrip } from "./components/ContextStrip";
 import { Canvas } from "./components/Canvas";
 import { Bottom } from "./components/Bottom";
 import { CaptureDock } from "./components/CaptureDock";
 import { ParticipantBar } from "./components/ParticipantBar";
-import { ThemeToggle } from "./components/ThemeToggle";
+import { Settings } from "./components/Settings";
+import { TooltipHost } from "./components/TooltipHost";
 import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
 
@@ -128,18 +129,19 @@ function Meeting() {
             </span>
           </div>
         ) : null}
-        <ThemeToggle />
         <div className="model">gemma-4-31b</div>
+        <Settings state={state} send={send} setAbMode={setAbMode} hostMode={hostMode} />
       </header>
       <main className="main">
-        <Rail state={state} hostMode={hostMode} />
+        <Rail state={state} hostMode={hostMode} send={send} />
         <section className="canvasCol">
-          <Hud state={state} send={send} hostMode={hostMode} />
+          <ContextStrip state={state} send={send} hostMode={hostMode} />
           <Canvas state={state} send={send} hostMode={hostMode} />
         </section>
       </main>
-      {hostMode ? <Bottom state={state} send={send} setAbMode={setAbMode} /> : null}
+      {hostMode ? <Bottom state={state} send={send} /> : null}
       <ParticipantBar cap={cap} state={state} />
+      <TooltipHost />
     </div>
   );
 }

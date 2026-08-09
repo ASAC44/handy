@@ -388,7 +388,7 @@ function MeetingMap({
     <div className={"meeting-map" + (open ? "" : " collapsed")} onPointerDown={(e) => e.stopPropagation()}>
       <div className="map-head">
         <span>meeting map</span>
-        <button className="map-collapse" title={open ? "Collapse meeting map" : "Expand meeting map"} onClick={onToggle}>
+        <button className="map-collapse" data-tip={open ? "Collapse meeting map" : "Expand meeting map"} aria-label={open ? "Collapse meeting map" : "Expand meeting map"} onClick={onToggle}>
           {open ? "−" : "+"}
         </button>
       </div>
@@ -481,7 +481,7 @@ function ArtifactCard({
         {viewers.length ? (
           <span className="art-watchers">
             {viewers.slice(0, 3).map((p) => (
-              <i key={p.id} style={{ background: p.color }} title={p.name}>
+              <i key={p.id} style={{ background: p.color }} data-tip={p.name}>
                 {initials(p.name)}
               </i>
             ))}
@@ -490,23 +490,25 @@ function ArtifactCard({
         {a.usesScreen && <span className="art-screen">&#128247; screen</span>}
         <button
           className="art-icon"
-          title="Focus artifact"
+          data-tip="Focus"
+          aria-label="Focus"
           onClick={(e) => {
             e.stopPropagation();
             onFocus();
           }}
         >
-          &#8982;
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crosshair-icon lucide-crosshair"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>
         </button>
         <button
-          className="art-icon open"
-          title="Open large"
+          className="art-icon"
+          data-tip="Open large"
+          aria-label="Open large"
           onClick={(e) => {
             e.stopPropagation();
             onOpen();
           }}
         >
-          &#9974;
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         </button>
         <span className="art-time">{a.status === "done" && a.ms != null ? (a.ms / 1000).toFixed(2) + "s" : "…"}</span>
       </div>
@@ -563,16 +565,16 @@ function CanvasControls({
       <span className="acount">
         {count} artifact{count === 1 ? "" : "s"}
       </span>
-      <button className="cbtn" title="Zoom in" onClick={onZoomIn}>
-        +
+      <button className="cbtn" data-tip="Zoom in" aria-label="Zoom in" onClick={onZoomIn}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-zoom-in-icon lucide-zoom-in" style={{ display: "block", margin: "auto" }}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
       </button>
-      <button className="cbtn" title="Zoom out" onClick={onZoomOut}>
-        &minus;
+      <button className="cbtn" data-tip="Zoom out" aria-label="Zoom out" onClick={onZoomOut}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-zoom-out-icon lucide-zoom-out" style={{ display: "block", margin: "auto" }}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
       </button>
-      <button className="cbtn" title="Fit canvas" onClick={onFit}>
+      <button className="cbtn" data-tip="Fit canvas" onClick={onFit}>
         fit
       </button>
-      <button className={"cbtn" + (follow ? " active" : "")} title="Follow latest" onClick={onFollow}>
+      <button className={"cbtn" + (follow ? " active" : "")} data-tip="Follow latest" onClick={onFollow}>
         follow
       </button>
       <span className="zoom-read">{Math.round(zoom * 100)}%</span>
@@ -605,7 +607,7 @@ function PresenceDock({ state, send, hostMode }: { state: SidebarState; send: (e
               key={p.id}
               className={"presence-avatar" + (isSelf ? " self" : "") + (canKick ? " kickable" : "")}
               style={{ background: p.color }}
-              title={isSelf ? `${p.name} (you)` : canKick ? `${p.name} — click ✕ to remove` : p.name}
+              data-tip={isSelf ? `${p.name} (you)` : canKick ? `${p.name} — click ✕ to remove` : p.name}
             >
               {initials(p.name)}
               {canKick ? (
@@ -696,7 +698,7 @@ function PrototypeLightbox({ artifact, onClose }: { artifact: Art; onClose: () =
             <span>{artifact.status === "done" && artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</span>
             {artifact.usesScreen ? <span>screen-aware</span> : <span>transcript</span>}
           </div>
-          <button className="prototype-close" title="Close preview" onClick={onClose}>
+          <button className="prototype-close" data-tip="Close preview" aria-label="Close preview" onClick={onClose}>
             ×
           </button>
         </div>
@@ -774,8 +776,8 @@ function DNA({ state, send }: { state: SidebarState; send: (e: ClientEvent) => v
     <div className="dna" onPointerDown={(e) => e.stopPropagation()}>
       <div className="dna-h">
         <span>DESIGN DNA</span>
-        <button className="reset" title="forget learned style" onClick={() => send({ type: "resetTaste" })}>
-          &#10227;
+        <button className="reset" data-tip="forget learned style" aria-label="forget learned style" onClick={() => send({ type: "resetTaste" })}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-cw-icon lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
         </button>
       </div>
       <div className="dna-sub">learned from your picks</div>

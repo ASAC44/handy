@@ -145,11 +145,16 @@ export function CaptureDock({
   return (
     <div className="captureDock">
       <input className="hostName" value={host} onChange={(e) => persistHost(e.target.value)} placeholder="your name" aria-label="Host name" />
-      <button className="capBtn primary" onClick={startRoom}>
-        Live
+      <button className="capBtn primary" onClick={startRoom} data-tip="Start the live room so others can join">
+        Go live
       </button>
-      <button className={"capBtn" + (screenOn ? " on" : "")} onClick={screenOn ? stopScreen : () => void startScreen()}>
-        Screen
+      <button
+        className={"capBtn" + (screenOn ? " on" : "")}
+        onClick={screenOn ? stopScreen : () => void startScreen()}
+        data-tip={screenOn ? "Stop sharing your screen" : "Share your screen for visual context"}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-cast-icon lucide-cast"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M2 12a9 9 0 0 1 8 8"/><path d="M2 16a5 5 0 0 1 4 4"/><line x1="2" x2="2.01" y1="20" y2="20"/></svg>
+        {screenOn ? "Stop share" : "Share screen"}
       </button>
       <input
         className="manualLine"
@@ -161,10 +166,10 @@ export function CaptureDock({
         placeholder="manual transcript"
         aria-label="Manual transcript"
       />
-      <button className="capBtn" onClick={sendManual}>
+      <button className="capBtn" onClick={sendManual} data-tip="Send a typed line into the transcript">
         Send
       </button>
-      <button className="capBtn stop" onClick={() => send({ type: "live.stop" })}>
+      <button className="capBtn stop" onClick={() => send({ type: "live.stop" })} data-tip="End the live meeting">
         Stop
       </button>
       <InviteButton />
