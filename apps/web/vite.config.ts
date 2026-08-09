@@ -6,6 +6,10 @@ import react from "@vitejs/plugin-react";
 // "/ws" work behind a single host in production-like setups.
 export default defineConfig({
   plugins: [react()],
+  // transformers.js (WebGPU Whisper) resolves its ORT wasm/model assets dynamically —
+  // keep Vite from pre-bundling it, and don't down-level the module worker's top-level await.
+  optimizeDeps: { exclude: ["@huggingface/transformers"] },
+  build: { target: "es2022" },
   server: {
     port: 5173,
     proxy: {

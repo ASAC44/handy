@@ -48,7 +48,7 @@ export class WebSpeechProvider implements AsrProvider {
     this.muted = muted;
   }
 
-  constructor(private lang = "en-US") {}
+  constructor(private lang: string = (typeof navigator !== "undefined" && navigator.language) || "en-US") {}
 
   async start(cb: AsrCallbacks): Promise<void> {
     const Speech = window.SpeechRecognition ?? window.webkitSpeechRecognition;

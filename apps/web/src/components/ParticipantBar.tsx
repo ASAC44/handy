@@ -1,5 +1,5 @@
 import type { SidebarState } from "../ws";
-import { asrProviders, GEMMA_VAD_DEFAULTS, type AsrProviderId } from "../asr";
+import { asrProviders, GEMMA_VAD_DEFAULTS, WHISPER_MODELS, type AsrProviderId } from "../asr";
 import type { Capture } from "../useCapture";
 import { CustomSelect } from "./CustomSelect";
 
@@ -8,13 +8,27 @@ const PRIVACY: Record<AsrProviderId, { tone: "cloud" | "private"; note: string }
   webspeech: { tone: "cloud", note: "Google" },
   elevenlabs: { tone: "cloud", note: "ElevenLabs" },
   "gemma-local": { tone: "private", note: "host GPU" },
+  "whisper-webgpu": { tone: "private", note: "your GPU" },
 };
+
+const LANGS: { code: string; label: string }[] = [
+  { code: "auto", label: "Auto" },
+  { code: "en-US", label: "English" },
+  { code: "pt-BR", label: "Português" },
+  { code: "es-ES", label: "Español" },
+  { code: "fr-FR", label: "Français" },
+  { code: "de-DE", label: "Deutsch" },
+  { code: "it-IT", label: "Italiano" },
+  { code: "ja-JP", label: "日本語" },
+  { code: "zh-CN", label: "中文" },
+];
 
 /** The shared bottom bar — every participant's own mic controls (host and guests alike). */
 export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarState }) {
   const providers = asrProviders();
   const self = state.presence.find((p) => p.id === state.selfId);
   const priv = PRIVACY[cap.engine];
+  const usesVad = cap.engine === "gemma-local" || cap.engine === "whisper-webgpu"; // engines with the client energy VAD
   return (
     <footer className="micBar">
       <div className="micGroup">
@@ -33,12 +47,34 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
           options={providers.map((p) => ({ value: p.id, label: p.label, disabled: !p.available }))}
           placement="top"
         />
+        <CustomSelect
+          className="asrSelect"
+          value={cap.lang}
+          disabled={cap.speechOn}
+          onChange={cap.setLang}
+          ariaLabel="Spoken language"
+          title={cap.engine === "webspeech" ? "Web Speech can't auto-detect - set your spoken language" : "Spoken language (Auto = let the engine detect)"}
+          options={LANGS.map((l) => ({ value: l.code, label: l.label }))}
+          placement="top"
+        />
+        {cap.engine === "whisper-webgpu" ? (
+          <CustomSelect
+            className="asrSelect"
+            value={cap.whisperModel}
+            disabled={cap.speechOn}
+            onChange={cap.setWhisperModel}
+            ariaLabel="Whisper model"
+            title="Bigger = more accurate (esp. multilingual), but a larger one-time download and a stronger GPU"
+            options={WHISPER_MODELS.map((m) => ({ value: m.key, label: `${m.label} (${m.size})` }))}
+            placement="top"
+          />
+        ) : null}
         <span className={"micPriv " + priv.tone} data-tip={priv.tone === "private" ? "audio stays on the host" : `audio goes to ${priv.note}`}>
           {priv.tone === "private" ? "● private" : "● cloud"} · {priv.note}
         </span>
-        {cap.engine === "gemma-local" ? (
-          <button className={"capBtn" + (cap.showVad ? " on" : "")} onClick={() => cap.setShowVad(!cap.showVad)} data-tip="On-device VAD latency knobs">
-            VAD
+        {usesVad ? (
+          <button className={"capBtn" + (cap.showVad ? " on" : "")} onClick={() => cap.setShowVad(!cap.showVad)} data-tip="Noise floor + segmentation">
+            Noise floor
           </button>
         ) : null}
       </div>
@@ -89,16 +125,25 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
             Push-to-talk
           </button>
         </div>
+        {cap.status ? <span className="micStatus">{cap.status}</span> : null}
         {cap.error ? <span className="capError">{cap.error}</span> : null}
       </div>
 
-      {cap.engine === "gemma-local" && cap.showVad ? (
+      {usesVad && cap.showVad ? (
         <div className="vadPanel up">
           <div className="vadHead">
-            <span>on-device VAD · latency</span>
+            <span>noise floor + segmentation</span>
             <button className="vadReset" onClick={() => cap.setVad({ ...GEMMA_VAD_DEFAULTS })}>
               reset
             </button>
+          </div>
+          <label className="vadRow">
+            <span>noise floor</span>
+            <input type="range" min={4} max={80} step={1} value={Math.round(cap.vad.startRms * 1000)} onChange={(e) => cap.setVad({ startRms: +e.target.value / 1000 })} />
+            <b>{cap.vad.startRms.toFixed(3)}</b>
+          </label>
+          <div className={"vadCal" + (cap.level > cap.vad.startRms ? " hot" : "")}>
+            mic now {cap.level.toFixed(3)} — {cap.level > cap.vad.startRms ? "▲ above floor (captures)" : "below floor (ignored)"}
           </div>
           <label className="vadRow">
             <span>finalize silence</span>
@@ -109,11 +154,6 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
             <span>max segment</span>
             <input type="range" min={2000} max={15000} step={500} value={cap.vad.maxUtterMs} onChange={(e) => cap.setVad({ maxUtterMs: +e.target.value })} />
             <b>{(cap.vad.maxUtterMs / 1000).toFixed(1)}s</b>
-          </label>
-          <label className="vadRow">
-            <span>mic onset</span>
-            <input type="range" min={4} max={50} step={1} value={Math.round(cap.vad.startRms * 1000)} onChange={(e) => cap.setVad({ startRms: +e.target.value / 1000 })} />
-            <b>{cap.vad.startRms.toFixed(3)}</b>
           </label>
           <div className="vadMetric">
             {cap.metric
