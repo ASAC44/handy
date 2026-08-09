@@ -83,6 +83,9 @@ export class GemmaLocalProvider implements AsrProvider {
     const rate = this.ctx.sampleRate;
     this.rate = rate;
     const frameMs = (FRAME / rate) * 1000;
+    // A context created after an await (the file read) can come back suspended under the
+    // browser's autoplay policy — silent, and the VAD never fires. Force it running.
+    await this.ctx.resume().catch(() => {});
 
     this.wired = this.playback
       ? await fileSource(this.ctx, this.playback, () => this.onPlaybackEnd())

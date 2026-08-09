@@ -99,8 +99,10 @@ export class WhisperWebgpuProvider implements AsrProvider {
     this.rate = rate;
     const frameMs = (FRAME / rate) * 1000;
     // A recording must wait for the model to warm up, or its first utterances are dropped.
-    // Suspending freezes the playback clock until the worker reports `ready`.
+    // Suspending freezes the playback clock until the worker reports `ready`; the mic path
+    // instead resumes immediately (a post-await context can come back suspended).
     if (this.playback) await this.ctx.suspend();
+    else await this.ctx.resume().catch(() => {});
     this.wired = this.playback
       ? await fileSource(this.ctx, this.playback, () => this.onPlaybackEnd())
       : await micSource(this.ctx);
