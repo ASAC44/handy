@@ -211,17 +211,29 @@ async function main(): Promise<void> {
   const out: MeetingScenario[] = [];
   for (const scn of scenarios) out.push(await generateScenario(scn, model, seed));
 
+  // Merge into any existing manifest so `--scenario X` doesn't drop the others;
+  // keep scripts.json order for stable diffs.
+  let prior: MeetingScenario[] = [];
+  try {
+    prior = (JSON.parse(readFileSync(MEETINGS_MANIFEST_PATH, "utf8")) as MeetingManifest).scenarios ?? [];
+  } catch {
+    /* first run — no prior manifest */
+  }
+  const byId = new Map(prior.map((s) => [s.id, s]));
+  for (const s of out) byId.set(s.id, s);
+  const ordered = file.scenarios.map((s) => byId.get(s.id)).filter((s): s is MeetingScenario => !!s);
+
   const manifest: MeetingManifest = {
     generator: "scripts/gen-meeting-audio.ts",
     model_id: model,
     sample_rate: SAMPLE_RATE,
     format: "wav",
     seed,
-    scenarios: out,
+    scenarios: ordered,
   };
   writeFileSync(MEETINGS_MANIFEST_PATH, JSON.stringify(manifest, null, 2) + "\n");
   const clipCount = out.reduce((n, s) => n + s.clips.length, 0);
-  console.log(`✅ wrote ${clipCount} clips + ${out.length} meeting.wav + manifest.json under fixtures/meetings/`);
+  console.log(`✅ wrote ${clipCount} clips + ${out.length} meeting.wav; manifest now has ${ordered.length} scenario(s)`);
 }
 
 main().catch((e) => {
