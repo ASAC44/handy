@@ -68,9 +68,9 @@ export class ElevenLabsScribeProvider implements AsrProvider {
       token,
       model_id: "scribe_v2_realtime",
       audio_format: `pcm_${rate}`,
-      language_code: this.opts.language ?? "en",
       commit_strategy: "vad",
     });
+    if (this.opts.language) params.set("language_code", this.opts.language); // omit -> auto-detect
     const ws = new WebSocket(`${WS_BASE}?${params.toString()}`);
     this.ws = ws;
 

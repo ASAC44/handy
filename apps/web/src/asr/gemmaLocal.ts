@@ -25,7 +25,7 @@ export interface GemmaVad {
   prerollMs: number; // keep a little audio before onset so words aren't clipped
 }
 export const GEMMA_VAD_DEFAULTS: GemmaVad = {
-  startRms: 0.015,
+  startRms: 0.02, // noise floor — raise to ignore quiet/background talk
   endRms: 0.008,
   silenceMs: 700,
   minSpeechMs: 350,

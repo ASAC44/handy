@@ -5,7 +5,7 @@
  * server, which feeds the orchestrator. Providers: ElevenLabs Scribe v2 (cloud),
  * Web Speech (browser builtin), and Gemma 4 E4B (planned, on-device).
  */
-export type AsrProviderId = "elevenlabs" | "webspeech" | "gemma-local";
+export type AsrProviderId = "elevenlabs" | "webspeech" | "gemma-local" | "whisper-webgpu";
 
 /** Per-utterance timing — providers with measurable segmentation (Gemma local). */
 export interface AsrMetrics {
@@ -26,6 +26,8 @@ export interface AsrCallbacks {
   onLevel?(level: number): void;
   /** Timing for the just-finalized utterance, to surface the live latency. */
   onMetrics?(m: AsrMetrics): void;
+  /** Engine setup progress (e.g. on-device model download/warm-up). */
+  onStatus?(m: { text: string; progress?: number }): void;
 }
 
 export interface AsrProvider {
