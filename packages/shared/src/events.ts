@@ -91,6 +91,7 @@ export type ServerEvent =
   | { type: "presence.join"; participant: ParticipantPresence }
   | { type: "presence.update"; participant: ParticipantPresence }
   | { type: "presence.leave"; id: string }
+  | { type: "kicked"; reason?: string }
   | { type: "presence.cursor"; id: string; cursor: CursorPoint }
   | { type: "presence.ping"; id: string; ping: CursorPing }
   | { type: "context.snapshot"; context: ContextSnapshot }
@@ -111,6 +112,7 @@ export type ClientEvent =
   | { type: "setAbMode"; enabled: boolean }
   | { type: "setAgent"; agent: AgentName; enabled: boolean }
   | { type: "presence.hello"; name?: string; color?: string; role?: "host" | "viewer" }
+  | { type: "host.kick"; id: string }
   | { type: "presence.cursor"; cursor: Omit<CursorPoint, "updatedAt"> }
   | { type: "presence.ping"; ping: Omit<CursorPing, "updatedAt"> }
   | { type: "context.accept"; id: string }

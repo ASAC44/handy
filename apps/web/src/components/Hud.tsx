@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import type { ClientEvent, ContextBundle } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
+import { authHeaders } from "../auth";
 
 interface UploadFile {
   file: File;
@@ -142,7 +143,7 @@ function ContextDock({
       form.append("uploaderName", self?.name ?? (hostMode ? "Host" : "Participant"));
       form.append("role", hostMode ? "host" : "viewer");
       form.append("title", titleFor(filtered));
-      const res = await fetch(serverUrl("/context/upload"), { method: "POST", body: form });
+      const res = await fetch(serverUrl("/context/upload"), { method: "POST", body: form, headers: authHeaders() });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `Upload failed (${res.status})`);

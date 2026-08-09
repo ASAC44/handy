@@ -15,6 +15,7 @@ import {
   type CursorPing,
   type ContextSnapshot,
 } from "@sidebar/shared";
+import { getKey, clearKey } from "./auth";
 
 export interface TLine {
   id: number;
@@ -87,6 +88,8 @@ export interface SidebarState {
   latencyMs: number | null;
   abMode: boolean;
   agents: AgentToggles;
+  /** Set when the host removed you — show a "removed" screen and stop reconnecting. */
+  kicked: boolean;
 }
 
 const initial: SidebarState = {
@@ -112,6 +115,7 @@ const initial: SidebarState = {
   latencyMs: null,
   abMode: false,
   agents: { router: true, summarizer: true, prototype: true, factcheck: true },
+  kicked: false,
 };
 
 type Action =
@@ -154,6 +158,8 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       return { ...s, presence: upsertPresence(s.presence, ev.participant) };
     case "presence.leave":
       return { ...s, presence: s.presence.filter((p) => p.id !== ev.id) };
+    case "kicked":
+      return { ...s, kicked: true, connected: false };
     case "presence.cursor":
       return {
         ...s,
@@ -385,10 +391,13 @@ export function useSidebar() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const url =
+    const base =
       (import.meta.env.VITE_WS_URL as string | undefined) ??
       `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+    const k = getKey();
+    const url = k ? `${base}${base.includes("?") ? "&" : "?"}key=${encodeURIComponent(k)}` : base;
     let closed = false;
+    let kicked = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let ws: WebSocket;
     const connect = (): void => {
@@ -400,9 +409,17 @@ export function useSidebar() {
       };
       ws.onclose = () => {
         dispatch({ kind: "connected", v: false });
-        if (!closed) retry = setTimeout(connect, 1000);
+        // Don't reconnect once removed — that would just rejoin the meeting.
+        if (!closed && !kicked) retry = setTimeout(connect, 1000);
       };
-      ws.onmessage = (e) => dispatch({ kind: "event", ev: decodeServer(String(e.data)) });
+      ws.onmessage = (e) => {
+        const ev = decodeServer(String(e.data));
+        if (ev.type === "kicked") {
+          kicked = true;
+          clearKey(); // force the password again on a reload
+        }
+        dispatch({ kind: "event", ev });
+      };
     };
     connect();
     return () => {

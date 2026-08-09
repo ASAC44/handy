@@ -13,6 +13,7 @@ export default defineConfig({
       // ASR token mint + on-device Gemma transcription live on the server.
       "/asr": { target: "http://localhost:3001" },
       "/context": { target: "http://localhost:3001" },
+      "/gate": { target: "http://localhost:3001" },
     },
   },
 });

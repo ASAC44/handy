@@ -341,7 +341,7 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
           onFocusArtifact={focusArtifact}
         />
       ) : null}
-      <PresenceDock state={state} />
+      <PresenceDock state={state} send={send} hostMode={hostMode} />
       <CanvasControls
         count={perm.length}
         zoom={cam.z}
@@ -589,21 +589,33 @@ function RemoteCursor({ participant, x, y }: { participant: ParticipantPresence;
   );
 }
 
-function PresenceDock({ state }: { state: SidebarState }) {
+function PresenceDock({ state, send, hostMode }: { state: SidebarState; send: (e: ClientEvent) => void; hostMode: boolean }) {
+  const kick = (p: ParticipantPresence): void => {
+    if (confirm(`Remove ${p.name} from the meeting?`)) send({ type: "host.kick", id: p.id });
+  };
   return (
     <div className="presence-dock" onPointerDown={(e) => e.stopPropagation()}>
       <span className="presence-title">room</span>
       <div className="presence-avatars">
-        {state.presence.map((p) => (
-          <span
-            key={p.id}
-            className={"presence-avatar" + (p.id === state.selfId ? " self" : "")}
-            style={{ background: p.color }}
-            title={p.id === state.selfId ? `${p.name} (you)` : p.name}
-          >
-            {initials(p.name)}
-          </span>
-        ))}
+        {state.presence.map((p) => {
+          const isSelf = p.id === state.selfId;
+          const canKick = hostMode && !isSelf;
+          return (
+            <span
+              key={p.id}
+              className={"presence-avatar" + (isSelf ? " self" : "") + (canKick ? " kickable" : "")}
+              style={{ background: p.color }}
+              title={isSelf ? `${p.name} (you)` : canKick ? `${p.name} — click ✕ to remove` : p.name}
+            >
+              {initials(p.name)}
+              {canKick ? (
+                <button className="presence-kick" aria-label={`Remove ${p.name}`} onClick={() => kick(p)}>
+                  ✕
+                </button>
+              ) : null}
+            </span>
+          );
+        })}
       </div>
       <span className="presence-count">{state.presence.length} online</span>
     </div>

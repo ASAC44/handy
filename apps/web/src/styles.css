@@ -79,6 +79,18 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .vadRow input[type=range]{width:100%;height:3px;accent-color:var(--mint);cursor:pointer}
 .vadRow b{color:var(--text);text-align:right;font-weight:500}
 .vadMetric{margin-top:2px;font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--mint);background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:7px 9px}
+/* ── Meeting lock (password gate over the public funnel) ──────────────── */
+.lockScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100}
+.lockCard{display:flex;flex-direction:column;gap:12px;width:296px;padding:26px 24px;background:var(--panel2);border:1px solid var(--border2);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.lockBrand{display:flex;align-items:center;gap:8px;font-family:var(--serif);font-size:19px;color:var(--text)}
+.lockBrand .logo{color:var(--mint)}
+.lockTitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.lockInput{height:38px;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:13px;padding:0 12px}
+.lockInput:focus{outline:none;border-color:var(--mint)}
+.lockBtn{height:38px;border:1px solid rgba(22,113,92,.4);border-radius:9px;background:rgba(22,113,92,.08);color:var(--mint);font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;transition:.15s}
+.lockBtn:hover:not(:disabled){background:rgba(22,113,92,.16)}
+.lockBtn:disabled{opacity:.5;cursor:default}
+.lockError{font-family:var(--mono);font-size:11px;color:var(--red);text-align:center}
 .shareUrl{height:30px;display:inline-flex;align-items:center;border:1px solid rgba(52,92,156,.3);border-radius:8px;background:rgba(52,92,156,.06);color:var(--blue);font-family:var(--mono);font-size:10px;text-decoration:none;padding:0 10px;white-space:nowrap}
 .capError{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red);font-family:var(--mono);font-size:10px}
 .watchDock{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:6px 10px;white-space:nowrap}
@@ -298,6 +310,10 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .presence-avatars{display:flex;padding-left:4px}
 .presence-avatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;margin-left:-4px;border:1px solid var(--panel);font-family:var(--mono);font-size:9px;font-weight:800;color:#fff}
 .presence-avatar.self{box-shadow:0 0 0 2px rgba(22,113,92,.28)}
+.presence-avatar.kickable{position:relative}
+.presence-kick{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;border:none;background:var(--red,#b23a2c);color:#fff;font-size:8px;line-height:1;display:none;place-items:center;cursor:pointer;padding:0}
+.presence-avatar.kickable:hover .presence-kick{display:grid}
+.presence-kick:hover{filter:brightness(1.15)}
 
 /* ── Inspector ───────────────────────────────────────────────────────── */
 .inspector{position:absolute;right:14px;top:60px;width:230px;z-index:6;background:var(--glass);backdrop-filter:blur(11px);border:1px solid var(--border2);border-radius:12px;padding:13px;box-shadow:var(--shadow-lg)}
