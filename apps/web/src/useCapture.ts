@@ -4,15 +4,24 @@ import {
   createAsrProvider,
   webSpeechAvailable,
   probeWebgpu,
+  engineSupportsPlayback,
   GEMMA_VAD_DEFAULTS,
   DEFAULT_WHISPER_MODEL,
   type AsrProvider,
   type AsrProviderId,
   type AsrMetrics,
   type GemmaVad,
+  type Playback,
 } from "./asr";
 
 export type MicMode = "open" | "ptt";
+
+/** While a recording is being decoded through the live pipeline. */
+export interface PlaybackState {
+  name: string;
+  elapsedSec: number;
+  durationSec: number;
+}
 
 /** One participant's microphone: engine choice, open-mic vs push-to-talk, level,
  *  and the Gemma VAD knobs. Transcripts go up untagged — the server attributes them
@@ -37,6 +46,12 @@ export interface Capture {
   stop: () => void;
   pttDown: () => void;
   pttUp: () => void;
+  /** Decode a recording through the live pipeline (VAD engines only). */
+  playFile: (file: File) => Promise<void>;
+  /** Non-null while a recording is playing back. */
+  playback: PlaybackState | null;
+  /** Whether the current engine can play back a recording. */
+  canPlayback: boolean;
   vad: GemmaVad;
   setVad: (patch: Partial<GemmaVad>) => void;
   showVad: boolean;
@@ -68,6 +83,7 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [showVad, setShowVad] = useState(false);
+  const [playback, setPlayback] = useState<PlaybackState | null>(null);
   const [, setWebgpuReady] = useState(false); // flip after the async WebGPU probe to enable the option
   const vadRef = useRef<GemmaVad>(loadVad());
   const [vad, setVadView] = useState<GemmaVad>(() => ({ ...vadRef.current }));
@@ -113,9 +129,9 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
     }
   };
 
-  const startWith = async (id: AsrProviderId): Promise<void> => {
+  const startWith = async (id: AsrProviderId, play?: Playback): Promise<void> => {
     setError("");
-    const provider = createAsrProvider(id, { vad: vadRef.current, lang, whisperModel });
+    const provider = createAsrProvider(id, { vad: vadRef.current, lang, whisperModel, playback: play });
     try {
       await provider.start({
         // Untagged — the server attributes by the WS connection's presence.
@@ -125,25 +141,42 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
         onLevel: (lvl) => setLevel(lvl),
         onMetrics: (m) => setMetric(m),
         onStatus: (m) => setStatus(m.progress != null ? `${m.text} ${Math.round(m.progress)}%` : m.text),
+        onProgress: (p) => setPlayback(play ? { name: play.label, elapsedSec: p.elapsedSec, durationSec: p.durationSec } : null),
+        onEnded: () => stop(), // recording finished — reset to idle
       });
       asrRef.current = provider;
       setSpeechOn(true);
-      const ptt = modeRef.current === "ptt";
-      provider.setMuted?.(ptt); // PTT starts muted until held
-      setTalking(!ptt);
+      if (play) {
+        setPlayback({ name: play.label, elapsedSec: 0, durationSec: 0 });
+        setTalking(true); // recordings are always "live" (no PTT gating)
+      } else {
+        const ptt = modeRef.current === "ptt";
+        provider.setMuted?.(ptt); // PTT starts muted until held
+        setTalking(!ptt);
+      }
     } catch (err) {
       provider.stop();
-      if (id === "elevenlabs" && webSpeechAvailable()) {
+      if (!play && id === "elevenlabs" && webSpeechAvailable()) {
         setError("ElevenLabs unavailable — using browser speech");
         setEngine("webspeech");
         await startWith("webspeech");
         return;
       }
-      setError(err instanceof Error ? err.message : "Mic failed to start");
+      setError(err instanceof Error ? err.message : play ? "Couldn't play that recording" : "Mic failed to start");
     }
   };
 
   const start = (): Promise<void> => startWith(engine);
+
+  const playFile = async (file: File): Promise<void> => {
+    if (!engineSupportsPlayback(engine)) {
+      setError("Pick Gemma (local) or Whisper (your GPU) to play a recording");
+      return;
+    }
+    if (asrRef.current) stop();
+    const data = await file.arrayBuffer();
+    await startWith(engine, { data, label: file.name });
+  };
 
   const stop = (): void => {
     asrRef.current?.stop();
@@ -153,6 +186,7 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
     setLevel(0);
     setMetric(null);
     setStatus("");
+    setPlayback(null);
   };
 
   const pttDown = (): void => {
@@ -209,6 +243,9 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
     stop,
     pttDown,
     pttUp,
+    playFile,
+    playback,
+    canPlayback: engineSupportsPlayback(engine),
     vad,
     setVad,
     showVad,

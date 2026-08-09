@@ -172,6 +172,18 @@ export function CaptureDock({
       <button className="capBtn stop" onClick={() => send({ type: "live.stop" })} data-tip="End the live meeting">
         Stop
       </button>
+      <button
+        className="capBtn clear"
+        onClick={() => {
+          if (confirm("Clear the meeting? This wipes the transcript, prototypes, and summary for everyone in the room.")) {
+            stopScreen();
+            send({ type: "meeting.clear" });
+          }
+        }}
+        data-tip="Wipe the transcript, prototypes, and summary — start fresh"
+      >
+        Clear
+      </button>
       <InviteButton />
       {error ? <span className="capError">{error}</span> : null}
     </div>

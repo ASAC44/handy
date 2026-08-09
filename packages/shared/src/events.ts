@@ -96,7 +96,8 @@ export type ServerEvent =
   | { type: "presence.ping"; id: string; ping: CursorPing }
   | { type: "context.snapshot"; context: ContextSnapshot }
   | { type: "context.item"; item: ContextBundle }
-  | { type: "context.updated"; item: ContextBundle };
+  | { type: "context.updated"; item: ContextBundle }
+  | { type: "meeting.clear"; byHostId: string; at: number };
 
 /** Frontend -> backend events. */
 export type ClientEvent =
@@ -117,6 +118,7 @@ export type ClientEvent =
   | { type: "presence.ping"; ping: Omit<CursorPing, "updatedAt"> }
   | { type: "context.accept"; id: string }
   | { type: "context.reject"; id: string }
+  | { type: "meeting.clear" }
   | { type: "context.clear" };
 
 export function encode(ev: ServerEvent | ClientEvent): string {

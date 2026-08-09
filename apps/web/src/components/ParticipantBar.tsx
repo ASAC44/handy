@@ -1,7 +1,14 @@
+import { useRef } from "react";
 import type { SidebarState } from "../ws";
 import { asrProviders, GEMMA_VAD_DEFAULTS, WHISPER_MODELS, type AsrProviderId } from "../asr";
 import type { Capture } from "../useCapture";
 import { CustomSelect } from "./CustomSelect";
+
+/** mm:ss for the playback readout. */
+function clock(sec: number): string {
+  const s = Math.max(0, Math.round(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
 
 /** Where each engine sends your audio — surfaced so participants can pick a private path. */
 const PRIVACY: Record<AsrProviderId, { tone: "cloud" | "private"; note: string }> = {
@@ -29,6 +36,12 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
   const self = state.presence.find((p) => p.id === state.selfId);
   const priv = PRIVACY[cap.engine];
   const usesVad = cap.engine === "gemma-local" || cap.engine === "whisper-webgpu"; // engines with the client energy VAD
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (file) void cap.playFile(file);
+  };
   return (
     <footer className="micBar">
       <div className="micGroup">
@@ -77,10 +90,34 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
             Noise floor
           </button>
         ) : null}
+        {cap.canPlayback && !cap.speechOn ? (
+          <>
+            <input ref={fileRef} type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg" hidden onChange={onPick} />
+            <button className="capBtn" onClick={() => fileRef.current?.click()} data-tip="Decode a recording through the live pipeline (clean demos)">
+              ▶ Play recording
+            </button>
+          </>
+        ) : null}
       </div>
 
       <div className="micCenter">
-        {!cap.speechOn ? (
+        {cap.playback ? (
+          <span className="micPlay">
+            <span className="micPlayName" data-tip={cap.playback.name}>
+              ▶ {cap.playback.name}
+            </span>
+            <span className="micPlayBar">
+              <i style={{ width: (cap.playback.durationSec ? Math.min(100, (cap.playback.elapsedSec / cap.playback.durationSec) * 100) : 0) + "%" }} />
+            </span>
+            <span className="micPlayTime">
+              {clock(cap.playback.elapsedSec)}
+              {cap.playback.durationSec ? ` / ${clock(cap.playback.durationSec)}` : ""}
+            </span>
+            <button className="capBtn stop" onClick={() => cap.stop()}>
+              Stop
+            </button>
+          </span>
+        ) : !cap.speechOn ? (
           <button className="micJoin" onClick={() => void cap.start()}>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg> Join audio
           </button>
@@ -100,14 +137,14 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
         ) : (
           <span className="micLive on">&#9679; live</span>
         )}
-        {cap.speechOn ? (
+        {cap.speechOn && !cap.playback ? (
           <span className="micMeter" data-tip="Mic level">
             <span className="micMeterBar">
               <i style={{ width: Math.min(100, Math.round(cap.level * 320)) + "%" }} />
             </span>
           </span>
         ) : null}
-        {cap.speechOn ? (
+        {cap.speechOn && !cap.playback ? (
           <button className="capBtn stop" onClick={() => cap.stop()}>
             Leave audio
           </button>

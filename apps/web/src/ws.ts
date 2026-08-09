@@ -334,6 +334,37 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       return { ...s, agents: ev.agents };
     case "meeting.end":
       return { ...s, running: false, ...appendActivity(s, { kind: "end", title: "Meeting ended", detail: `${ev.artifacts} artifacts` }) };
+    case "meeting.clear":
+      // Host cleared the meeting: wipe transcript, summary, artifacts, factchecks,
+      // learned DNA, telemetry, and activity to a fresh slate. Connection, identity,
+      // presence, and context snapshot are preserved (the room is shared, not torn down).
+      return {
+        ...s,
+        title: "Sidebar",
+        participants: [],
+        scenarioId: undefined,
+        running: false,
+        capture: { screen: false, speech: false },
+        seq: 1,
+        activitySeq: 1,
+        activity: [
+          {
+            id: 1,
+            kind: "start",
+            title: "Meeting cleared",
+            detail: ev.byHostId ? "host started fresh" : "started fresh",
+            at: ev.at,
+          },
+        ],
+        transcript: [],
+        summary: null,
+        factchecks: [],
+        artifacts: [],
+        fanoutBuildId: null,
+        dna: null,
+        telemetry: {},
+        latencyMs: null,
+      };
     default:
       return s;
   }

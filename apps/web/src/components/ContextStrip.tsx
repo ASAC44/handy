@@ -142,6 +142,11 @@ export function ContextStrip({
     try {
       const directory = await directoryPicker.call(window, { mode: "read" });
       const files = await collectDirectoryHandle(directory, "", parseIgnoreRules(DEFAULT_IGNORE_TEXT, ""));
+      if (files.length === 0) {
+        setFilterNote("");
+        setError(`No usable files in "${directory.name}" (all ignored or empty)`);
+        return;
+      }
       submitted = true;
       await upload(files);
     } catch (err) {
@@ -156,12 +161,22 @@ export function ContextStrip({
     e.preventDefault();
     e.stopPropagation();
     setDragging(false);
+    let submitted = false;
+    setBusy(true);
     setError("");
+    setFilterNote("");
     try {
       const files = await collectDroppedFiles(e.dataTransfer);
+      if (files.length === 0) {
+        setError("No usable files dropped (all ignored or empty)");
+        return;
+      }
+      submitted = true;
       await upload(files);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Drop failed");
+    } finally {
+      if (!submitted) setBusy(false);
     }
   };
 
