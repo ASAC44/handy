@@ -526,3 +526,31 @@ button.setRow:hover{background:var(--bg2)}
 .resizing *{user-select:none!important}
 .resizing-rows *{cursor:row-resize!important}
 .resizing-cols *{cursor:col-resize!important}
+
+/* ── Multi-guest invites (host modal) ─────────────────────────────────── */
+.inviteList{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto;margin-bottom:4px}
+.inviteItem{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:7px}
+.inviteLabel{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--mint);white-space:nowrap}
+.inviteItem .inviteUrl{font-size:11px;padding:7px 9px}
+.inviteEmpty{font-family:var(--mono);font-size:11.5px;color:var(--muted);padding:10px 2px}
+.capBtn.subtle{color:var(--muted);border-color:var(--border2);background:transparent}
+.capBtn.subtle:hover{color:var(--red);border-color:var(--red)}
+.watchExit{margin-left:2px}
+
+/* ── Post-meeting recap (terminal, shown to host + guests) ────────────── */
+.recapScreen{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:var(--canvas-bg)}
+.recapBar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;background:var(--glass);backdrop-filter:blur(10px);border-bottom:1px solid var(--border2)}
+.recapTitle{display:flex;align-items:center;gap:11px;min-width:0}
+.recapTitle .logo{font-size:18px;color:var(--mint)}
+.recapH{font-family:var(--serif);font-weight:600;font-size:18px;line-height:1.1;color:var(--text)}
+.recapSub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.recapDrafting{display:inline-flex;align-items:center;gap:6px;color:var(--mint)}
+.recapDrafting i{width:7px;height:7px;border-radius:50%;background:var(--mint);animation:recapPulse 1s ease-in-out infinite}
+@keyframes recapPulse{0%,100%{opacity:.3}50%{opacity:1}}
+.recapActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.recapBody{flex:1;min-height:0;padding:16px;display:flex}
+.recapFrame{flex:1;width:100%;border:1px solid var(--border2);border-radius:12px;background:var(--frame);box-shadow:var(--shadow);overflow:hidden}
+.recapPlaceholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-family:var(--mono);font-size:12px}
+.recapSpinner{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--border2);border-top-color:var(--mint);animation:recapSpin .8s linear infinite}
+@keyframes recapSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.recapDrafting i,.recapSpinner{animation:none}}

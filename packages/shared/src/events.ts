@@ -68,6 +68,17 @@ export interface ContextSnapshot {
   items: ContextBundle[];
 }
 
+/** A unique, host-minted guest invitation. The `code` is the per-guest secret that
+ *  authorizes a viewer (carried as `?key=` on their link); the host authenticates
+ *  with the separate host passcode. Lives only in the (in-memory) room registry. */
+export interface InviteInfo {
+  id: string;
+  code: string;
+  label: string;
+  createdAt: number;
+  revoked: boolean;
+}
+
 /** Backend -> frontend events (the WebSocket protocol, spec section 7 + learned-style additions). */
 export type ServerEvent =
   | { type: "meeting.start"; scenarioId: string; title: string; participants: string[] }
@@ -77,7 +88,9 @@ export type ServerEvent =
   | { type: "router.decision"; decision: RouterDecision }
   | { type: "summary.update"; summary: MeetingSummary }
   | { type: "fanout.start"; buildId: string; intent: string; usesScreen: boolean; variants: VariantInfo[] }
-  | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo }
+  // `baseId` (evolve mode): the artifact this build is cloned from + edited — the
+  // client seeds the new card with that artifact's HTML instead of a blank canvas.
+  | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string }
   | { type: "prototype.token"; id: string; delta: string }
   | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey }
   | { type: "fanout.resolved"; buildId: string; chosenThemeKey: ThemeKey }
@@ -97,7 +110,15 @@ export type ServerEvent =
   | { type: "context.snapshot"; context: ContextSnapshot }
   | { type: "context.item"; item: ContextBundle }
   | { type: "context.updated"; item: ContextBundle }
-  | { type: "meeting.clear"; byHostId: string; at: number };
+  | { type: "meeting.clear"; byHostId: string; at: number }
+  // Host ended the meeting for everyone: all clients lock to the read-only recap.
+  | { type: "meeting.over"; at: number; byHostId: string }
+  // Final meeting document (a themed, self-contained HTML recap) streamed live.
+  | { type: "finaldoc.start"; id: string }
+  | { type: "finaldoc.token"; id: string; delta: string }
+  | { type: "finaldoc.complete"; id: string; html: string; ms: number }
+  // Host-only: the live list of minted guest invite codes.
+  | { type: "invite.list"; invites: InviteInfo[] };
 
 /** Frontend -> backend events. */
 export type ClientEvent =
@@ -119,7 +140,12 @@ export type ClientEvent =
   | { type: "context.accept"; id: string }
   | { type: "context.reject"; id: string }
   | { type: "meeting.clear" }
-  | { type: "context.clear" };
+  | { type: "context.clear" }
+  // Host ends the meeting for everyone (triggers the final-document recap).
+  | { type: "meeting.end" }
+  // Host mints / revokes a unique guest invite code.
+  | { type: "invite.create" }
+  | { type: "invite.revoke"; id: string };
 
 export function encode(ev: ServerEvent | ClientEvent): string {
   return JSON.stringify(ev);

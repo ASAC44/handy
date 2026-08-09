@@ -14,6 +14,7 @@ import {
   type ParticipantPresence,
   type CursorPing,
   type ContextSnapshot,
+  type InviteInfo,
 } from "@sidebar/shared";
 import { getKey, clearKey } from "./auth";
 
@@ -34,8 +35,17 @@ export interface Artifact {
   status: "building" | "done";
   ms?: number;
   variant?: VariantInfo;
+  /** This build is an edit cloned from a prior artifact (seeded with its HTML). */
+  evolving?: boolean;
 }
 export interface Telem { tokPerS: number; tokens: number; latencyMs: number }
+/** The final meeting document (themed HTML recap) streamed when the host ends. */
+export interface FinalDoc {
+  id: string;
+  html: string;
+  status: "building" | "done";
+  ms?: number;
+}
 export interface PresencePing extends CursorPing {
   id: string;
   participantId: string;
@@ -90,6 +100,14 @@ export interface SidebarState {
   agents: AgentToggles;
   /** Set when the host removed you — show a "removed" screen and stop reconnecting. */
   kicked: boolean;
+  /** Set when YOU chose to leave — show a "you left" screen and stop reconnecting. */
+  left: boolean;
+  /** Set when the host ended the meeting for everyone — lock all clients to the recap. */
+  ended: { at: number; byHostId: string } | null;
+  /** The streamed final meeting document (recap), once the host ends the meeting. */
+  finalDoc: FinalDoc | null;
+  /** Host-only: live list of minted guest invite codes (empty for guests). */
+  invites: InviteInfo[];
 }
 
 const initial: SidebarState = {
@@ -116,15 +134,21 @@ const initial: SidebarState = {
   abMode: false,
   agents: { router: true, summarizer: true, prototype: true, factcheck: true },
   kicked: false,
+  left: false,
+  ended: null,
+  finalDoc: null,
+  invites: [],
 };
 
 type Action =
   | { kind: "event"; ev: ServerEvent }
   | { kind: "connected"; v: boolean }
+  | { kind: "left" }
   | { kind: "abMode"; v: boolean };
 
 function reducer(s: SidebarState, a: Action): SidebarState {
   if (a.kind === "connected") return { ...s, connected: a.v };
+  if (a.kind === "left") return { ...s, left: true, connected: false };
   if (a.kind === "abMode") return { ...s, abMode: a.v };
   const ev = a.ev;
   switch (ev.type) {
@@ -146,6 +170,8 @@ function reducer(s: SidebarState, a: Action): SidebarState {
         artifacts: [],
         fanoutBuildId: null,
         latencyMs: null,
+        ended: null,
+        finalDoc: null,
         activitySeq: started.activitySeq,
         activity: [started.event],
       };
@@ -270,21 +296,25 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       });
       return { ...s, fanoutBuildId: ev.buildId, ...patch };
     }
-    case "prototype.start":
+    case "prototype.start": {
+      // Evolve mode: seed the new card with the base artifact's HTML (a clone) instead
+      // of a blank canvas, so the edit is visibly applied to what's already on screen.
+      const baseHtml = ev.baseId ? s.artifacts.find((a) => a.id === ev.baseId)?.html ?? "" : "";
       return {
         ...s,
         artifacts: [
           ...s.artifacts,
-          { id: ev.id, buildId: ev.buildId, intent: ev.intent, usesScreen: ev.usesScreen, themeKey: ev.themeKey, html: "", status: "building", variant: ev.variant },
+          { id: ev.id, buildId: ev.buildId, intent: ev.intent, usesScreen: ev.usesScreen, themeKey: ev.themeKey, html: baseHtml, status: "building", variant: ev.variant, evolving: !!ev.baseId },
         ],
         ...appendActivity(s, {
           kind: "prototype",
-          title: ev.variant ? `${ev.variant.name} variant started` : "Prototype started",
+          title: ev.variant ? `${ev.variant.name} variant started` : ev.baseId ? "Revising prototype" : "Prototype started",
           detail: ev.intent,
           buildId: ev.buildId,
           artifactId: ev.id,
         }),
       };
+    }
     case "prototype.token":
       return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, html: p.html + ev.delta } : p)) };
     case "prototype.complete":
@@ -334,6 +364,25 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       return { ...s, agents: ev.agents };
     case "meeting.end":
       return { ...s, running: false, ...appendActivity(s, { kind: "end", title: "Meeting ended", detail: `${ev.artifacts} artifacts` }) };
+    case "meeting.over":
+      // Host ended the meeting for everyone: lock to the read-only recap.
+      return {
+        ...s,
+        running: false,
+        ended: { at: ev.at, byHostId: ev.byHostId },
+        ...appendActivity(s, { kind: "end", title: "Meeting ended", detail: "drafting the final recap…" }),
+      };
+    case "finaldoc.start":
+      return { ...s, finalDoc: { id: ev.id, html: "", status: "building" } };
+    case "finaldoc.token":
+      return {
+        ...s,
+        finalDoc: s.finalDoc && s.finalDoc.id === ev.id ? { ...s.finalDoc, html: s.finalDoc.html + ev.delta } : s.finalDoc,
+      };
+    case "finaldoc.complete":
+      return { ...s, finalDoc: { id: ev.id, html: ev.html, status: "done", ms: ev.ms } };
+    case "invite.list":
+      return { ...s, invites: ev.invites };
     case "meeting.clear":
       // Host cleared the meeting: wipe transcript, summary, artifacts, factchecks,
       // learned DNA, telemetry, and activity to a fresh slate. Connection, identity,
@@ -364,6 +413,8 @@ function reducer(s: SidebarState, a: Action): SidebarState {
         dna: null,
         telemetry: {},
         latencyMs: null,
+        ended: null,
+        finalDoc: null,
       };
     default:
       return s;
@@ -421,6 +472,9 @@ function clientPresenceRole(): "host" | "viewer" {
 export function useSidebar() {
   const [state, dispatch] = useReducer(reducer, initial);
   const wsRef = useRef<WebSocket | null>(null);
+  // A deliberate guest "exit": stop auto-reconnect and show the "you left" screen.
+  const leftRef = useRef(false);
+  const leaveRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const base =
@@ -441,8 +495,8 @@ export function useSidebar() {
       };
       ws.onclose = () => {
         dispatch({ kind: "connected", v: false });
-        // Don't reconnect once removed — that would just rejoin the meeting.
-        if (!closed && !kicked) retry = setTimeout(connect, 1000);
+        // Don't reconnect once removed or after a deliberate exit — either would rejoin.
+        if (!closed && !kicked && !leftRef.current) retry = setTimeout(connect, 1000);
       };
       ws.onmessage = (e) => {
         const ev = decodeServer(String(e.data));
@@ -452,6 +506,13 @@ export function useSidebar() {
         }
         dispatch({ kind: "event", ev });
       };
+    };
+    // Leaving: flag it (so onclose won't reconnect), flip the UI, then drop the socket.
+    leaveRef.current = () => {
+      leftRef.current = true;
+      dispatch({ kind: "left" });
+      if (retry) clearTimeout(retry);
+      wsRef.current?.close();
     };
     connect();
     return () => {
@@ -469,5 +530,6 @@ export function useSidebar() {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(encode(ev));
   };
   const setAbMode = (v: boolean): void => dispatch({ kind: "abMode", v });
-  return { state, send, setAbMode };
+  const leave = (): void => leaveRef.current();
+  return { state, send, setAbMode, leave };
 }

@@ -12,10 +12,12 @@ export function CaptureDock({
   hostMode,
   state,
   send,
+  onLeave,
 }: {
   hostMode: boolean;
   state: SidebarState;
   send: (ev: ClientEvent) => void;
+  onLeave: () => void;
 }) {
   const [host, setHost] = useState(() => localStorage.getItem("sidebar.host") || "Host");
   const [screenOn, setScreenOn] = useState(false);
@@ -124,7 +126,7 @@ export function CaptureDock({
         <input
           className="watchName"
           placeholder="your name"
-          defaultValue={selfName.startsWith("Viewer ") ? "" : selfName}
+          defaultValue={selfName.startsWith("Viewer ") || selfName.startsWith("Guest ") ? "" : selfName}
           aria-label="Your name"
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
@@ -138,6 +140,9 @@ export function CaptureDock({
           }}
         />
         <a href={withHostParam()}>host view</a>
+        <button className="capBtn stop watchExit" onClick={onLeave} data-tip="Leave the meeting">
+          Exit
+        </button>
       </div>
     );
   }
@@ -169,8 +174,21 @@ export function CaptureDock({
       <button className="capBtn" onClick={sendManual} data-tip="Send a typed line into the transcript">
         Send
       </button>
-      <button className="capBtn stop" onClick={() => send({ type: "live.stop" })} data-tip="End the live meeting">
-        Stop
+      <button
+        className="capBtn stop"
+        onClick={() => {
+          if (
+            confirm(
+              "End the meeting for everyone? The agents will draft the final recap and all participants move to the read-only summary.",
+            )
+          ) {
+            stopScreen();
+            send({ type: "meeting.end" });
+          }
+        }}
+        data-tip="End for everyone and draft the final recap"
+      >
+        End meeting
       </button>
       <button
         className="capBtn clear"
@@ -184,7 +202,7 @@ export function CaptureDock({
       >
         Clear
       </button>
-      <InviteButton />
+      <InviteButton state={state} send={send} />
       {error ? <span className="capError">{error}</span> : null}
     </div>
   );
