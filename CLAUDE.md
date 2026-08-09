@@ -29,6 +29,7 @@ bun run asr:gen          # (re)generate fixtures/audio/* from transcripts via El
 bun run asr:bench        # score local Gemma ASR against those fixtures (WER) — needs Ollama
 bun run meetings:gen     # (re)generate fixtures/meetings/* — naturalistic v3 meetings
 bun run meetings:bench   # WER on the realism-set clips (asr-bench --set meetings)
+                         #   --backend both -> Gemma local vs ElevenLabs Scribe head-to-head
 ```
 
 There is **no test runner and no linter**. `bun run typecheck` is the only automated
