@@ -1,0 +1,396 @@
+{
+  "generator": "scripts/gen-meeting-audio.ts",
+  "model_id": "eleven_v3",
+  "sample_rate": 16000,
+  "format": "wav",
+  "seed": 20240628,
+  "scenarios": [
+    {
+      "id": "standup-curveball",
+      "title": "Daily Standup (that goes sideways)",
+      "lang": "en",
+      "full": "standup-curveball/meeting.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Maya",
+          "voice_id": "AZnzlk1XvdvUeBnXmlld",
+          "voice_name": "Domi",
+          "file": "standup-curveball/00-Maya.wav",
+          "text": "Okay, okay, are we all here? Morning. How was everyone's weekend?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 0
+        },
+        {
+          "index": 1,
+          "speaker": "Sam",
+          "voice_id": "pNInz6obpgDQGcFmaJgB",
+          "voice_name": "Adam",
+          "file": "standup-curveball/01-Sam.wav",
+          "text": "Don't. I spent like six hours building a desk and the last screw just, did not exist. It was not in the bag.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 7020
+        },
+        {
+          "index": 2,
+          "speaker": "Theo",
+          "voice_id": "ErXwobaYiN019PkySvjV",
+          "voice_name": "Antoni",
+          "file": "standup-curveball/02-Theo.wav",
+          "text": "Mine was good, went climbing. Uh, can we, I've got a hard stop at half past, so.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 15540
+        },
+        {
+          "index": 3,
+          "speaker": "Maya",
+          "voice_id": "AZnzlk1XvdvUeBnXmlld",
+          "voice_name": "Domi",
+          "file": "standup-curveball/03-Maya.wav",
+          "text": "Yeah, yeah, let's go. Sam, you start?",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 21310
+        },
+        {
+          "index": 4,
+          "speaker": "Sam",
+          "voice_id": "pNInz6obpgDQGcFmaJgB",
+          "voice_name": "Adam",
+          "file": "standup-curveball/04-Sam.wav",
+          "text": "So I'm still stuck on the auth thing, waiting on Theo's review. And honestly, I keep losing track of who's blocked on what. It's all just Slack threads and, like, my memory.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 24060
+        },
+        {
+          "index": 5,
+          "speaker": "Theo",
+          "voice_id": "ErXwobaYiN019PkySvjV",
+          "voice_name": "Antoni",
+          "file": "standup-curveball/05-Theo.wav",
+          "text": "yeah it's a total mess",
+          "lang": "en",
+          "kind": "crosstalk",
+          "startMs": 34970
+        },
+        {
+          "index": 6,
+          "speaker": "Maya",
+          "voice_id": "AZnzlk1XvdvUeBnXmlld",
+          "voice_name": "Domi",
+          "file": "standup-curveball/06-Maya.wav",
+          "text": "Right? Like I genuinely could not tell you what's in flight right now.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 36950
+        },
+        {
+          "index": 7,
+          "speaker": "Sam",
+          "voice_id": "pNInz6obpgDQGcFmaJgB",
+          "voice_name": "Adam",
+          "file": "standup-curveball/07-Sam.wav",
+          "text": "Honestly I just want, like, one screen. Where I can just drag the thing from, I dunno, doing to blocked when it actually moves. Just shove the cards around.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 41410
+        },
+        {
+          "index": 8,
+          "speaker": "Theo",
+          "voice_id": "ErXwobaYiN019PkySvjV",
+          "voice_name": "Antoni",
+          "file": "standup-curveball/08-Theo.wav",
+          "text": "Yeah and the blocked stuff should just, like, be screaming red at me. So I can't ignore it.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 52330
+        },
+        {
+          "index": 9,
+          "speaker": "Maya",
+          "voice_id": "AZnzlk1XvdvUeBnXmlld",
+          "voice_name": "Domi",
+          "file": "standup-curveball/09-Maya.wav",
+          "text": "Okay, that's, yeah. Anyway, did someone kill the last of the oat milk? Be honest.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 58980
+        },
+        {
+          "index": 10,
+          "speaker": "Sam",
+          "voice_id": "pNInz6obpgDQGcFmaJgB",
+          "voice_name": "Adam",
+          "file": "standup-curveball/10-Sam.wav",
+          "text": "Wasn't me. Okay I gotta jump, same time tomorrow?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 68130
+        }
+      ]
+    },
+    {
+      "id": "growth-sync-ptbr",
+      "title": "Growth Sync (Brazilian team)",
+      "lang": "pt",
+      "full": "growth-sync-ptbr/meeting.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Bia",
+          "voice_id": "EXAVITQu4vr4xnSDxMaL",
+          "voice_name": "Sarah",
+          "file": "growth-sync-ptbr/00-Bia.wav",
+          "text": "Bom dia, gente. Calma que o Rafa ainda tá entrando, Rafa, cê tá aí?",
+          "lang": "pt",
+          "kind": "offtopic",
+          "startMs": 0
+        },
+        {
+          "index": 1,
+          "speaker": "Rafa",
+          "voice_id": "TxGEqnHWrfWFTfGW9XjX",
+          "voice_name": "Josh",
+          "file": "growth-sync-ptbr/01-Rafa.wav",
+          "text": "Tô, tô, desculpa, o café derramou na mesa inteira agora.",
+          "lang": "pt",
+          "kind": "offtopic",
+          "startMs": 5020
+        },
+        {
+          "index": 2,
+          "speaker": "Bia",
+          "voice_id": "EXAVITQu4vr4xnSDxMaL",
+          "voice_name": "Sarah",
+          "file": "growth-sync-ptbr/02-Bia.wav",
+          "text": "Clássico. Bom, growth review. Rafa, como é que tá o churn esse mês?",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 9940
+        },
+        {
+          "index": 3,
+          "speaker": "Rafa",
+          "voice_id": "TxGEqnHWrfWFTfGW9XjX",
+          "voice_name": "Josh",
+          "file": "growth-sync-ptbr/03-Rafa.wav",
+          "text": "Então, o churn subiu pra quatro e pouco por cento. O MRR tá em cento e quarenta mil, crescendo, mas esse churn aí tá me preocupando.",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 16350
+        },
+        {
+          "index": 4,
+          "speaker": "Lu",
+          "voice_id": "MF3mGyEYCl7XYWbV9V6O",
+          "voice_name": "Elli",
+          "file": "growth-sync-ptbr/04-Lu.wav",
+          "text": "Eu queria conseguir ver isso sem ter que abrir cinco planilha. Tipo, toda semana é a mesma caça.",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 25180
+        },
+        {
+          "index": 5,
+          "speaker": "Bia",
+          "voice_id": "EXAVITQu4vr4xnSDxMaL",
+          "voice_name": "Sarah",
+          "file": "growth-sync-ptbr/05-Bia.wav",
+          "text": "Pois é. Sério, eu só queria um painel com tudo isso numa tela só, o churn, o MRR, e quem realmente tá usando.",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 33280
+        },
+        {
+          "index": 6,
+          "speaker": "Rafa",
+          "voice_id": "TxGEqnHWrfWFTfGW9XjX",
+          "voice_name": "Josh",
+          "file": "growth-sync-ptbr/06-Rafa.wav",
+          "text": "isso, tudo num lugar só",
+          "lang": "pt",
+          "kind": "crosstalk",
+          "startMs": 41280
+        },
+        {
+          "index": 7,
+          "speaker": "Lu",
+          "voice_id": "MF3mGyEYCl7XYWbV9V6O",
+          "voice_name": "Elli",
+          "file": "growth-sync-ptbr/07-Lu.wav",
+          "text": "E que atualize sozinho, né? Não dá pra ficar exportando CSV na mão toda semana.",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 43740
+        },
+        {
+          "index": 8,
+          "speaker": "Bia",
+          "voice_id": "EXAVITQu4vr4xnSDxMaL",
+          "voice_name": "Sarah",
+          "file": "growth-sync-ptbr/08-Bia.wav",
+          "text": "Exato. Ah, vocês viram o jogo ontem?",
+          "lang": "pt",
+          "kind": "offtopic",
+          "startMs": 48820
+        },
+        {
+          "index": 9,
+          "speaker": "Rafa",
+          "voice_id": "TxGEqnHWrfWFTfGW9XjX",
+          "voice_name": "Josh",
+          "file": "growth-sync-ptbr/09-Rafa.wav",
+          "text": "Nem me fala. Fui dormir puto da vida.",
+          "lang": "pt",
+          "kind": "offtopic",
+          "startMs": 52670
+        },
+        {
+          "index": 10,
+          "speaker": "Bia",
+          "voice_id": "EXAVITQu4vr4xnSDxMaL",
+          "voice_name": "Sarah",
+          "file": "growth-sync-ptbr/10-Bia.wav",
+          "text": "Tá, foco, foco. Lu, cê fecha o resto depois?",
+          "lang": "pt",
+          "kind": "talk",
+          "startMs": 56940
+        }
+      ]
+    },
+    {
+      "id": "launch-room-accents",
+      "title": "Launch Room (people talking over each other)",
+      "lang": "en",
+      "full": "launch-room-accents/meeting.wav",
+      "clips": [
+        {
+          "index": 0,
+          "speaker": "Nora",
+          "voice_id": "XB0fDUnXU5powFXDhCwa",
+          "voice_name": "Charlotte",
+          "file": "launch-room-accents/00-Nora.wav",
+          "text": "Alright, launch is in, what, two weeks? We need the landing page to actually convert this time.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 0
+        },
+        {
+          "index": 1,
+          "speaker": "Emile",
+          "voice_id": "ErXwobaYiN019PkySvjV",
+          "voice_name": "Antoni",
+          "file": "launch-room-accents/01-Emile.wav",
+          "text": "Yes, and last time it was, how you say, too busy. Too many things on the page.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 7980
+        },
+        {
+          "index": 2,
+          "speaker": "Theo",
+          "voice_id": "2EiwWnXFnvU5JabPnv8n",
+          "voice_name": "Clyde",
+          "file": "launch-room-accents/02-Theo.wav",
+          "text": "way too busy",
+          "lang": "en",
+          "kind": "crosstalk",
+          "startMs": 12640
+        },
+        {
+          "index": 3,
+          "speaker": "Ava",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM",
+          "voice_name": "Rachel",
+          "file": "launch-room-accents/03-Ava.wav",
+          "text": "So strip it then. Like one thing, one big promise, and just put the email box right there. Done.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 14490
+        },
+        {
+          "index": 4,
+          "speaker": "Nora",
+          "voice_id": "XB0fDUnXU5powFXDhCwa",
+          "voice_name": "Charlotte",
+          "file": "launch-room-accents/04-Nora.wav",
+          "text": "Yeah, honestly I just picture, like, a huge headline, the signup right under it, and a few little cards below. Dark. Punchy.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 22600
+        },
+        {
+          "index": 5,
+          "speaker": "Emile",
+          "voice_id": "ErXwobaYiN019PkySvjV",
+          "voice_name": "Antoni",
+          "file": "launch-room-accents/05-Emile.wav",
+          "text": "And the hero image from the deck, no? The one with, you know the one I mean.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 32300
+        },
+        {
+          "index": 6,
+          "speaker": "Theo",
+          "voice_id": "2EiwWnXFnvU5JabPnv8n",
+          "voice_name": "Clyde",
+          "file": "launch-room-accents/06-Theo.wav",
+          "text": "Wait, are we actually doing dark mode though? My eyes, man.",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 37720
+        },
+        {
+          "index": 7,
+          "speaker": "Ava",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM",
+          "voice_name": "Rachel",
+          "file": "launch-room-accents/07-Ava.wav",
+          "text": "it's a launch, of course it's dark",
+          "lang": "en",
+          "kind": "crosstalk",
+          "startMs": 42490
+        },
+        {
+          "index": 8,
+          "speaker": "Nora",
+          "voice_id": "XB0fDUnXU5powFXDhCwa",
+          "voice_name": "Charlotte",
+          "file": "launch-room-accents/08-Nora.wav",
+          "text": "Okay. Also, did the coffee machine die again or is that just me?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 44930
+        },
+        {
+          "index": 9,
+          "speaker": "Theo",
+          "voice_id": "2EiwWnXFnvU5JabPnv8n",
+          "voice_name": "Clyde",
+          "file": "launch-room-accents/09-Theo.wav",
+          "text": "It's dead. Tragedy. Anyway, five-word headline, who's owning that?",
+          "lang": "en",
+          "kind": "offtopic",
+          "startMs": 50700
+        },
+        {
+          "index": 10,
+          "speaker": "Ava",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM",
+          "voice_name": "Rachel",
+          "file": "launch-room-accents/10-Ava.wav",
+          "text": "I'll take it.",
+          "lang": "en",
+          "kind": "talk",
+          "startMs": 56810
+        }
+      ]
+    }
+  ]
+}
