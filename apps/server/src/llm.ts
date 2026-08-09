@@ -26,6 +26,8 @@ export const summarizerModel = (): AIModel => cerebras({ temperature: 0.5, max_t
 export const prototypeModel = (): AIModel => cerebras({ temperature: 1.0, top_p: 0.95, max_tokens: 2500 });
 // Fact-check: cold, deterministic.
 export const factcheckModel = (): AIModel => cerebras({ temperature: 0.2, max_tokens: 1024 });
+// Final document (closing recap): low-ish temp, large budget for a full HTML page.
+export const finalDocModel = (): AIModel => cerebras({ temperature: 0.4, max_tokens: 3200 });
 
 /** Honest A/B baseline — a GPU-hosted open model. `BASELINE_PROVIDER=ollama` uses the
  *  native Ollama endpoint (where `thinking:false` actually disables reasoning); anything

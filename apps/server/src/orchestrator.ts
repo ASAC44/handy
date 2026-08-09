@@ -15,10 +15,21 @@ import {
   type VariantInfo,
   type AgentName,
 } from "@sidebar/shared";
-import { mockStream, liveStream, getBaseline } from "./agents/prototype";
+import { mockStream, liveStream, evolveStream, getBaseline, type StreamResult } from "./agents/prototype";
 import { routeLive } from "./agents/router";
 import { summarizeLive } from "./agents/summarizer";
 import { factcheckLive } from "./agents/factcheck";
+import { finalDocLive, buildRecapHtml, type RecapInput } from "./agents/finaldoc";
+
+/** A completed prototype kept in memory — the base for the next evolution and the
+ *  source for the final recap's artifact gallery. */
+interface BuiltArtifact {
+  id: string;
+  buildId: string;
+  intent: string;
+  themeKey: ThemeKey;
+  html: string;
+}
 
 const RATE = 0.6; // compress fixture pacing for a snappier replay
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -109,6 +120,14 @@ export class Orchestrator {
   private transcript: string[] = [];
   private summary: MeetingSummary | null = null;
   private liveQueue: Promise<void> = Promise.resolve();
+  /** True while a first-build fan-out is on screen waiting for the room to pick a
+   *  design direction (live mode only — mock auto-picks). Blocks a second fan-out
+   *  from stacking, and is resolved off the segment queue so the transcript keeps flowing. */
+  private awaitingPick = false;
+  /** Prototypes built this meeting — the latest is the base for the next evolution,
+   *  and all of them are embedded in the final recap document. */
+  private artifacts: BuiltArtifact[] = [];
+  private lastTitle = "Live Meeting";
 
   constructor(private runtime: MeetingRuntime) {}
 
@@ -123,8 +142,54 @@ export class Orchestrator {
     this.stop();
     this.transcript = [];
     this.summary = null;
+    this.artifacts = [];
     this.liveQueue = Promise.resolve();
+    this.awaitingPick = false;
     liveTurnSeq = 0;
+  }
+
+  /**
+   * Closing agent: draft the final meeting document — a themed, self-contained HTML
+   * recap — and stream it to the whole room as `finaldoc.*` events. Called once when
+   * the host ends the meeting; reads the PRESERVED transcript + rolling summary +
+   * accepted file context (the room sets `ended` so no new turns mutate them).
+   * Mock mode assembles the recap deterministically; live mode streams from Cerebras.
+   * Honours the runId guard, so a subsequent clear/start cancels a stale draft.
+   */
+  async finalizeDocument(): Promise<void> {
+    const my = this.runId; // endMeeting bumped runId via stop(); a later bump cancels this
+    const id = `doc-${buildSeq}-${liveTurnSeq}`;
+    this.send({ type: "finaldoc.start", id });
+
+    const input: RecapInput = {
+      title: this.lastTitle,
+      summary: this.summary ?? summarizeMock(this.transcript, null),
+      transcript: this.transcript.join("\n"),
+      context: this.runtime.contextSummary(),
+      artifacts: this.artifacts.map((a) => ({ intent: a.intent, html: a.html, themeKey: a.themeKey })),
+      theme: this.runtime.learned,
+    };
+    const alive = (): boolean => my === this.runId;
+    const onToken = (delta: string): void => {
+      if (alive()) this.send({ type: "finaldoc.token", id, delta });
+    };
+
+    let result: StreamResult;
+    if (config.agents === "mock") {
+      result = await mockStream(buildRecapHtml(input), 2600, onToken, alive);
+    } else {
+      try {
+        result = await finalDocLive(input, onToken);
+        // A stream that completes but yields no usable HTML must NOT silently produce a
+        // blank recap — fall back to the deterministic doc (the catch handles it).
+        if (!result.html.trim()) throw new Error("empty final-doc html");
+      } catch (err) {
+        console.error("[finaldoc] live call failed", errMsg(err));
+        result = await mockStream(buildRecapHtml(input), 1600, onToken, alive);
+      }
+    }
+    if (!alive()) return;
+    this.send({ type: "finaldoc.complete", id, html: result.html, ms: result.ms });
   }
 
   async start(scenarioId?: string): Promise<void> {
@@ -132,6 +197,9 @@ export class Orchestrator {
     const scn = getScenario(scenarioId ?? config.scenario);
     this.transcript = [];
     this.summary = null;
+    this.artifacts = [];
+    this.awaitingPick = false;
+    this.lastTitle = scn.title;
     this.send({ type: "meeting.start", scenarioId: scn.id, title: scn.title, participants: scn.participants });
     await sleep(300);
     for (const seg of scn.segments) {
@@ -146,7 +214,10 @@ export class Orchestrator {
     this.runId++;
     this.transcript = [];
     this.summary = null;
+    this.artifacts = [];
+    this.lastTitle = title;
     this.liveQueue = Promise.resolve();
+    this.awaitingPick = false;
     this.send({ type: "meeting.start", scenarioId: "live", title, participants: [host] });
     this.send({
       type: "capture.status",
@@ -185,6 +256,10 @@ export class Orchestrator {
   }
 
   private async playSegment(seg: FixtureSegment, my: number, paced = true): Promise<void> {
+    // A queued live segment may resume after the run was cancelled (stop/end/clear bumps
+    // runId). Bail before emitting transcript.final or mutating this.transcript so nothing
+    // lands after a meeting has ended.
+    if (my !== this.runId) return;
     if (seg.partials) {
       for (const p of seg.partials) {
         if (my !== this.runId) return;
@@ -255,6 +330,11 @@ export class Orchestrator {
 
   /** Prototype build: fan-out 3 variants the first time, single learned-style build after. */
   private async build(seg: FixtureSegment, decision: RouterDecision, my: number): Promise<void> {
+    // Live mode waits for a human to pick the design DNA (no auto-pick). While that
+    // first fan-out is still on screen, skip new fan-outs so we don't stack competing
+    // first-builds before a direction is locked in.
+    if (!this.runtime.learned && this.awaitingPick) return;
+
     const buildKey: PrototypeKey = seg.expect?.prototype?.build ?? inferPrototypeKey(`${decision.prototype.intent} ${seg.text}`);
     const intent = decision.prototype.intent || seg.expect?.prototype?.intent || "Prototype";
     const usesScreen = decision.prototype.uses_screen;
@@ -272,18 +352,51 @@ export class Orchestrator {
         variants.map((v) => this.streamOne(v.id, buildId, intent, usesScreen, v.themeKey, buildKey, 1850, my, v)),
       );
       if (my !== this.runId) return;
-      const chosen = await this.awaitPickWithTimeout(buildId, 4200);
-      this.runtime.learn(chosen);
-      this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+      if (config.agents === "mock") {
+        // Unattended fixture replay: auto-pick the recommended theme after a short beat.
+        const chosen = await this.awaitPickWithTimeout(buildId, 4200);
+        if (my !== this.runId) return;
+        this.pruneFanout(buildId, chosen);
+        this.runtime.learn(chosen);
+        this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+      } else {
+        // Live: let the room decide in their own time — no auto-pick. Resolve OFF the
+        // segment queue so the transcript / summary keep flowing while people choose.
+        this.awaitingPick = true;
+        void this.runtime.awaitPick(buildId).then((chosen) => {
+          this.awaitingPick = false;
+          if (my !== this.runId) return;
+          this.pruneFanout(buildId, chosen);
+          this.runtime.learn(chosen);
+          this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+        });
+      }
     } else {
       const theme = this.runtime.learned.key;
+      // Every later build EVOLVES the current artifact (clone + edit) instead of starting
+      // from a blank canvas — so the agent can actually iterate on what's on screen.
+      const base = this.currentArtifact();
       // A/B: race Cerebras and the GPU baseline concurrently so both timers run live.
-      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my)];
+      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base)];
       if (this.runtime.abMode) {
-        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true));
+        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base));
       }
       await Promise.all(tasks);
     }
+  }
+
+  private currentArtifact(): BuiltArtifact | undefined {
+    return this.artifacts[this.artifacts.length - 1];
+  }
+
+  private recordArtifact(a: BuiltArtifact): void {
+    this.artifacts.push(a);
+  }
+
+  /** After a fan-out pick, drop the losing variants so the chosen one is the base for
+   *  the next evolution and the only entry in the recap for that build. */
+  private pruneFanout(buildId: string, chosen: ThemeKey): void {
+    this.artifacts = this.artifacts.filter((a) => a.buildId !== buildId || a.themeKey === chosen);
   }
 
   private async streamOne(
@@ -297,15 +410,20 @@ export class Orchestrator {
     my: number,
     variant?: VariantInfo,
     baseline = false,
+    base?: BuiltArtifact,
   ): Promise<void> {
     // The GPU baseline build needs BASELINE_* configured; skip (don't fake) if absent.
     if (baseline && config.agents !== "mock" && !getBaseline()) {
       console.warn("[ab] BASELINE_* not configured — skipping GPU baseline build");
       return;
     }
-    this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant });
+    // Evolve mode = a live build cloned from an existing artifact. The client seeds the
+    // new card with the base HTML (no blank canvas), and the agent returns edit blocks —
+    // so we DON'T stream raw edit-block tokens into the rendered iframe.
+    const evolving = !!base && config.agents !== "mock";
+    this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant, baseId: evolving ? base!.id : undefined });
     const alive = (): boolean => my === this.runId;
-    const onToken = (delta: string): void => this.send({ type: "prototype.token", id, delta });
+    const onToken = evolving ? (): void => {} : (delta: string): void => this.send({ type: "prototype.token", id, delta });
 
     let html: string, ms: number, tokPerS: number, tokens: number;
     if (config.agents === "mock") {
@@ -318,12 +436,17 @@ export class Orchestrator {
       // baseline=true routes the build through the GPU baseline model (honest A/B).
       const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
       const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
-      const r = await liveStream(intent, transcript, THEMES[themeKey], screenshot, onToken, baseline ? getBaseline()! : undefined);
+      const model = baseline ? getBaseline()! : undefined;
+      const r = evolving
+        ? await evolveStream(base!.html, intent, transcript, THEMES[themeKey], screenshot, onToken, model)
+        : await liveStream(intent, transcript, THEMES[themeKey], screenshot, onToken, model);
       ({ html, ms, tokPerS, tokens } = r);
     }
     if (!alive()) return;
     this.telemetry("prototype", tokPerS, tokens);
     this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey });
+    // Remember the canonical (non-baseline) build: base for the next evolution + recap.
+    if (!baseline) this.recordArtifact({ id, buildId, intent, themeKey, html });
   }
 
   private async awaitPickWithTimeout(buildId: string, ms: number): Promise<ThemeKey> {

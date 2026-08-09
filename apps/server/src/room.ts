@@ -7,15 +7,25 @@ import {
   type ClientEvent,
   type CursorPing,
   type CursorPoint,
+  type InviteInfo,
   type ParticipantPresence,
   type ServerEvent,
   type ThemeKey,
   type ThemeTokens,
 } from "@sidebar/shared";
+import { config } from "./config";
 import { Orchestrator } from "./orchestrator";
 import { ContextStore, ContextUploadError } from "./context";
 import type { MeetingRuntime } from "./runtime";
-import type { WsData } from "./session";
+import type { AuthResult, WsData } from "./session";
+
+/** Constant-time string compare (avoids leaking the passcode via timing). */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
 
 const PRESENCE_COLORS = ["#4dffd2", "#ff7a90", "#ffc857", "#5cc8ff", "#b39dff", "#5ce08a", "#ff9f43"];
 const PRESENCE_NAMES = ["Host", "Priya", "Maya", "Dev", "Alex", "Jordan", "Sam", "Riley"];
@@ -42,6 +52,11 @@ export class Room implements MeetingRuntime {
   private host = "Host";
   private lastFrameTs: number | undefined;
   private nextPresence = 1;
+  /** Host-minted guest invite codes, keyed by code. In-memory for this one room. */
+  private invites = new Map<string, InviteInfo>();
+  private inviteSeq = 0;
+  /** True once the host has ended the meeting for everyone (recap is being shown). */
+  private ended = false;
 
   get workspaceRoot(): string {
     return this.context.workspaceRoot;
@@ -51,9 +66,76 @@ export class Room implements MeetingRuntime {
     return this.context.summary();
   }
 
+  /** Authenticate a connection's key. Open mode (no host passcode) authorizes
+   *  everyone with an undefined role, so the legacy `?host` client flag still
+   *  decides host-ness in local dev. Locked mode is server-authoritative: the host
+   *  passcode grants `host`, a live (non-revoked) invite code grants `viewer`, and
+   *  anything else is rejected. */
+  authenticate(key: string): AuthResult {
+    if (!config.hostPasscode) return { ok: true };
+    if (key && safeEqual(key, config.hostPasscode)) return { ok: true, role: "host" };
+    const invite = this.invites.get(key);
+    if (invite && !invite.revoked) return { ok: true, role: "viewer", inviteId: invite.id, label: invite.label };
+    return { ok: false };
+  }
+
+  /** Mint a fresh, unique guest invite code and return its public info. */
+  createInvite(): InviteInfo {
+    const n = ++this.inviteSeq;
+    const invite: InviteInfo = {
+      id: `inv-${n.toString(36)}-${crypto.randomUUID().slice(0, 4)}`,
+      code: `g-${crypto.randomUUID().replace(/-/g, "")}`, // full ~122-bit secret, not truncated
+      label: `Guest ${n}`,
+      createdAt: Date.now(),
+      revoked: false,
+    };
+    this.invites.set(invite.code, invite);
+    return invite;
+  }
+
+  /** Revoke an invite by id so its link can no longer authenticate. */
+  revokeInvite(id: string): void {
+    for (const invite of this.invites.values()) {
+      if (invite.id === id) invite.revoked = true;
+    }
+  }
+
+  /** Disconnect any guest currently seated on this invite — revoking the code only
+   *  blocks future reconnects, so we evict the live socket too (mirrors kick()). The
+   *  close handler broadcasts presence.leave. */
+  private evictByInvite(id: string): void {
+    for (const ws of this.clients) {
+      if (ws.data.auth?.inviteId !== id) continue;
+      try {
+        ws.send(encode({ type: "kicked" }));
+      } catch {
+        /* socket already gone */
+      }
+      setTimeout(() => {
+        try {
+          ws.close(4001, "invite revoked");
+        } catch {
+          /* already closed */
+        }
+      }, 60);
+    }
+  }
+
+  private inviteList(): InviteInfo[] {
+    return Array.from(this.invites.values()).sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /** Push the current invite list to every host socket (codes are host-only). */
+  private broadcastInviteList(): void {
+    const ev: ServerEvent = { type: "invite.list", invites: this.inviteList() };
+    for (const ws of this.clients) {
+      if (this.isHost(ws)) ws.send(encode(ev));
+    }
+  }
+
   open(ws: ServerWebSocket<WsData>): void {
     this.clients.add(ws);
-    const participant = this.makeParticipant();
+    const participant = this.makeParticipant(ws.data.auth);
     this.presence.set(ws, participant);
     for (const ev of this.history) ws.send(encode(ev));
     if (this.history.length === 0 && this.learned) ws.send(encode({ type: "dna.update", theme: this.learned }));
@@ -61,6 +143,8 @@ export class Room implements MeetingRuntime {
     ws.send(encode({ type: "presence.snapshot", selfId: participant.id, participants: this.participants() }));
     ws.send(encode({ type: "context.snapshot", context: this.context.snapshot() }));
     ws.send(encode({ type: "agents.changed", agents: this.agents }));
+    // Hosts get the live invite-code list; guests never see other codes.
+    if (this.isHost(ws)) ws.send(encode({ type: "invite.list", invites: this.inviteList() }));
     this.broadcast({ type: "presence.join", participant }, ws);
   }
 
@@ -85,8 +169,14 @@ export class Room implements MeetingRuntime {
     if (ev.type === "meeting.start") {
       this.history = [];
       this.picks.clear();
+      this.ended = false; // a fresh meeting (scenario or live) lifts any prior recap lock
     }
-    this.history.push(ev);
+    // Streaming token deltas (and in-flight partials) are broadcast live but NOT kept
+    // in history: the matching *.complete / transcript.final carries the settled text,
+    // so late joiners reconstruct full state without replaying hundreds of deltas.
+    if (ev.type !== "prototype.token" && ev.type !== "finaldoc.token" && ev.type !== "transcript.partial") {
+      this.history.push(ev);
+    }
     for (const ws of this.clients) ws.send(encode(ev));
   }
 
@@ -156,6 +246,22 @@ export class Room implements MeetingRuntime {
       case "meeting.clear":
         if (this.isHost(ws)) this.clearMeeting(ws);
         break;
+      case "meeting.end":
+        if (this.isHost(ws)) this.endMeeting(ws);
+        break;
+      case "invite.create":
+        if (this.isHost(ws)) {
+          this.createInvite();
+          this.broadcastInviteList();
+        }
+        break;
+      case "invite.revoke":
+        if (this.isHost(ws)) {
+          this.revokeInvite(ev.id);
+          this.evictByInvite(ev.id); // also remove the guest if they're currently connected
+          this.broadcastInviteList();
+        }
+        break;
       case "host.kick":
         if (this.isHost(ws)) this.kick(ev.id, ws);
         break;
@@ -174,10 +280,10 @@ export class Room implements MeetingRuntime {
       // shared listening room every participant's mic is its own clean track, so
       // "who said it" is known by construction (no diarization).
       case "transcript.partial":
-        this.orch.ingestPartial(ev.text, this.presence.get(ws)?.name);
+        if (!this.ended) this.orch.ingestPartial(ev.text, this.presence.get(ws)?.name);
         break;
       case "transcript.final":
-        this.orch.ingestFinal(ev.text, this.presence.get(ws)?.name);
+        if (!this.ended) this.orch.ingestFinal(ev.text, this.presence.get(ws)?.name);
         break;
       case "screen.frame":
         this.latestScreenDataUri = ev.dataUri;
@@ -225,12 +331,21 @@ export class Room implements MeetingRuntime {
     }
   }
 
-  private makeParticipant(): ParticipantPresence {
+  private makeParticipant(auth: AuthResult): ParticipantPresence {
     const n = this.nextPresence++;
+    // In locked mode the matched credential decides the role server-side; the host
+    // gets the "Host" name, a guest gets their invite seat label. In open mode role
+    // stays undefined and is set later by the client's presence.hello.
+    const role = auth.role;
+    const name =
+      role === "host"
+        ? "Host"
+        : auth.label ?? PRESENCE_NAMES[(n - 1) % PRESENCE_NAMES.length] ?? `Viewer ${n}`;
     return {
       id: `p${n.toString(36)}-${crypto.randomUUID().slice(0, 8)}`,
-      name: PRESENCE_NAMES[(n - 1) % PRESENCE_NAMES.length] ?? `Viewer ${n}`,
+      name,
       color: PRESENCE_COLORS[(n - 1) % PRESENCE_COLORS.length] ?? "#4dffd2",
+      role,
       connectedAt: Date.now(),
     };
   }
@@ -246,7 +361,10 @@ export class Room implements MeetingRuntime {
     const cleanColor = color?.trim();
     if (cleanName) participant.name = cleanName;
     if (cleanColor && /^#[0-9a-f]{6}$/i.test(cleanColor)) participant.color = cleanColor;
-    if (role) participant.role = role;
+    // Role is client-assertable ONLY in open mode. When the connection authenticated
+    // with a real credential (ws.data.auth.role set), that role is authoritative and
+    // a client cannot self-promote to host.
+    if (role && !ws.data.auth.role) participant.role = role;
     this.broadcast({ type: "presence.update", participant });
   }
 
@@ -293,6 +411,12 @@ export class Room implements MeetingRuntime {
   private kick(id: string, by: ServerWebSocket<WsData>): void {
     for (const [ws, p] of this.presence) {
       if (p.id !== id || ws === by) continue; // can't kick yourself
+      // Invalidate the kicked guest's invite code so their link can't rejoin.
+      const inviteId = ws.data.auth?.inviteId;
+      if (inviteId) {
+        this.revokeInvite(inviteId);
+        this.broadcastInviteList();
+      }
       try {
         ws.send(encode({ type: "kicked" }));
       } catch {
@@ -337,9 +461,26 @@ export class Room implements MeetingRuntime {
     this.latestScreenDataUri = null;
     this.lastFrameTs = undefined;
     this.history = [];
+    this.ended = false; // starting fresh also lifts the recap lock
     const byHostId = this.presence.get(ws)?.id ?? "";
     void this.context.clear();
     this.broadcast({ type: "meeting.clear", byHostId, at: Date.now() });
+  }
+
+  /** Host ends the meeting for everyone: stop in-flight work (KEEPING the transcript
+   *  and summary for the recap), lock every client to the read-only final document,
+   *  and kick off the closing agent that streams the recap HTML to the whole room. */
+  private endMeeting(ws: ServerWebSocket<WsData>): void {
+    if (this.ended) return;
+    this.ended = true;
+    this.orch.stop(); // cancel any in-flight build; transcript + summary are preserved
+    this.screenOn = false;
+    this.speechOn = false;
+    this.latestScreenDataUri = null;
+    this.lastFrameTs = undefined;
+    const byHostId = this.presence.get(ws)?.id ?? "";
+    this.send({ type: "meeting.over", at: Date.now(), byHostId });
+    void this.orch.finalizeDocument();
   }
 
   private sendStatus(ws: ServerWebSocket<WsData>): void {

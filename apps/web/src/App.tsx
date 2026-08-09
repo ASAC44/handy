@@ -10,6 +10,7 @@ import { ParticipantBar } from "./components/ParticipantBar";
 import { Settings } from "./components/Settings";
 import { TooltipHost } from "./components/TooltipHost";
 import { DragLayer, type DragLayerHandle } from "./components/DragLayer";
+import { RecapView } from "./components/RecapView";
 import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
 
@@ -118,11 +119,42 @@ function Removed() {
   );
 }
 
+function Left() {
+  return (
+    <div className="lockScreen">
+      <div className="lockCard">
+        <div className="lockBrand">
+          <span className="logo">&#9624;</span> Sidebar
+        </div>
+        <div className="lockTitle">You left the meeting</div>
+        <button className="lockBtn" onClick={() => location.reload()}>
+          Rejoin
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Meeting() {
-  const { state, send, setAbMode } = useSidebar();
+  const { state, send, setAbMode, leave } = useSidebar();
   const cap = useCapture(send);
-  const hostMode = new URLSearchParams(location.search).has("host");
+  // Server-authoritative once presence arrives: the role comes from the credential the
+  // connection authenticated with (host passcode vs guest invite code). The `?host` URL
+  // flag is only a pre-snapshot hint / open-mode (no passcode) fallback.
+  const self = state.presence.find((p) => p.id === state.selfId);
+  // Once presence arrives the server-assigned role is authoritative. Before that, only
+  // fall back to the `?host` URL hint in true open mode (no stored credential) — an
+  // authenticated guest carries a `?key=`, so host UI never flashes for them.
+  const hostMode = self?.role
+    ? self.role === "host"
+    : state.selfId === null && !getKey() && new URLSearchParams(location.search).has("host");
   const { leftPanels, rightPanels, railWidth, movePanel, resizePanels, resizeRail } = useLayout();
+
+  // When the meeting ends (or you leave / are removed), stop your local mic capture.
+  useEffect(() => {
+    if ((state.ended || state.left || state.kicked) && cap.speechOn) cap.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.ended, state.left, state.kicked, cap.speechOn]);
   // Only `dragging` is lifted here (it flips twice per drag, to force both rails
   // to render so an empty side can show a drop zone). The ghost + drop target
   // live inside DragLayer so per-pointer-move updates don't re-render this tree.
@@ -145,6 +177,8 @@ function Meeting() {
   };
 
   if (state.kicked) return <Removed />;
+  if (state.left) return <Left />;
+  if (state.ended) return <RecapView state={state} send={send} hostMode={hostMode} onLeave={leave} />;
   return (
     <div className={"app" + (hostMode ? "" : " viewer") + (dragging ? " dragging" : "")}>
       <header className="topbar">
@@ -154,7 +188,7 @@ function Meeting() {
         <span className={"conn " + (state.connected ? "on" : "off")}>
           {state.connected ? "● connected" : "○ offline"}
         </span>
-        <CaptureDock hostMode={hostMode} state={state} send={send} />
+        <CaptureDock hostMode={hostMode} state={state} send={send} onLeave={leave} />
         <div className="spacer" />
         {cap.speechOn ? (
           <div className="status">

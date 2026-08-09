@@ -475,7 +475,7 @@ function ArtifactCard({
             {a.variant!.recommended ? <i>&#9733;</i> : null}
           </span>
         ) : (
-          <span className="art-side">Cerebras</span>
+          <span className="art-side">{a.evolving && a.status === "building" ? "Revising" : "Cerebras"}</span>
         )}
         <span className="art-title">{a.intent}</span>
         {viewers.length ? (
