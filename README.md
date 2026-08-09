@@ -109,8 +109,8 @@ compile against.
 ├─ scripts/          asr/meeting fixture generation + WER benches + live-sim
 ├─ test-transcripts.json   stable meeting fixtures (gold-label `expect` blocks)
 ├─ sidebar-build-spec.md   design source of truth (prompts + schemas + protocol)
-├─ docs/positioning.md     Sidebar vs Fathom + the honest A/B benchmark
-└─ landing.html            self-contained product landing page (no build step)
+├─ docs/index.html         self-contained landing page — the GitHub Pages site (served from docs/)
+└─ docs/positioning.md     Sidebar vs the 2026 AI-meeting landscape + the honest A/B
 ```
 
 ## Quick start (mock mode, no keys)
@@ -254,11 +254,19 @@ presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
 - Prototype **remix** — click a past artifact, speak a change, regenerate.
 - CRM / Slack export of the recap and action items.
 
+## License
+
+&copy; 2026 Igor Lins e Silva &amp; Dominique Deschatre. **All rights reserved.**
+This repository is **source-available for evaluation, not open source** — see
+[LICENSE](LICENSE). No use, modification, or redistribution without written
+permission; an open license may follow later. We're not taking external PRs for
+now (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 ---
 
 `sidebar-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`) and
 schemas (`schemas.ts`) are copied verbatim from its §4 and the WS protocol from its §7.
 Reconcile changes against it. See [`docs/positioning.md`](docs/positioning.md) for how Sidebar
-differs from notetakers like Fathom.
+differs from the 2026 AI-meeting landscape — notetakers, live-assist copilots, and platform AI.
 </content>
 </invoke>
