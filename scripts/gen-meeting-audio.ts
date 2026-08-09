@@ -18,7 +18,7 @@
  *
  * Needs ELEVENLABS_API_KEY with text_to_speech permission.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   MEETINGS_DIR,
@@ -120,6 +120,8 @@ async function ttsV3(text: string, voiceId: string, model: string, seed: number,
 async function generateScenario(scn: Script, model: string, seed: number): Promise<MeetingScenario> {
   const dir = resolve(MEETINGS_DIR, scn.id);
   mkdirSync(dir, { recursive: true });
+  // Clear prior .wav so a rework (e.g. changed turn order/speakers) leaves no orphans.
+  for (const f of readdirSync(dir)) if (f.endsWith(".wav")) rmSync(resolve(dir, f));
   const byName = new Map(scn.participants.map((p) => [p.name, p]));
 
   const clips: MeetingClip[] = [];
