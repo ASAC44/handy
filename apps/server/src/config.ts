@@ -23,9 +23,13 @@ export const config = {
   /** ElevenLabs Scribe v2 Realtime — client-side ASR via a single-use token minted server-side. */
   elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
 
-  /** Shared meeting password. When set, locks the whole experience (host + guests):
-   *  the WS, ASR endpoints, and uploads all require it. Empty = open (local dev). */
-  meetingPassword: process.env.MEETING_PASSWORD ?? "",
+  /** Host passcode — the single secret the HOST uses to connect to their own server.
+   *  When set, it (a) gates the WS / ASR / upload endpoints and (b) is what grants the
+   *  server-authoritative `host` role. Guests never use it; they each get a unique,
+   *  host-minted invite code instead. Empty = open (local dev: anyone can host).
+   *  `HOST_PASSCODE` is the canonical name; `MEETING_PASSWORD` stays as an alias for
+   *  backward compatibility with existing setups. */
+  hostPasscode: process.env.HOST_PASSCODE ?? process.env.MEETING_PASSWORD ?? "",
 
   /** Local Gemma ASR: Ollama (OpenAI-compatible /v1 input_audio) for on-device, all-Gemma transcription. */
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",

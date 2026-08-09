@@ -96,6 +96,26 @@ inference" mechanism.
 return`. `runId` is bumped on a new `start()` or `dispose()`, so in-flight async work
 from a stale run self-cancels. Preserve this guard when adding awaits.
 
+### Meeting lifecycle & access (`room.ts`)
+
+One global `room` singleton = one meeting per server process. Lifecycle verbs:
+- **End for everyone** (host): client `meeting.end` → `room.endMeeting()` sets `ended`,
+  stops in-flight work (keeping transcript + summary), broadcasts `meeting.over`, and
+  fires `orchestrator.finalizeDocument()` — the **closing agent** that streams a themed
+  HTML **final recap** (`finaldoc.start/token/complete`, mock + live like the prototype
+  agent, styled by the learned DNA). All clients lock to the read-only `RecapView`.
+- **Clear / new meeting** (host): `meeting.clear` resets to a blank meeting, lifting the
+  recap lock; presence + invites are preserved.
+- **Exit** (guest): client-only `leave()` (no protocol event) — stops auto-reconnect and
+  shows the "you left" screen, mirroring the `kicked` flow.
+
+**Access model:** the host authenticates with `HOST_PASSCODE`; each guest gets a unique,
+host-minted invite code (`invite.create`/`invite.revoke` → `invite.list`; one `?key=`
+per guest). Role is **server-authoritative** — `room.authenticate(key)` returns the role
+from the matched credential and it's captured onto `WsData.auth` at WS upgrade; the
+client `?host` flag only decides role in open mode (no passcode set). Kicking a guest
+revokes their invite. Add privileged client events host-gated in `onEvent` (`isHost`).
+
 ### LLM layer (`apps/server/src/llm.ts`)
 
 One `AIModel` factory per agent, each with its own sampling defaults (router cold +
