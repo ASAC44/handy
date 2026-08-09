@@ -71,36 +71,7 @@ vendor/
 .DS_Store
 `;
 
-export function Hud({
-  state,
-  send,
-  hostMode,
-}: {
-  state: SidebarState;
-  send: (e: ClientEvent) => void;
-  hostMode: boolean;
-}) {
-  const lat = state.latencyMs != null ? (state.latencyMs / 1000).toFixed(2) + "s" : "0.00s";
-  return (
-    <div className="hud">
-      <div className="hero">
-        <div className="lat-label">idea &rarr; artifact</div>
-        <div className="lat-num">{lat}</div>
-      </div>
-      <div className="hero-meta">
-        <div className="lat-sub">
-          Cerebras &middot; <b>~1900 tok/s</b>
-        </div>
-        <div className={"lat-state" + (state.latencyMs ? " ok" : "")}>
-          {state.running ? (state.latencyMs ? "✓ rendered live" : "generating…") : "standby"}
-        </div>
-      </div>
-      <ContextDock state={state} send={send} hostMode={hostMode} />
-    </div>
-  );
-}
-
-function ContextDock({
+export function ContextStrip({
   state,
   send,
   hostMode,
@@ -216,31 +187,32 @@ function ContextDock({
       onDrop={(e) => void onDrop(e)}
     >
       <input ref={fileRef} type="file" multiple hidden onChange={(e: ChangeEvent<HTMLInputElement>) => void upload(e.target.files)} />
-      <div className="ctxTop">
-        <span className="ctxK">context</span>
-        <span className="ctxCount">
-          {accepted.length} accepted
-          {pending.length ? ` · ${pending.length} pending` : ""}
-        </span>
-        {hostMode && state.context.workspaceRoot ? <span className="ctxPath" title={state.context.workspaceRoot}>workspace</span> : null}
-      </div>
-      <div className="ctxDrop">
-        <span>Drop files or folders</span>
-        <b>.gitignore aware</b>
-      </div>
+      <span className="ctxK">context</span>
+      <span className="ctxCount">
+        {accepted.length} accepted
+        {pending.length ? ` · ${pending.length} pending` : ""}
+      </span>
+      <span className="ctxDrop">Drop files / folders</span>
       <div className="ctxActions">
+        {busy ? <span className="ctxBusy">scanning</span> : error ? <span className="ctxErr">{error}</span> : filterNote ? <span className="ctxOk">{filterNote}</span> : null}
         <button className="ctxBtn" disabled={busy} onClick={() => fileRef.current?.click()}>
-          + file
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-plus-icon lucide-file-plus"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>
+          file
         </button>
         <button className="ctxBtn" disabled={busy} onClick={() => void chooseFolder()}>
-          + folder
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-folder-plus-icon lucide-folder-plus"><path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          folder
         </button>
         {hostMode && items.length ? (
           <button className="ctxBtn subtle" disabled={busy} onClick={clear}>
             clear
           </button>
         ) : null}
-        {busy ? <span className="ctxBusy">scanning</span> : error ? <span className="ctxErr">{error}</span> : filterNote ? <span className="ctxOk">{filterNote}</span> : null}
+        {hostMode && state.context.workspaceRoot ? (
+          <span className="ctxPath" data-tip={state.context.workspaceRoot}>
+            workspace
+          </span>
+        ) : null}
       </div>
       {queue.length ? (
         <div className="ctxQueue">
@@ -266,7 +238,7 @@ function ContextRow({
 }) {
   return (
     <div className={"ctxItem " + item.status}>
-      <span className="ctxName" title={item.files.map((f) => f.relativePath).join("\n")}>
+      <span className="ctxName" data-tip={item.files.map((f) => f.relativePath).join("\n")}>
         {item.title}
       </span>
       <span className="ctxMeta">

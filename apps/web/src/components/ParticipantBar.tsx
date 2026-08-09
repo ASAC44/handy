@@ -1,6 +1,7 @@
 import type { SidebarState } from "../ws";
 import { asrProviders, GEMMA_VAD_DEFAULTS, type AsrProviderId } from "../asr";
 import type { Capture } from "../useCapture";
+import { CustomSelect } from "./CustomSelect";
 
 /** Where each engine sends your audio — surfaced so participants can pick a private path. */
 const PRIVACY: Record<AsrProviderId, { tone: "cloud" | "private"; note: string }> = {
@@ -22,25 +23,21 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
             <i style={{ background: self.color }} /> {self.name}
           </span>
         ) : null}
-        <select
+        <CustomSelect
           className="asrSelect"
           value={cap.engine}
           disabled={cap.speechOn}
-          onChange={(e) => cap.setEngine(e.target.value as AsrProviderId)}
-          aria-label="Speech-to-text engine"
+          onChange={(val) => cap.setEngine(val as AsrProviderId)}
+          ariaLabel="Speech-to-text engine"
           title="Speech-to-text engine"
-        >
-          {providers.map((p) => (
-            <option key={p.id} value={p.id} disabled={!p.available}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-        <span className={"micPriv " + priv.tone} title={priv.tone === "private" ? "audio stays on the host" : `audio goes to ${priv.note}`}>
+          options={providers.map((p) => ({ value: p.id, label: p.label, disabled: !p.available }))}
+          placement="top"
+        />
+        <span className={"micPriv " + priv.tone} data-tip={priv.tone === "private" ? "audio stays on the host" : `audio goes to ${priv.note}`}>
           {priv.tone === "private" ? "● private" : "● cloud"} · {priv.note}
         </span>
         {cap.engine === "gemma-local" ? (
-          <button className={"capBtn" + (cap.showVad ? " on" : "")} onClick={() => cap.setShowVad(!cap.showVad)} title="On-device VAD latency knobs">
+          <button className={"capBtn" + (cap.showVad ? " on" : "")} onClick={() => cap.setShowVad(!cap.showVad)} data-tip="On-device VAD latency knobs">
             VAD
           </button>
         ) : null}
@@ -49,7 +46,7 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
       <div className="micCenter">
         {!cap.speechOn ? (
           <button className="micJoin" onClick={() => void cap.start()}>
-            &#127908; Join audio
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mic-icon lucide-mic"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg> Join audio
           </button>
         ) : cap.mode === "ptt" ? (
           <button
@@ -60,7 +57,7 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
             }}
             onPointerUp={() => cap.pttUp()}
             onPointerLeave={() => cap.pttUp()}
-            title="Hold to talk (or hold Space)"
+            data-tip="Hold to talk (or hold Space)"
           >
             {cap.talking ? "● talking…" : "Hold to talk"}
           </button>
@@ -68,7 +65,7 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
           <span className="micLive on">&#9679; live</span>
         )}
         {cap.speechOn ? (
-          <span className="micMeter" title="Mic level">
+          <span className="micMeter" data-tip="Mic level">
             <span className="micMeterBar">
               <i style={{ width: Math.min(100, Math.round(cap.level * 320)) + "%" }} />
             </span>
@@ -83,10 +80,12 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarSta
 
       <div className="micGroup">
         <div className="micMode" role="group" aria-label="Mic mode">
-          <button className={cap.mode === "open" ? "on" : ""} onClick={() => cap.setMode("open")} title="Open mic (VAD)">
+          <button className={cap.mode === "open" ? "on" : ""} onClick={() => cap.setMode("open")} data-tip="Open mic (VAD)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-speech-icon lucide-speech"><path d="M8.8 20v-4.1l1.9.2a2.3 2.3 0 0 0 2.164-2.1V8.3A5.37 5.37 0 0 0 2 8.25c0 2.8.656 3.054 1 4.55a5.77 5.77 0 0 1 .029 2.758L2 20"/><path d="M19.8 17.8a7.5 7.5 0 0 0 .003-10.603"/><path d="M17 15a3.5 3.5 0 0 0-.025-4.975"/></svg>
             Open mic
           </button>
-          <button className={cap.mode === "ptt" ? "on" : ""} onClick={() => cap.setMode("ptt")} title="Push-to-talk (hold Space)">
+          <button className={cap.mode === "ptt" ? "on" : ""} onClick={() => cap.setMode("ptt")} data-tip="Push-to-talk (hold Space)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="m6.702 13.162l2.009 1.733V6.158c0-.916.737-1.658 1.647-1.658s1.647.742 1.647 1.658v4.473l2.812.453c1.815.274 2.723.41 3.362.796c1.056.637 1.821 1.593 1.821 2.99c0 .972-.239 1.624-.82 3.377c-.367 1.112-.552 1.668-.852 2.108a3.77 3.77 0 0 1-2.063 1.497c-.51.148-1.092.148-2.257.148h-.987c-1.549 0-2.323 0-3.012-.286a4 4 0 0 1-.362-.174c-.655-.358-1.143-.962-2.12-2.172l-3.16-3.916a1.656 1.656 0 0 1-.008-2.068a1.63 1.63 0 0 1 2.343-.222" /><path d="M14.316 6a4 4 0 0 0-8 0" /></g></svg>
             Push-to-talk
           </button>
         </div>

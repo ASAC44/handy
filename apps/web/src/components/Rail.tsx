@@ -1,17 +1,20 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import type { ClientEvent } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
+import { SCENARIOS } from "../scenarios";
+import { CustomSelect } from "./CustomSelect";
 
-export function Rail({ state, hostMode }: { state: SidebarState; hostMode: boolean }) {
+export function Rail({ state, hostMode, send }: { state: SidebarState; hostMode: boolean; send: (e: ClientEvent) => void }) {
   return (
     <aside className="rail">
-      <Transcript state={state} hostMode={hostMode} />
+      <Transcript state={state} hostMode={hostMode} send={send} />
       <Summary state={state} />
       <FactCheck state={state} />
     </aside>
   );
 }
 
-function Transcript({ state, hostMode }: { state: SidebarState; hostMode: boolean }) {
+function Transcript({ state, hostMode, send }: { state: SidebarState; hostMode: boolean; send: (e: ClientEvent) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
@@ -19,7 +22,23 @@ function Transcript({ state, hostMode }: { state: SidebarState; hostMode: boolea
   return (
     <div className="panel">
       <div className="panel-h">
-        Live transcript <span className="rec" />
+        Live transcript
+        <span className="ph-spacer" />
+        {hostMode ? (
+          <span className="demoPick">
+            <span className="demoK">demo</span>
+            <CustomSelect
+              className="scenarioSelect"
+              value={state.scenarioId ?? ""}
+              onChange={(val) => send({ type: "start", scenarioId: val })}
+              ariaLabel="Demo scenario"
+              title="Switch demo scenario"
+              placeholder="Pick a demo…"
+              options={SCENARIOS.map((sc) => ({ value: sc.id, label: sc.title }))}
+            />
+          </span>
+        ) : null}
+        <span className="rec" />
       </div>
       <div className="panel-b trans" ref={ref}>
         {state.transcript.length === 0 && <div className="empty">Waiting for the meeting…</div>}
@@ -115,7 +134,7 @@ function FactCheck({ state }: { state: SidebarState }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        Fact-check <span className="tag fc">stretch</span>
+        Fact-check <span className="tag fc">factcheck</span>
       </div>
       <div className="panel-b">
         {state.factchecks.length === 0 && <div className="empty">No checkable claims yet.</div>}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Host-only "invite participants" control. Produces the viewer URL — the current
@@ -6,6 +6,9 @@ import { useState } from "react";
  * the `host` flag stripped so guests open in viewer mode — and lets the host copy
  * it or fire the native share sheet. Same-origin app, so this one link carries WS
  * + /asr through Tailscale with no extra config.
+ *
+ * The link surface is a centered modal dialog (animated in/out) rather than a
+ * popover, so it never clips off the top of the screen from the masthead.
  */
 function viewerUrl(): string {
   try {
@@ -25,11 +28,38 @@ function isLocalOrigin(): boolean {
 
 const canShare = (): boolean => typeof navigator !== "undefined" && typeof navigator.share === "function";
 
+const EXIT_MS = 200; // keep in sync with the .modalScrim transition in styles.css
+
 export function InviteButton() {
-  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false); // in the DOM (kept during exit animation)
+  const [shown, setShown] = useState(false); // drives the enter/exit transition
   const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const url = viewerUrl();
   const local = isLocalOrigin();
+
+  const open = (): void => {
+    setMounted(true);
+    // Two frames so the browser paints the hidden state before we transition in.
+    requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
+  };
+  const close = (): void => {
+    setShown(false);
+    setTimeout(() => setMounted(false), EXIT_MS);
+  };
+
+  useEffect(() => {
+    if (!mounted) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mounted]);
+
+  useEffect(() => {
+    if (shown) inputRef.current?.select();
+  }, [shown]);
 
   const copy = async (): Promise<void> => {
     try {
@@ -54,63 +84,55 @@ export function InviteButton() {
   };
 
   return (
-    <div className="invite" style={{ position: "relative" }}>
-      <button className="capBtn primary" onClick={() => setOpen((o) => !o)} title="Invite participants">
+    <>
+      <button className="capBtn primary" onClick={open} data-tip="Invite participants">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail-plus-icon lucide-mail-plus"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M19 16v6"/><path d="M16 19h6"/></svg>
         Invite
       </button>
-      {open ? (
-        <div
-          className="invitePop"
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 8px)",
-            right: 0,
-            width: 290,
-            padding: 12,
-            background: "var(--surface, #161b2e)",
-            border: "1px solid var(--border, #2a3350)",
-            borderRadius: 10,
-            boxShadow: "0 10px 30px rgba(0,0,0,.5)",
-            zIndex: 60,
-          }}
-        >
-          <div style={{ fontSize: 11, color: "var(--mut, #8d9bb5)", marginBottom: 6 }}>
-            Share this link — opens in viewer mode
-          </div>
-          <input
-            readOnly
-            value={url}
-            onFocus={(e) => e.currentTarget.select()}
-            aria-label="Invite link"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              fontSize: 12,
-              padding: "6px 8px",
-              background: "rgba(255,255,255,.06)",
-              border: "1px solid var(--border, #2a3350)",
-              borderRadius: 6,
-              color: "var(--ink, #e8edf7)",
-            }}
-          />
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <button className="capBtn primary" style={{ flex: 1 }} onClick={() => void copy()}>
-              {copied ? "Copied ✓" : "Copy link"}
+      {mounted ? (
+        <div className={"modalScrim" + (shown ? " show" : "")} role="presentation" onClick={close}>
+          <div
+            className="modalCard inviteModal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Invite participants"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="modalClose" onClick={close} aria-label="Close" data-tip="Close">
+              &times;
             </button>
-            {canShare() ? (
-              <button className="capBtn" style={{ flex: 1 }} onClick={() => void share()}>
-                Send…
+            <div className="modalHead">
+              <div className="modalK">invite</div>
+              <h3 className="modalTitle">Invite participants</h3>
+              <p className="modalSub">Share this link — it opens in viewer mode.</p>
+            </div>
+            <input
+              ref={inputRef}
+              readOnly
+              className="inviteUrl"
+              value={url}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label="Invite link"
+            />
+            <div className="modalActions">
+              <button className="capBtn primary" style={{ flex: 1 }} onClick={() => void copy()}>
+                {copied ? "Copied ✓" : "Copy link"}
               </button>
+              {canShare() ? (
+                <button className="capBtn" style={{ flex: 1 }} onClick={() => void share()}>
+                  Send…
+                </button>
+              ) : null}
+            </div>
+            {local ? (
+              <div className="inviteWarn">
+                Local URL — others can&rsquo;t reach it. Run <b>bun run host</b> then <b>bun run serve</b> (tailnet) or{" "}
+                <b>bun run funnel</b> (public), and open the Tailscale URL to share.
+              </div>
             ) : null}
           </div>
-          {local ? (
-            <div style={{ fontSize: 10.5, color: "#ffb454", marginTop: 8, lineHeight: 1.4 }}>
-              Local URL — others can't reach it. Run <b>bun run host</b> then <b>bun run serve</b> (tailnet) or{" "}
-              <b>bun run funnel</b> (public), and open the Tailscale URL to share.
-            </div>
-          ) : null}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
