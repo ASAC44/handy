@@ -133,8 +133,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .model{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--border);padding:5px 11px;border-radius:99px;background:var(--bg2)}
 
 /* ── Layout ──────────────────────────────────────────────────────────── */
-.main{display:grid;grid-template-columns:344px 1fr;gap:12px;min-height:0}
-.rail{display:grid;grid-template-rows:1.8fr 1fr .7fr;gap:12px;min-height:0}
+.main{display:grid;gap:12px;min-height:0}/* grid-template-columns set inline by Meeting (dynamic per docked rails) */
+.rail{display:flex;flex-direction:column;gap:0;min-height:0;position:relative}/* panels are flex-grow:weight; splitters provide the 12px inter-panel gap */
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden;box-shadow:var(--shadow)}
 .panel-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
 .panel-h .tag{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:99px;text-transform:none}
@@ -485,3 +485,37 @@ button.setRow:hover{background:var(--bg2)}
 .tip-inner{max-width:280px;padding:6px 9px;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--border2);border-radius:8px;box-shadow:var(--shadow-lg);color:var(--text);font-family:var(--mono);font-size:11px;font-weight:500;line-height:1.35;letter-spacing:.01em;text-align:center;white-space:pre-line;animation:tipIn .14s ease both}
 @keyframes tipIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion:reduce){.tip-inner{animation:none}}
+
+/* ── Dockable / resizable rails ───────────────────────────────────────── */
+/* The whole header is the drag handle; its interactive controls opt back out. */
+.panel-h{cursor:grab}
+.panel-h:active{cursor:grabbing}
+.panel-h button,.panel-h a,.panel-h input,.panel-h .custom-select-container{cursor:pointer}
+
+/* Horizontal splitter between two stacked panels — occupies the 12px gap. */
+.panelSplitter{flex:0 0 12px;position:relative;cursor:row-resize;touch-action:none;z-index:3}
+.panelSplitter::before{content:"";position:absolute;left:8px;right:8px;top:50%;transform:translateY(-50%);height:2px;border-radius:2px;background:transparent;transition:background .12s}
+.panelSplitter:hover::before{background:var(--border2)}
+.panelSplitter:active::before{background:var(--mint)}
+
+/* Vertical handle on a rail's inner edge — sits in the gap toward the canvas. */
+.railWidthHandle{position:absolute;top:0;bottom:0;width:12px;z-index:5;cursor:col-resize;touch-action:none}
+.railWidthHandle-left{right:-12px}
+.railWidthHandle-right{left:-12px}
+.railWidthHandle::before{content:"";position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:transparent;transition:background .12s}
+.railWidthHandle:hover::before{background:var(--border2)}
+.railWidthHandle:active::before{background:var(--mint)}
+
+/* Drop affordances driven by DragLayer (all fixed/overlay, pointer-events:none). */
+.dragGhost{position:fixed;top:0;left:0;z-index:200;pointer-events:none;padding:9px 13px;border-radius:10px;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2);box-shadow:var(--shadow-lg);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text);white-space:nowrap}
+.dropIndicator{position:fixed;z-index:190;height:2px;background:var(--mint);border-radius:2px;pointer-events:none;box-shadow:0 0 6px rgba(22,113,92,.4)}
+.dropZoneHi{position:fixed;z-index:180;border:1.5px dashed var(--mint);border-radius:14px;background:rgba(22,113,92,.06);pointer-events:none}
+/* Placeholder shown in an empty rail while a drag is in progress. */
+.dropZone{flex:1;display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--border2);border-radius:14px;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+/* Source panel dims while it's being dragged; global no-select during gestures. */
+.panel.dragging-src{opacity:.4}
+.app.dragging,.app.dragging *{cursor:grabbing!important;user-select:none}
+.resizing *{user-select:none!important}
+.resizing-rows *{cursor:row-resize!important}
+.resizing-cols *{cursor:col-resize!important}

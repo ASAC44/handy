@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSidebar } from "./ws";
+import { useLayout, type Side } from "./useLayout";
 import { Rail } from "./components/Rail";
 import { ContextStrip } from "./components/ContextStrip";
 import { Canvas } from "./components/Canvas";
@@ -8,8 +9,19 @@ import { CaptureDock } from "./components/CaptureDock";
 import { ParticipantBar } from "./components/ParticipantBar";
 import { Settings } from "./components/Settings";
 import { TooltipHost } from "./components/TooltipHost";
+import { DragLayer, type DragLayerHandle } from "./components/DragLayer";
 import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
+
+/** Builds the .main grid-template-columns: a fixed track per visible rail with
+ *  the canvas always taking the remaining 1fr in the middle. */
+function buildCols(showLeft: boolean, showRight: boolean, leftW: number, rightW: number): string {
+  const parts: string[] = [];
+  if (showLeft) parts.push(`${leftW}px`);
+  parts.push("1fr");
+  if (showRight) parts.push(`${rightW}px`);
+  return parts.join(" ");
+}
 
 type GateState = "checking" | "locked" | "open";
 
@@ -110,9 +122,31 @@ function Meeting() {
   const { state, send, setAbMode } = useSidebar();
   const cap = useCapture(send);
   const hostMode = new URLSearchParams(location.search).has("host");
+  const { leftPanels, rightPanels, railWidth, movePanel, resizePanels, resizeRail } = useLayout();
+  // Only `dragging` is lifted here (it flips twice per drag, to force both rails
+  // to render so an empty side can show a drop zone). The ghost + drop target
+  // live inside DragLayer so per-pointer-move updates don't re-render this tree.
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<DragLayerHandle>(null);
+
+  const showLeft = leftPanels.length > 0 || dragging;
+  const showRight = rightPanels.length > 0 || dragging;
+  const cols = buildCols(showLeft, showRight, railWidth.left, railWidth.right);
+  const panelProps = { state, hostMode, send };
+
+  // Live preview while a rail-width handle drags: write the grid track directly
+  // (no React render). resizeRail commits the final width on release.
+  const previewRail = (s: Side, px: number): void => {
+    const m = document.querySelector(".main") as HTMLElement | null;
+    if (!m) return;
+    const lw = s === "left" ? px : railWidth.left;
+    const rw = s === "right" ? px : railWidth.right;
+    m.style.gridTemplateColumns = buildCols(showLeft, showRight, lw, rw);
+  };
+
   if (state.kicked) return <Removed />;
   return (
-    <div className={"app" + (hostMode ? "" : " viewer")}>
+    <div className={"app" + (hostMode ? "" : " viewer") + (dragging ? " dragging" : "")}>
       <header className="topbar">
         <div className="brand">
           <span className="logo">&#9624;</span> Sidebar <span className="bsub">ambient meeting copilot</span>
@@ -132,15 +166,41 @@ function Meeting() {
         <div className="model">gemma-4-31b</div>
         <Settings state={state} send={send} setAbMode={setAbMode} hostMode={hostMode} />
       </header>
-      <main className="main">
-        <Rail state={state} hostMode={hostMode} send={send} />
+      <main className="main" style={{ gridTemplateColumns: cols }}>
+        {showLeft ? (
+          <Rail
+            side="left"
+            panels={leftPanels}
+            panelProps={panelProps}
+            railWidth={railWidth.left}
+            dragging={dragging}
+            dragRef={dragRef}
+            resizePanels={resizePanels}
+            previewRail={previewRail}
+            commitRail={resizeRail}
+          />
+        ) : null}
         <section className="canvasCol">
           <ContextStrip state={state} send={send} hostMode={hostMode} />
           <Canvas state={state} send={send} hostMode={hostMode} />
         </section>
+        {showRight ? (
+          <Rail
+            side="right"
+            panels={rightPanels}
+            panelProps={panelProps}
+            railWidth={railWidth.right}
+            dragging={dragging}
+            dragRef={dragRef}
+            resizePanels={resizePanels}
+            previewRail={previewRail}
+            commitRail={resizeRail}
+          />
+        ) : null}
       </main>
       {hostMode ? <Bottom state={state} send={send} /> : null}
       <ParticipantBar cap={cap} state={state} />
+      <DragLayer ref={dragRef} movePanel={movePanel} onDraggingChange={setDragging} />
       <TooltipHost />
     </div>
   );
