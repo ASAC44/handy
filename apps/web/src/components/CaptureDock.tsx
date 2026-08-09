@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClientEvent } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
-import { asrProviders, createAsrProvider, webSpeechAvailable, GEMMA_VAD_DEFAULTS, type AsrProvider, type AsrProviderId, type AsrMetrics, type GemmaVad } from "../asr";
 import { InviteButton } from "./InviteButton";
 
+/**
+ * Host meeting controls (top bar): go live, share screen, manual line, stop, invite.
+ * Per-participant microphone lives in the shared <ParticipantBar/> (every participant
+ * captures their own track — see useCapture).
+ */
 export function CaptureDock({
   hostMode,
   state,
@@ -15,37 +19,17 @@ export function CaptureDock({
 }) {
   const [host, setHost] = useState(() => localStorage.getItem("sidebar.host") || "Host");
   const [screenOn, setScreenOn] = useState(false);
-  const [speechOn, setSpeechOn] = useState(false);
-  const [asrId, setAsrId] = useState<AsrProviderId>(() => (localStorage.getItem("sidebar.asr") as AsrProviderId) || "elevenlabs");
   const [manual, setManual] = useState("");
   const [error, setError] = useState("");
-  const [level, setLevel] = useState(0);
-  const [metric, setMetric] = useState<AsrMetrics | null>(null);
-  const [showVad, setShowVad] = useState(false);
-  const vadRef = useRef<GemmaVad>(loadVad());
-  const [vadView, setVadView] = useState<GemmaVad>(() => ({ ...vadRef.current }));
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const asrRef = useRef<AsrProvider | null>(null);
   const screenOnRef = useRef(false);
-  const speechOnRef = useRef(false);
-
-  const providers = asrProviders();
-
-  // Mutate the SAME object the running provider reads, so VAD changes apply live.
-  const setVad = (patch: Partial<GemmaVad>): void => {
-    Object.assign(vadRef.current, patch);
-    const next = { ...vadRef.current };
-    setVadView(next);
-    localStorage.setItem("sidebar.vad", JSON.stringify(next));
-  };
 
   useEffect(() => {
     return () => {
-      stopSpeech();
       stopScreen();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,8 +41,8 @@ export function CaptureDock({
     send({ type: "presence.hello", name: value, role: "host" });
   };
 
-  const sendStatus = (screen = screenOnRef.current, speech = speechOnRef.current): void => {
-    send({ type: "capture.status", screen, speech, host });
+  const sendStatus = (screen = screenOnRef.current): void => {
+    send({ type: "capture.status", screen, speech: false, host });
   };
 
   const startRoom = (): void => {
@@ -84,7 +68,7 @@ export function CaptureDock({
       await video.play();
       screenOnRef.current = true;
       setScreenOn(true);
-      sendStatus(true, speechOnRef.current);
+      sendStatus(true);
       await captureFrame();
       frameTimer.current = setInterval(() => {
         void captureFrame();
@@ -103,7 +87,7 @@ export function CaptureDock({
     videoRef.current = null;
     screenOnRef.current = false;
     setScreenOn(false);
-    sendStatus(false, speechOnRef.current);
+    sendStatus(false);
   };
 
   const captureFrame = async (): Promise<void> => {
@@ -123,54 +107,6 @@ export function CaptureDock({
     send({ type: "screen.frame", dataUri: canvas.toDataURL("image/jpeg", 0.72), width, height, ts: Date.now() });
   };
 
-  // Speech-to-text via the pluggable ASR seam (ElevenLabs Scribe v2 / Web Speech /
-  // Gemma E4B). Transcripts are forwarded as the existing transcript.* events; a
-  // final segment also snaps a fresh screen frame so the build sees current context.
-  const startWith = async (id: AsrProviderId): Promise<void> => {
-    const provider = createAsrProvider(id, vadRef.current);
-    try {
-      await provider.start({
-        onPartial: (text) => send({ type: "transcript.partial", text, speaker: host }),
-        onFinal: (text) => {
-          void captureFrame();
-          send({ type: "transcript.final", text, speaker: host });
-        },
-        onError: (msg) => setError(msg),
-        onLevel: (lvl) => setLevel(lvl),
-        onMetrics: (m) => setMetric(m),
-      });
-      asrRef.current = provider;
-      speechOnRef.current = true;
-      setSpeechOn(true);
-      sendStatus(screenOnRef.current, true);
-    } catch (err) {
-      provider.stop();
-      // If the premium cloud provider can't start (no token / no key), fall back
-      // to the browser engine so the demo keeps working.
-      if (id === "elevenlabs" && webSpeechAvailable()) {
-        setError("ElevenLabs ASR unavailable — using browser speech");
-        await startWith("webspeech");
-        return;
-      }
-      setError(err instanceof Error ? err.message : "Speech start failed");
-    }
-  };
-
-  const startSpeech = async (): Promise<void> => {
-    setError("");
-    await startWith(asrId);
-  };
-
-  const stopSpeech = (): void => {
-    asrRef.current?.stop();
-    asrRef.current = null;
-    speechOnRef.current = false;
-    setSpeechOn(false);
-    setLevel(0);
-    setMetric(null);
-    sendStatus(screenOnRef.current, false);
-  };
-
   const sendManual = (): void => {
     const clean = manual.trim();
     if (!clean) return;
@@ -183,7 +119,7 @@ export function CaptureDock({
     const selfName = state.presence.find((p) => p.id === state.selfId)?.name ?? "";
     return (
       <div className="watchDock">
-        <span className={"watch-dot" + (state.capture.screen || state.capture.speech ? " on" : "")} />
+        <span className={"watch-dot" + (state.capture.screen ? " on" : "")} />
         <span className="watchHost">{state.capture.host ?? "host"}&rsquo;s room</span>
         <input
           className="watchName"
@@ -208,38 +144,6 @@ export function CaptureDock({
 
   return (
     <div className="captureDock">
-      {asrId === "gemma-local" && showVad ? (
-        <div className="vadPanel">
-          <div className="vadHead">
-            <span>on-device VAD · latency knobs</span>
-            <button className="vadReset" onClick={() => setVad({ ...GEMMA_VAD_DEFAULTS })}>
-              reset
-            </button>
-          </div>
-          <label className="vadRow">
-            <span>finalize silence</span>
-            <input type="range" min={150} max={1500} step={50} value={vadView.silenceMs} onChange={(e) => setVad({ silenceMs: +e.target.value })} />
-            <b>{vadView.silenceMs}ms</b>
-          </label>
-          <label className="vadRow">
-            <span>max segment</span>
-            <input type="range" min={2000} max={15000} step={500} value={vadView.maxUtterMs} onChange={(e) => setVad({ maxUtterMs: +e.target.value })} />
-            <b>{(vadView.maxUtterMs / 1000).toFixed(1)}s</b>
-          </label>
-          <label className="vadRow">
-            <span>mic onset</span>
-            <input type="range" min={4} max={50} step={1} value={Math.round(vadView.startRms * 1000)} onChange={(e) => setVad({ startRms: +e.target.value / 1000 })} />
-            <b>{vadView.startRms.toFixed(3)}</b>
-          </label>
-          <div className="vadMetric">
-            {metric
-              ? `last: ${(metric.segmentMs / 1000).toFixed(1)}s segment · ${Math.round(metric.transcribeMs)}ms transcribe · ~${((vadView.silenceMs + metric.transcribeMs) / 1000).toFixed(1)}s to appear`
-              : speechOn
-                ? "speak to measure…"
-                : "start the mic, then speak"}
-          </div>
-        </div>
-      ) : null}
       <input className="hostName" value={host} onChange={(e) => persistHost(e.target.value)} placeholder="your name" aria-label="Host name" />
       <button className="capBtn primary" onClick={startRoom}>
         Live
@@ -247,51 +151,6 @@ export function CaptureDock({
       <button className={"capBtn" + (screenOn ? " on" : "")} onClick={screenOn ? stopScreen : () => void startScreen()}>
         Screen
       </button>
-      <select
-        className="asrSelect"
-        value={asrId}
-        disabled={speechOn}
-        onChange={(e) => {
-          const id = e.target.value as AsrProviderId;
-          setAsrId(id);
-          localStorage.setItem("sidebar.asr", id);
-        }}
-        aria-label="Speech-to-text engine"
-        title="Speech-to-text engine"
-      >
-        {providers.map((p) => (
-          <option key={p.id} value={p.id} disabled={!p.available}>
-            {p.label}
-          </option>
-        ))}
-      </select>
-      {asrId === "gemma-local" ? (
-        <button className={"capBtn" + (showVad ? " on" : "")} onClick={() => setShowVad((v) => !v)} title="On-device VAD latency knobs">
-          VAD
-        </button>
-      ) : null}
-      <button className={"capBtn" + (speechOn ? " on" : "")} onClick={speechOn ? stopSpeech : () => void startSpeech()}>
-        Mic
-      </button>
-      {speechOn ? (
-        <span className="micMeter" title="Mic input level" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-          <span
-            style={{
-              width: 8, height: 8, borderRadius: "50%", background: "#ff5470",
-              boxShadow: "0 0 6px #ff5470", animation: "pulse 1.2s ease-in-out infinite",
-            }}
-          />
-          <span style={{ position: "relative", width: 54, height: 6, background: "rgba(255,255,255,.12)", borderRadius: 3, overflow: "hidden" }}>
-            <span
-              style={{
-                position: "absolute", inset: 0, transformOrigin: "left",
-                width: Math.min(100, Math.round(level * 320)) + "%",
-                background: "linear-gradient(90deg,#4dffd2,#ffc857,#ff5470)", transition: "width .05s linear",
-              }}
-            />
-          </span>
-        </span>
-      ) : null}
       <input
         className="manualLine"
         value={manual}
@@ -318,14 +177,4 @@ function withHostParam(): string {
   const url = new URL(location.href);
   url.searchParams.set("host", "1");
   return url.pathname + url.search + url.hash;
-}
-
-function loadVad(): GemmaVad {
-  try {
-    const raw = localStorage.getItem("sidebar.vad");
-    if (raw) return { ...GEMMA_VAD_DEFAULTS, ...(JSON.parse(raw) as Partial<GemmaVad>) };
-  } catch {
-    /* ignore malformed cache */
-  }
-  return { ...GEMMA_VAD_DEFAULTS };
 }

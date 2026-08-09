@@ -91,6 +91,29 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .lockBtn:hover:not(:disabled){background:rgba(22,113,92,.16)}
 .lockBtn:disabled{opacity:.5;cursor:default}
 .lockError{font-family:var(--mono);font-size:11px;color:var(--red);text-align:center}
+/* ── Shared participant mic bar (bottom, every participant) ───────────── */
+.micBar{position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--border);background:var(--glass,var(--bg2));backdrop-filter:blur(10px)}
+.micGroup{display:flex;align-items:center;gap:8px;min-width:0}
+.micCenter{display:flex;align-items:center;gap:10px;flex:1;justify-content:center;min-width:200px}
+.micWho{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text)}
+.micWho i{width:9px;height:9px;border-radius:50%}
+.micPriv{font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;padding:3px 7px;border-radius:6px;white-space:nowrap}
+.micPriv.private{color:var(--green);background:rgba(60,122,79,.1);border:1px solid rgba(60,122,79,.3)}
+.micPriv.cloud{color:var(--muted);background:var(--bg2);border:1px solid var(--border2)}
+.micJoin{height:34px;padding:0 16px;border-radius:9px;border:1px solid rgba(22,113,92,.45);background:rgba(22,113,92,.1);color:var(--mint);font-family:var(--mono);font-size:12px;letter-spacing:.03em;cursor:pointer;transition:.15s}
+.micJoin:hover{background:rgba(22,113,92,.18)}
+.micTalk{height:34px;min-width:150px;padding:0 18px;border-radius:9px;border:1px solid var(--border2);background:var(--panel2);color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.03em;cursor:pointer;user-select:none;transition:.08s}
+.micTalk:hover{border-color:var(--mint);color:var(--mint)}
+.micTalk.live{border-color:rgba(60,122,79,.6);background:rgba(60,122,79,.16);color:var(--green);box-shadow:0 0 0 3px rgba(60,122,79,.12)}
+.micLive{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.04em}
+.micMeter{display:inline-flex;align-items:center}
+.micMeterBar{position:relative;width:80px;height:6px;background:rgba(128,128,128,.18);border-radius:3px;overflow:hidden}
+.micMeterBar i{position:absolute;inset:0;transform-origin:left;background:linear-gradient(90deg,#4dffd2,#ffc857,#ff5470);transition:width .05s linear}
+.micMode{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.micMode button{height:30px;padding:0 11px;border:none;background:var(--panel2);color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.02em;cursor:pointer}
+.micMode button.on{background:rgba(22,113,92,.12);color:var(--mint)}
+.micMode button+button{border-left:1px solid var(--border2)}
+.micBar .vadPanel.up{top:auto;bottom:48px}
 .shareUrl{height:30px;display:inline-flex;align-items:center;border:1px solid rgba(52,92,156,.3);border-radius:8px;background:rgba(52,92,156,.06);color:var(--blue);font-family:var(--mono);font-size:10px;text-decoration:none;padding:0 10px;white-space:nowrap}
 .capError{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red);font-family:var(--mono);font-size:10px}
 .watchDock{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:6px 10px;white-space:nowrap}

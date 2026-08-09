@@ -35,6 +35,9 @@ export interface AsrProvider {
   start(cb: AsrCallbacks): Promise<void>;
   /** Stop capture and release mic / sockets. Safe to call multiple times. */
   stop(): void;
+  /** Gate transcription without tearing down the mic (push-to-talk). Mic stays warm;
+   *  audio/results are suppressed while muted. No-op for providers that don't implement it. */
+  setMuted?(muted: boolean): void;
 }
 
 export interface AsrProviderMeta {

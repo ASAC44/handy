@@ -40,6 +40,13 @@ export class WebSpeechProvider implements AsrProvider {
   readonly label = "Browser (Web Speech)";
   private rec: SpeechRecognitionLike | null = null;
   private wants = false;
+  private muted = false;
+
+  setMuted(muted: boolean): void {
+    // Web Speech is cloud (Google) regardless, so for push-to-talk we just drop
+    // results while muted rather than fight Chrome's stop/start lifecycle.
+    this.muted = muted;
+  }
 
   constructor(private lang = "en-US") {}
 
@@ -55,6 +62,7 @@ export class WebSpeechProvider implements AsrProvider {
     rec.interimResults = true;
     rec.lang = this.lang;
     rec.onresult = (event) => {
+      if (this.muted) return; // push-to-talk released
       let interim = "";
       let finalText = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {

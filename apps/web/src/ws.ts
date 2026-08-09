@@ -194,11 +194,12 @@ function reducer(s: SidebarState, a: Action): SidebarState {
         },
       };
     case "transcript.partial": {
-      const t = s.transcript.filter((l) => l.kind !== "partial");
+      // Keep one in-flight partial PER speaker so concurrent talkers each show a live line.
+      const t = s.transcript.filter((l) => !(l.kind === "partial" && l.speaker === ev.speaker));
       return { ...s, seq: s.seq + 1, transcript: [...t, { id: s.seq, kind: "partial", text: ev.text, speaker: ev.speaker }] };
     }
     case "transcript.final": {
-      const t = s.transcript.filter((l) => l.kind !== "partial");
+      const t = s.transcript.filter((l) => !(l.kind === "partial" && l.speaker === ev.speaker));
       const patch = appendActivity(s, {
         kind: "utterance",
         title: ev.text,
