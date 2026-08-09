@@ -27,7 +27,7 @@ export function ThemeToggle() {
     <button
       className="capBtn themeToggle"
       onClick={() => setTheme(next)}
-      title={`Theme: ${current.label} — switch to ${next}`}
+      data-tip={`Theme: ${current.label} — switch to ${next}`}
       aria-label="Switch theme"
     >
       {current.icon} {current.label}

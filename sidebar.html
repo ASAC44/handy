@@ -246,8 +246,8 @@
         </div>
         <div class="cam">
           <span class="acount" id="acount">0 artifacts</span>
-          <button class="cbtn" id="zoomOut" title="zoom out">&minus;</button>
-          <button class="cbtn" id="zoomIn" title="zoom in">+</button>
+          <button class="cbtn" id="zoomOut" title="zoom out"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zoom-out-icon lucide-zoom-out" style="display: block; margin: auto;"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>
+          <button class="cbtn" id="zoomIn" title="zoom in"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zoom-in-icon lucide-zoom-in" style="display: block; margin: auto;"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>
           <button class="cbtn wide" id="fitAll" title="fit all">fit</button>
           <button class="cbtn wide" id="follow" title="follow latest build">follow</button>
         </div>
@@ -256,7 +256,7 @@
         <div class="empty-hint" id="emptyHint"><b>canvas</b><br>agents fan out design variants here &mdash; you pick, Sidebar learns</div>
         <div id="world"></div>
         <div class="dna" id="dna">
-          <div class="dna-h"><span>DESIGN DNA</span><button class="reset" id="resetTaste" title="forget learned style">&#10227;</button></div>
+          <div class="dna-h"><span>DESIGN DNA</span><button class="reset" id="resetTaste" title="forget learned style"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw-icon lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button></div>
           <div class="dna-sub">learned from your picks</div>
           <span class="dna-status" id="dnaStatus">learning&hellip;</span>
           <div class="dna-sw" id="dnaSw"><span class="ph">&mdash;</span></div>
@@ -278,7 +278,7 @@
     </div>
     <div class="speedwrap"><span class="cap">inference stream</span><canvas id="speed"></canvas></div>
     <div class="controls">
-      <button class="btn" id="replay">&#9654; Replay</button>
+      <button class="btn" id="replay"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48"><path d="M0 0h48v48H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M21 24v-6l5 3l5 3l-5 3l-5 3z" /><path stroke-linecap="round" d="M11.272 36.728A17.94 17.94 0 0 0 24 42c9.941 0 18-8.059 18-18S33.941 6 24 6c-4.97 0-9.47 2.015-12.728 5.272C9.614 12.93 6 17 6 17" /><path stroke-linecap="round" d="M6 9v8h8" /></g></svg> Replay</button>
       <label class="abtoggle" title="apply to the next build"><input type="checkbox" id="abchk"><span class="switch"></span> A/B race</label>
     </div>
   </footer>
