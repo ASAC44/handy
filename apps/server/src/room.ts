@@ -7,6 +7,7 @@ import {
   type ClientEvent,
   type CursorPing,
   type CursorPoint,
+  type ExportSnapshot,
   type InviteInfo,
   type ParticipantPresence,
   type ServerEvent,
@@ -16,6 +17,7 @@ import {
 import { config } from "./config";
 import { Orchestrator } from "./orchestrator";
 import { ContextStore, ContextUploadError } from "./context";
+import { ExportStore } from "./exports";
 import type { MeetingRuntime } from "./runtime";
 import type { AuthResult, WsData } from "./session";
 
@@ -41,6 +43,7 @@ export class Room implements MeetingRuntime {
   agents: AgentToggles = { router: true, summarizer: true, prototype: true, factcheck: true, nextstep: true };
   latestScreenDataUri: string | null = null;
   readonly context = new ContextStore();
+  readonly exports = new ExportStore();
 
   private clients = new Set<ServerWebSocket<WsData>>();
   private presence = new Map<ServerWebSocket<WsData>, ParticipantPresence>();
@@ -142,6 +145,7 @@ export class Room implements MeetingRuntime {
     if (this.screenOn || this.speechOn) this.sendStatus(ws);
     ws.send(encode({ type: "presence.snapshot", selfId: participant.id, participants: this.participants() }));
     ws.send(encode({ type: "context.snapshot", context: this.context.snapshot() }));
+    ws.send(encode({ type: "export.snapshot", exports: this.exports.snapshot() }));
     ws.send(encode({ type: "agents.changed", agents: this.agents }));
     // Hosts get the live invite-code list; guests never see other codes.
     if (this.isHost(ws)) ws.send(encode({ type: "invite.list", invites: this.inviteList() }));
@@ -170,6 +174,7 @@ export class Room implements MeetingRuntime {
       this.history = [];
       this.picks.clear();
       this.ended = false; // a fresh meeting (scenario or live) lifts any prior recap lock
+      this.exports.beginMeeting(ev.title);
     }
     // Streaming token deltas (and in-flight partials) are broadcast live but NOT kept
     // in history: the matching *.complete / transcript.final carries the settled text,
@@ -178,6 +183,13 @@ export class Room implements MeetingRuntime {
       this.history.push(ev);
     }
     for (const ws of this.clients) ws.send(encode(ev));
+    this.updateExport(ev);
+  }
+
+  updateExport(ev: ServerEvent): void {
+    void this.persistExportEvent(ev).catch((err) => {
+      console.error("[exports] save failed", err instanceof Error ? err.message : err);
+    });
   }
 
   awaitPick(buildId: string): Promise<ThemeKey> {
@@ -410,6 +422,52 @@ export class Room implements MeetingRuntime {
     }
   }
 
+  private async persistExportEvent(ev: ServerEvent): Promise<void> {
+    let snapshot: ExportSnapshot | null | undefined;
+    switch (ev.type) {
+      case "meeting.start":
+        snapshot = this.exports.snapshot();
+        break;
+      case "transcript.final":
+        snapshot = await this.exports.saveTranscriptLine({ text: ev.text, speaker: ev.speaker, ts: ev.ts });
+        break;
+      case "summary.update":
+        snapshot = await this.exports.saveSummary(ev.summary);
+        break;
+      case "dna.update":
+        if (ev.theme) snapshot = await this.exports.saveDesign(ev.theme);
+        break;
+      case "prototype.complete":
+        snapshot = await this.exports.savePrototype({
+          id: ev.id,
+          buildId: ev.buildId,
+          intent: this.prototypeIntent(ev.id),
+          themeKey: ev.themeKey,
+          html: ev.html,
+        });
+        break;
+      case "critic.refined":
+        snapshot = await this.exports.refinePrototype(ev.id, ev.html);
+        break;
+      case "finaldoc.complete":
+        snapshot = await this.exports.saveRecap(ev.html);
+        break;
+      case "meeting.clear":
+        this.exports.beginMeeting("Sidebar Meeting");
+        snapshot = this.exports.snapshot();
+        break;
+    }
+    if (snapshot) this.broadcast({ type: "export.snapshot", exports: snapshot });
+  }
+
+  private prototypeIntent(id: string): string {
+    for (let i = this.history.length - 1; i >= 0; i--) {
+      const ev = this.history[i];
+      if (ev?.type === "prototype.start" && ev.id === id) return ev.intent;
+    }
+    return "Prototype";
+  }
+
   private isHost(ws: ServerWebSocket<WsData>): boolean {
     return this.presence.get(ws)?.role === "host";
   }
@@ -472,7 +530,9 @@ export class Room implements MeetingRuntime {
     this.ended = false; // starting fresh also lifts the recap lock
     const byHostId = this.presence.get(ws)?.id ?? "";
     void this.context.clear();
+    this.exports.beginMeeting("Sidebar Meeting");
     this.broadcast({ type: "meeting.clear", byHostId, at: Date.now() });
+    this.broadcast({ type: "export.snapshot", exports: this.exports.snapshot() });
   }
 
   /** Host ends the meeting for everyone: stop in-flight work (KEEPING the transcript

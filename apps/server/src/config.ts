@@ -35,6 +35,9 @@ export const config = {
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   gemmaAsrModel: process.env.GEMMA_ASR_MODEL ?? "gemma4:e4b-it-qat",
 
+  /** Host-visible export folder. In Docker this is mounted to ./exports by compose. */
+  exportsDir: process.env.EXPORTS_DIR ?? "exports",
+
   /** Honest A/B GPU baseline. provider=ollama uses the native endpoint (thinking:false
    *  works there; the OpenAI-compat /v1 path ignores it and burns tokens on reasoning). */
   baselineProvider: (process.env.BASELINE_PROVIDER ?? "openai") as "openai" | "ollama",

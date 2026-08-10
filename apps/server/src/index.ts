@@ -165,6 +165,10 @@ const server = Bun.serve<WsData>({
       const auth = authFor(req, url);
       return Response.json({ required: !!config.hostPasscode, authed: auth.ok, role: auth.role ?? null });
     }
+    if (url.pathname.startsWith("/exports/")) {
+      if (!authFor(req, url).ok) return new Response("Unauthorized", { status: 401 });
+      return room.exports.serve(url.pathname);
+    }
     if (url.pathname === "/context/upload" && req.method === "OPTIONS") return room.contextOptions();
     if (url.pathname === "/context/upload" && req.method === "POST") {
       if (!authFor(req, url).ok) return new Response("Unauthorized", { status: 401, headers: { "access-control-allow-origin": "*" } });

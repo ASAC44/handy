@@ -8,6 +8,7 @@ export interface MeetingRuntime {
   latestScreenDataUri: string | null;
   workspaceRoot: string;
   contextSummary(): string;
+  updateExport(ev: ServerEvent): void;
   send(ev: ServerEvent): void;
   awaitPick(buildId: string): Promise<ThemeKey>;
   resolvePick(buildId: string, themeKey: ThemeKey): void;
