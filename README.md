@@ -91,7 +91,9 @@ thin session that joins it.
   and its summary is fed to the router / summarizer / prototype agents.
 - **Meeting recap.** When the host ends the meeting, a closing agent drafts a themed,
   self-contained HTML recap (executive summary, decisions, action items, open questions,
-  prototypes built) and streams it to everyone on the same link.
+  prototypes built) and streams it to everyone on the same link. Every generated artifact
+  is also saved under the host export folder and exposed as download links for participants
+  on the final recap screen.
 - **Draggable, dockable, resizable panels** over an infinite canvas, with a Paper / Ink
   (light / dark) editorial theme.
 
@@ -226,6 +228,7 @@ mode. `assertLiveReady()` warns (doesn't throw) if a needed key is missing.
 | `FIXTURE_SCENARIO` | id | default scenario (`sprint-planning`, `growth-review`, `launch-page`) |
 | `FACTCHECK_SEARCH` | `tavily` \| `none` | ground fact-checks on Tavily, or let the model self-report |
 | `HOST_PASSCODE` | string | gates the WS/ASR/upload endpoints; empty = open. `MEETING_PASSWORD` is an alias |
+| `EXPORTS_DIR` | path | host-visible folder for saved meeting artifacts (`./exports` by default; Docker mounts it to `/app/exports`) |
 
 ## ASR benches
 
@@ -251,7 +254,7 @@ reducer (consume) — the compiler flags missing arms.
 `fanout.resolved`, `dna.update`, `factcheck.result`, `telemetry`, `mode.changed`,
 `agents.changed`, `meeting.end`, `meeting.over`, `meeting.clear`, `finaldoc.start|token|complete`,
 presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
-(`context.snapshot|item|updated`), and `invite.list`.
+(`context.snapshot|item|updated`), exports (`export.snapshot`), and `invite.list`.
 
 **Client → server:** `start`, `live.start|stop`, `transcript.partial|final`, `screen.frame`,
 `capture.status`, `pick` (learn this design language), `resetTaste`, `setAbMode`, `setAgent`,

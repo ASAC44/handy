@@ -9,4 +9,5 @@ bun.lockb
 .vite/
 apps/web/dist/
 .playwright-mcp/
+exports/
 /*.png
