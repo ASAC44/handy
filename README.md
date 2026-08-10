@@ -7,8 +7,7 @@
     One changing shared context for every agent in the room
   </p>
   <p>
-    <a href="https://datahub.devpost.com/"><strong>Build with DataHub: The Agent Hackathon</strong></a><br />
-    Primary challenge: Agents That Do Real Work · Secondary: Open / Wildcard
+    <a href="https://datahub.devpost.com/"><strong>Build with DataHub: The Agent Hackathon</strong></a>
   </p>
 </div>
 
@@ -61,6 +60,17 @@ Dashed edges and dashed-outline nodes mark the planned DataHub-backed context an
 write-back path. The implemented meeting signals, router, agents, and live artifacts are
 shown as solid nodes.
 
+### Use cases
+
+- **Build live dashboards:** describe what you need and Handy creates an interactive
+  dashboard using the right company data.
+- **Review data changes:** see what a metric or schema means, who owns it, and what depends
+  on it before making a change.
+- **Solve data issues:** bring the issue, affected data, and responsible people into the
+  same meeting.
+- **Remember decisions:** save decisions, action items, and open questions so the team does
+  not lose context after the meeting.
+
 ### The shared context loop
 
 1. **Listen.** Conversation, accepted files, screen context, and new decisions reveal what
@@ -91,32 +101,6 @@ The intended judge demo uses DataHub's official
 [`showcase-ecommerce` datapack](https://datahub.devpost.com/resources), whose cross-platform
 graph spans datasets, dashboards, dbt, governance, glossary terms, and lineage. It gives
 the meeting a realistic company context without requiring private data.
-
-## What works today
-
-The current room provides the working foundation for the DataHub context loop. Four agents,
-plus a learning loop, share one accepted context bundle. A cheap **router** gates the heavy
-agents so they do not fire on every utterance.
-
-- **Router** — strict structured decision per chunk: topic shift, summary update, whether
-  to build a prototype (with a one-line `intent` + `uses_screen`), whether to fact-check
-  (with the claims). Cold sampling, tiny token budget.
-- **Summarizer** — rolling structured summary: TL;DR, decisions, action items (with owners),
-  open questions.
-- **Prototype ★ (the hero)** — `intent` + transcript (+ the latest screenshot when the
-  speaker references the screen) → one self-contained HTML document, streamed token-by-token
-  and rendered live in a sandboxed iframe.
-- **Fact-check** — retrieve-then-ground: each routed claim is searched via **Tavily**, then
-  Gemma judges it against the snippets (verdict / confidence / source / note). Falls back to
-  the model's own knowledge when no `TAVILY_API_KEY` is set.
-- **Design DNA → Google `DESIGN.md`** — the first build fans out four styles (Material You /
-  Midnight / Warm / Neon) in parallel; you pick one (or a 4.2s timeout picks the recommended
-  Material You) and that design language is injected into the prototype system prompt so
-  **every later build inherits your taste**. The learned style is expressed as a Google
-  [`DESIGN.md`](https://github.com/google-labs-code/design.md) — YAML design tokens
-  (Material-3 roles) + prose — which you can **view / copy / download** from the DNA panel,
-  and the closing recap embeds it as an appendix. The emitted file passes
-  `npx @google/design.md lint` (0 errors / 0 warnings). The closing recap uses the style too.
 
 ## The live room
 
@@ -308,29 +292,6 @@ bun run funnel               # (other terminal) HTTPS Funnel :8443 -> local :300
 Open the Funnel HTTPS URL with `?host=1` on the host machine, then press **Live → Screen →
 Mic**. Share the same URL (or a per-guest invite link) with viewers. `bun run funnel:off`
 stops the public listener. Set `HOST_PASSCODE` before exposing the server publicly.
-
-## Going live (real inference)
-
-```bash
-# .env
-AGENTS=live
-CEREBRAS_API_KEY=sk-...                       # PAYG tier recommended (see spec §6)
-CEREBRAS_BASE_URL=https://api.cerebras.ai     # NOTE: no /v1 — the client appends it
-MODEL_ID=gemma-4-31b
-
-FACTCHECK_SEARCH=tavily                        # ground verdicts on web search
-TAVILY_API_KEY=tvly-...                        # free tier: 1,000 searches/mo
-
-# Honest A/B GPU baseline (race Cerebras vs a GPU host, side by side)
-BASELINE_PROVIDER=ollama                       # or openai (Together / Fireworks / vLLM)
-BASELINE_BASE_URL=http://localhost:11434
-BASELINE_MODEL_ID=gemma4:31b-it-qat
-```
-
-In `live` mode the router/summarizer/fact-check use `generateStructured` (strict Zod → JSON
-Schema via `fromZod`) and the prototype agent streams real HTML tokens via `chatStream`.
-Everything else — transcript source, canvas, learned-style loop, recap — is identical to mock
-mode. `assertLiveReady()` warns (doesn't throw) if a needed key is missing.
 
 ## Runtime modes
 
