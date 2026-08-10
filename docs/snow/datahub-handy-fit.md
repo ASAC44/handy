@@ -1,5 +1,9 @@
 # How DataHub could fit Handy
 
+> This is an earlier exploration. Read
+> [the complete project handoff](./datahub-project-handoff.md) for the chosen direction,
+> current architecture, non-goals, and implementation order.
+
 Research date: August 10, 2026
 
 Read [DataHub, explained simply](./datahub-expert-dossier.md) first.
@@ -257,4 +261,3 @@ be ignored.
 Handy turns live meeting conversation into governed company decisions, uses DataHub to make
 fact-checks and prototypes match the real company data model, then saves approved knowledge
 for future people and agents.
-

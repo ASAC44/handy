@@ -421,25 +421,77 @@ DataHub provides context, not guaranteed truth. Good output must show:
 - whether quality checks were passing;
 - where sources disagree.
 
-## Local test setup
+## Local test setup on Arch Linux
 
-Requirements:
+Arch marks its system Python as externally managed. This prevents `pip` from changing files
+owned by `pacman`. Do not use `--break-system-packages`.
 
-- Docker Compose v2;
-- Python 3.10 or newer;
-- 2 CPU cores;
-- 8 GB RAM;
-- 2 GB swap;
-- about 13 GB disk.
+This machine already has `uv`. `uv` can install the DataHub command-line tool in its own
+private Python environment:
 
 ```bash
-python3 -m pip install --upgrade acryl-datahub
+uv tool install --python 3.11 acryl-datahub
+datahub version
+```
+
+The first command creates an isolated Python 3.11 environment for DataHub. DataHub currently
+warns that versions above 3.11 are not actively tested. This does not
+modify Arch's Python 3.14 installation. The second command only proves the DataHub CLI can
+start; it does not start a DataHub server.
+
+DataHub's local server is a group of Docker containers. Check Docker before downloading
+them:
+
+```bash
+docker info
+docker compose version
+```
+
+`docker info` proves the current user can reach the running Docker daemon. `docker compose
+version` proves the Compose plugin exists. Fix Docker service or permission errors before
+continuing.
+
+Start a pinned DataHub 1.6.0 development stack:
+
+```bash
 datahub docker quickstart --version v1.6.0
+```
+
+This command downloads DataHub's Compose file, pulls images, and starts the DataHub backend,
+web UI, MySQL, OpenSearch, and Kafka. It stores local setup files under
+`~/.datahub/quickstart` and state in Docker volumes. Expect a large download and roughly
+13 GB of disk use.
+
+Open `http://localhost:9002`. Development login: `datahub` / `datahub`.
+
+Now connect the CLI to that running local server:
+
+```bash
 datahub init --username datahub --password datahub
+```
+
+This saves the local server address and login for later DataHub CLI commands. It does not
+load data.
+
+Load a fake company catalog:
+
+```bash
 datahub datapack load showcase-ecommerce
 ```
 
-Open `http://localhost:9002`. Development login: `datahub` / `datahub`.
+This creates about 1,050 synthetic catalog items with schemas, owners, glossary terms,
+domains, and lineage. It loads metadata for learning DataHub; it does not create a real
+Snowflake warehouse full of business rows.
+
+In the UI, search for an orders or revenue table. Open it and inspect its columns, owner,
+terms, and lineage. This is the simplest proof of DataHub's purpose: finding the right data
+and understanding it before querying a database.
+
+Stop containers while keeping saved state:
+
+```bash
+datahub docker quickstart --stop
+```
 
 Quickstart is for local testing, not production. It has default passwords, exposed ports,
 one-machine limits, and no easy horizontal scaling.
@@ -487,4 +539,3 @@ that uses only code the entrant may legally submit.
 - [Core versus Cloud](https://docs.datahub.com/docs/managed-datahub/managed-datahub-overview)
 - [Search access controls](https://docs.datahub.com/docs/features/feature-guides/search-access-controls)
 - [Connector list](https://docs.datahub.com/docs/generated/ingestion/sources/)
-
