@@ -1,50 +1,102 @@
-# Handy
+<div align="center">
+  <img src="apps/web/public/favicon.svg" alt="Handy logo" width="96" height="96" />
+  <h1>Handy</h1>
+  <p><strong>A shared AI workspace designed to bring DataHub company memory into live meetings.</strong></p>
+  <p>
+    Company definitions · schemas · lineage · ownership · quality signals · past decisions<br />
+    One changing shared context for every agent in the room
+  </p>
+  <p>
+    <a href="https://datahub.devpost.com/"><strong>Build with DataHub: The Agent Hackathon</strong></a><br />
+    Primary challenge: Agents That Do Real Work · Secondary: Open / Wildcard
+  </p>
+</div>
 
-**An ambient panel of AI agents that works alongside you in a live meeting.** One keeps a
-rolling summary, one turns spoken ideas into running prototypes the moment they're said,
-one fact-checks claims against the live web. Everyone in the room watches the same
-WebSocket event stream. Built on **Cerebras + Gemma 4** via
-[`universal-llm-client`](https://github.com/igorls/universal-llm-client), on **Bun**.
+<!-- README-HACK:NEEDS-OWNER key="demo-video" instruction="Add the public YouTube or Vimeo demo video URL. The hackathon requires a demonstration under three minutes." -->
 
-The hero is the **real-time prototype agent**: a spoken idea becomes a working,
-screen-aware HTML proof-of-concept in **~1.5s** — fast enough that the artifact appears
-*while the idea is still alive in the room*. When the first idea is built, the agent
-**fans out four design languages in parallel**; you pick one and Handy **learns your
-taste** — a "Design DNA" injected into every later build (real preference learning carried
-through to inference) and exported as a Google
-[`DESIGN.md`](https://github.com/google-labs-code/design.md). When the meeting ends, a
-closing agent streams a **shareable HTML recap** in that same learned style.
+Most meeting agents work from the transcript alone. They do not know which metric definition
+is official, which table owns a field, what depends on a proposed change, or why the company
+made a previous decision. Handy is designed to use
+[DataHub Agent Context](https://docs.datahub.com/docs/dev-guides/agent-context/agent-context)
+as the connected company memory behind the room.
 
-> **Status: hackathon MVP** (Cerebras × Google DeepMind Gemma 4). Runs end-to-end in
-> fixture mode with **no keys**. It also has a real **live shared room**: a host captures
-> screen + speech on their machine, mints invite links, and every guest watches the same
-> canvas. Flip `AGENTS=live` for real Cerebras inference, add `TAVILY_API_KEY` to ground
-> fact-checks on web search, and point `BASELINE_*` at a GPU host for the honest A/B race.
+As the topic changes, Handy focuses that memory into a small **shared meeting context**.
+Every agent reads the same definitions, data relationships, rules, and history alongside
+the live conversation, accepted files, and screen context. The room can then produce
+grounded summaries, checked claims, runnable prototypes, and a durable recap without each
+agent inventing company meaning independently.
 
-## Why it exists — the idea→artifact cliff
+> **Status: hackathon MVP.** The shared room, reviewed file context, routed agents, live
+> prototypes, fact-checks, recaps, and export package run end to end. DataHub retrieval,
+> lineage-aware impact analysis, and structured knowledge write-back are the planned
+> hackathon integration; the repository does not connect to DataHub yet. That connection
+> must ship before this project meets the hackathon's DataHub-use requirement.
 
-Turning a spoken idea into running code is a token-heavy *chain* (parse → draft → render),
-not a single generation. At ~50–200 tok/s that chain is 15–45s and the meeting has moved
-on — the artifact is a tombstone. At ~1900 tok/s it's 1–2s, so the working prototype
-appears **while the idea is still alive in the room**. That temporal coupling is impossible
-at GPU latency and magical at Cerebras latency. It's the whole product.
+## Built for “Agents That Do Real Work”
 
-Our own honest A/B, **same prototype prompt, same Gemma 4 family** (figures from
-`apps/server/src/_abbench.ts`, written up in [`docs/positioning.md`](docs/positioning.md)):
+The challenge asks agents to read DataHub, understand what is connected, take useful
+action, and write results back so the next person or agent inherits the knowledge. Handy
+applies that loop to live meetings:
 
-| Engine | tok/s | idea→artifact |
-|---|---|---|
-| **Cerebras `gemma-4-31b`** | ~1588 | **~1.5s** |
-| Local GPU `gemma4:31b` — *same model* (Ollama) | ~50 | ~46s |
-| Local GPU `gemma4:12b` — smaller (Ollama) | ~100 | ~16.8s |
+- **Read:** use the DataHub Agent Context Kit to retrieve the schemas, lineage, ownership,
+  governance signals, documents, and decisions relevant to the current topic.
+- **Act:** give every Handy agent the same focused context so the room can check a claim,
+  assess downstream impact, create a prototype, or record a decision without inventing
+  company meaning.
+- **Write back:** return structured decisions, changed definitions, findings, prototype
+  context, and unresolved questions to DataHub—not the raw meeting transcript.
 
-On the **same 31B model** the local GPU is **~31× slower**. The A/B view races both engines
-live and holds on the dual timer — that's the pitch.
+The secondary Open / Wildcard angle is **live organizational knowledge capture**: DataHub
+is not only queried by an agent; its context graph becomes the shared memory for a
+multiplayer agent workspace and improves with the useful outcomes of each meeting.
 
-## What's in the panel
+DataHub already connects business definitions, schemas, lineage, ownership, quality
+signals, documents, and systems. Handy turns the subset relevant to the current discussion
+into live working context, then returns useful decisions and findings to that memory after
+the meeting.
 
-Four agents, plus a learning loop. A cheap **router** gates everything so the heavy agents
-don't fire on every utterance.
+![How DataHub company memory and live meeting signals become one shared context for every Handy agent](apps/web/public/graphs/handy-live-context-loop.svg)
+
+Dashed edges and dashed-outline nodes mark the planned DataHub-backed context and
+write-back path. The implemented meeting signals, router, agents, and live artifacts are
+shown as solid nodes.
+
+### The shared context loop
+
+1. **Listen.** Conversation, accepted files, screen context, and new decisions reveal what
+   the room needs.
+2. **Retrieve (planned).** DataHub supplies the relevant company knowledge and
+   relationships.
+3. **Focus (planned).** Handy keeps one changing DataHub-backed context containing only the
+   definitions, sources, rules, owners, and history that matter now.
+4. **Create.** Every agent uses that same context to produce checks, summaries, prototypes,
+   decisions, and the recap.
+5. **Remember (planned).** Structured outcomes flow back into DataHub instead of
+   disappearing into a transcript archive.
+
+### What grounding changes
+
+If the room asks for a customer-retention dashboard, DataHub could provide the official
+active-customer definition, approved source tables, related dashboards and lineage, data
+owners, quality signals, earlier retention decisions, and sensitive-field constraints.
+Handy can use that context to build with company terminology, follow the correct data
+relationships, shape realistic sample values, and exclude private customer fields.
+
+The planned **Fact and Safety Checker** uses the same relationship map before the room acts.
+For example, changing “Active Customer” from 90 days to 60 days could surface affected
+dashboards, reports, models, owners, and a conflicting prior decision while the proposal is
+still being discussed.
+
+The intended judge demo uses DataHub's official
+[`showcase-ecommerce` datapack](https://datahub.devpost.com/resources), whose cross-platform
+graph spans datasets, dashboards, dbt, governance, glossary terms, and lineage. It gives
+the meeting a realistic company context without requiring private data.
+
+## What works today
+
+The current room provides the working foundation for the DataHub context loop. Four agents,
+plus a learning loop, share one accepted context bundle. A cheap **router** gates the heavy
+agents so they do not fire on every utterance.
 
 - **Router** — strict structured decision per chunk: topic shift, summary update, whether
   to build a prototype (with a one-line `intent` + `uses_screen`), whether to fact-check
@@ -363,6 +415,8 @@ presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
 
 ## Roadmap
 
+- **Hackathon-critical:** implement relevant-context retrieval, structured meeting
+  write-back, and lineage-aware impact analysis through DataHub Agent Context.
 - **Deepgram** as a managed `SOURCE=asr` backend (the scaffold exists; on-device + ElevenLabs
   are the shipped paths today).
 - Screen-capture polish: frame dedup (perceptual hash), preview, user-visible privacy state.
