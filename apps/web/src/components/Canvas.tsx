@@ -663,7 +663,7 @@ function ArtifactFailure({ message }: { message?: string }) {
   return (
     <div className="artifact-failure" role="status">
       <b>No black screen.</b>
-      <span>{message ?? "Prototype generation failed. Keep brainstorming to retry."}</span>
+      <span>{message ?? "Prototype generation failed. Say ‘try the prototype again’ to retry."}</span>
     </div>
   );
 }

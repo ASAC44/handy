@@ -54,6 +54,7 @@ const BUILD_DEBOUNCE_MS = 1500;
 const TURN_DEBOUNCE_MS = 650;
 const AMBIENT_IDEA_WORDS = /\b(let'?s|what if|how about|maybe|could we|we should|we need|imagine)\b/i;
 const PROTOTYPE_DETAIL_WORDS = /\b(add|show|include|change|make|move|remove|animate|animated|icon|colour|color|pink|backdrop|bar|card|table|chart|filter|button|field|column|layout|client|customer|order|dashboard|page|screen)\b/i;
+const RETRY_WORDS = /\b(try|retry|again|regenerate|prototype)\b/i;
 
 /** Compile a critic's fixable issues into a single edit instruction for the evolve pass. */
 function compileChange(issues: ReviewIssue[]): string {
@@ -179,6 +180,7 @@ export class Orchestrator {
   /** Prototypes built this meeting — the latest is the base for the next evolution,
    *  and all of them are embedded in the final recap document. */
   private artifacts: BuiltArtifact[] = [];
+  private failedPrototypeIntent: string | null = null;
   /** Next-step suggestions are generated once per artifact id. Keeps immediate
    *  suggestion calls from duplicating later review/finally calls. */
   private nextStepRequested = new Set<string>();
@@ -211,6 +213,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.renderRepaired.clear();
     this.cancelPendingBuild();
@@ -287,6 +290,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.awaitingPick = false;
     this.lastTitle = scn.title;
@@ -305,6 +309,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.lastTitle = title;
     this.liveQueue = Promise.resolve();
@@ -456,11 +461,14 @@ export class Orchestrator {
     const active = this.currentArtifact();
     const startsIdea = AMBIENT_IDEA_WORDS.test(seg.text) && PROTOTYPE_WORDS.test(seg.text);
     const evolvesIdea = !!active && PROTOTYPE_DETAIL_WORDS.test(seg.text);
-    if (!startsIdea && !evolvesIdea) return decision;
+    const retriesFailure = !!this.failedPrototypeIntent && RETRY_WORDS.test(seg.text);
+    if (!startsIdea && !evolvesIdea && !retriesFailure) return decision;
     const recent = this.transcript.slice(-5).join(" ").replace(/\s+/g, " ").slice(-700);
     const intent = active
       ? `${active.intent}. Apply this new meeting direction: ${seg.text}`
-      : recent;
+      : retriesFailure
+        ? `${this.failedPrototypeIntent}. Retry after the previous generation failed.`
+        : recent;
     return {
       ...decision,
       prototype: { trigger: true, intent, uses_screen: SCREEN_WORDS.test(seg.text) },
@@ -879,19 +887,22 @@ export class Orchestrator {
     } catch (err) {
       console.error("[prototype] build failed", errMsg(err));
       if (!alive()) return;
-      this.send({ type: "prototype.error", id, buildId, message: "Prototype generation failed. Keep brainstorming to retry." });
+      if (!baseline) this.failedPrototypeIntent = intent;
+      this.send({ type: "prototype.error", id, buildId, message: "Prototype generation failed. Say ‘try the prototype again’ to retry." });
       return;
     }
     if (!alive()) return;
     if (!looksRenderable(html)) {
       console.error("[prototype] model returned empty or invalid HTML");
-      this.send({ type: "prototype.error", id, buildId, message: "The model returned no usable prototype. Keep brainstorming to retry." });
+      if (!baseline) this.failedPrototypeIntent = intent;
+      this.send({ type: "prototype.error", id, buildId, message: "The model returned no usable prototype. Say ‘try the prototype again’ to retry." });
       return;
     }
     this.telemetry("prototype", tokPerS, tokens);
     this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey, companySources });
     // Remember the canonical (non-baseline) build: base for the next evolution + recap.
     if (!baseline) {
+      this.failedPrototypeIntent = null;
       const artifact = { id, buildId, intent, themeKey, html, variant, context, companySources };
       this.recordArtifact(artifact);
     }
