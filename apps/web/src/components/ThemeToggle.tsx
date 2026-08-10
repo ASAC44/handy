@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
 
 export type Theme = "paper" | "ink";
 const THEMES: { id: Theme; label: string; icon: string }[] = [
@@ -24,13 +25,15 @@ export function ThemeToggle() {
   const next: Theme = theme === "paper" ? "ink" : "paper";
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
       className="capBtn themeToggle"
       onClick={() => setTheme(next)}
       data-tip={`Theme: ${current.label} — switch to ${next}`}
       aria-label="Switch theme"
     >
       {current.icon} {current.label}
-    </button>
+    </Button>
   );
 }

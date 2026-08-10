@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ClientEvent, ExportFileInfo } from "@handy/shared";
 import type { HandyState } from "../ws";
 import { getKey } from "../auth";
+import { Logo } from "./Logo";
 
 /**
  * The terminal post-meeting view shown to EVERYONE (host + guests) on the same link
@@ -43,7 +44,7 @@ export function RecapView({
     <div className="recapScreen">
       <header className="recapBar">
         <div className="recapTitle">
-          <span className="logo">&#9624;</span>
+          <span className="logo"><Logo /></span>
           <div>
             <div className="recapH">Meeting ended</div>
             <div className="recapSub">
@@ -180,16 +181,16 @@ body{margin:0!important;padding:0!important;max-width:none!important;display:blo
 .handy-recap-main>*:last-child{margin-bottom:0}
 .handy-recap-appendix{margin-top:42px;display:grid;gap:32px}
 .handy-recap-prototypes,.handy-recap-design{margin:0}
-.handy-recap-prototypes>h2,.handy-recap-design>h2{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;margin:0 0 14px;font-weight:700}
+.handy-recap-prototypes>h2,.handy-recap-design>h2{font-size:11px;letter-spacing:1.4px;margin:0 0 14px;font-weight:700}
 .handy-recap-gallery{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))!important;gap:18px!important;align-items:start!important}
 .handy-recap-prototype-card{margin:0!important;overflow:hidden}
 .handy-recap-prototype-frame,.handy-recap-prototypes iframe{width:100%!important;height:min(620px,72vh)!important;min-height:440px!important;border:0!important;display:block!important;background:#fff}
 .handy-recap-design details{overflow:hidden}
 .handy-recap-design summary{cursor:pointer;padding:13px 16px;font-weight:700;list-style:none}
 .handy-recap-design summary::-webkit-details-marker{display:none}
-.handy-recap-design summary:after{content:"+";float:right;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.handy-recap-design summary:after{content:"+";float:right;font-family:"DM Sans",system-ui,sans-serif}
 .handy-recap-design details[open] summary:after{content:"-"}
-.handy-recap-design pre{margin:0!important;max-height:520px!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:12px!important;line-height:1.5!important;white-space:pre-wrap!important;word-break:break-word!important;overflow:auto!important}
+.handy-recap-design pre{margin:0!important;max-height:520px!important;font-family:"DM Sans",system-ui,sans-serif!important;font-size:12px!important;line-height:1.5!important;white-space:pre-wrap!important;word-break:break-word!important;overflow:auto!important}
 @media (max-width:720px){.handy-recap-shell{width:min(100% - 20px,1180px);padding:26px 0 48px}.handy-recap-prototype-frame,.handy-recap-prototypes iframe{height:520px!important;min-height:360px!important}}
 </style>`;
 

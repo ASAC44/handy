@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useRef, useState, type ChangeEvent, type DragEvent, type RefCallback } from "react";
 import type { ClientEvent, ContextBundle } from "@handy/shared";
 import type { HandyState } from "../ws";
 import { authHeaders } from "../auth";
@@ -75,10 +75,12 @@ export function ContextStrip({
   state,
   send,
   hostMode,
+  controlsRef,
 }: {
   state: HandyState;
   send: (e: ClientEvent) => void;
   hostMode: boolean;
+  controlsRef: RefCallback<HTMLDivElement>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -228,6 +230,7 @@ export function ContextStrip({
             workspace
           </span>
         ) : null}
+        <div className="ctxCanvasControls" ref={controlsRef} />
       </div>
       {queue.length ? (
         <div className="ctxQueue">

@@ -7,9 +7,12 @@ import {
   type PointerEvent as RPE,
 } from "react";
 import { createPortal } from "react-dom";
+import { LocateFixed, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import type { HandyState, Artifact as Art, ActivityEvent } from "../ws";
 import type { ClientEvent, ParticipantPresence } from "@handy/shared";
 import { toDesignMd } from "@handy/shared";
+import { initials } from "../lib/initials";
+import { ParticipantCursor } from "./ParticipantCursor";
 
 const W = 600;
 const H = 470;
@@ -50,7 +53,17 @@ interface PointerWorld {
   artifactId?: string;
 }
 
-export function Canvas({ state, send, hostMode }: { state: HandyState; send: (e: ClientEvent) => void; hostMode: boolean }) {
+export function Canvas({
+  state,
+  send,
+  hostMode,
+  controlsRoot,
+}: {
+  state: HandyState;
+  send: (e: ClientEvent) => void;
+  hostMode: boolean;
+  controlsRoot: HTMLElement | null;
+}) {
   const vpRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 40, y: 30, z: 0.9 });
   const [follow, setFollow] = useState(true);
@@ -125,7 +138,7 @@ export function Canvas({ state, send, hostMode }: { state: HandyState; send: (e:
     if (!vp) return undefined;
     const onWheel = (e: WheelEvent): void => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest(".meeting-map,.dna,.canvas-controls,.presence-dock,.inspector,.minimap,.prototype-lightbox,.modalScrim")) return;
+      if (target?.closest(".meeting-map,.dna,.canvas-controls,.inspector,.minimap,.prototype-lightbox,.modalScrim")) return;
       e.preventDefault();
       const rect = vp.getBoundingClientRect();
       zoomAt(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.12 : 0.89);
@@ -371,7 +384,7 @@ export function Canvas({ state, send, hostMode }: { state: HandyState; send: (e:
           .filter((p) => p.cursor)
           .map((p) => {
             const point = worldToScreen(p.cursor!.worldX, p.cursor!.worldY, cam);
-            return <RemoteCursor key={p.id} participant={p} x={point.x} y={point.y} />;
+            return <ParticipantCursor key={p.id} color={p.color} name={p.name} x={point.x} y={point.y} />;
           })}
       </div>
 
@@ -384,16 +397,19 @@ export function Canvas({ state, send, hostMode }: { state: HandyState; send: (e:
           onFocusArtifact={focusArtifact}
         />
       ) : null}
-      <PresenceDock state={state} send={send} hostMode={hostMode} />
-      <CanvasControls
-        count={perm.length}
-        zoom={cam.z}
-        follow={follow}
-        onZoomIn={() => setCam((c) => ({ ...c, z: Math.min(MAX_Z, c.z * 1.15) }))}
-        onZoomOut={() => setCam((c) => ({ ...c, z: Math.max(MIN_Z, c.z * 0.87) }))}
-        onFit={fitAll}
-        onFollow={() => setFollow(true)}
-      />
+      {controlsRoot
+        ? createPortal(
+            <CanvasControls
+              zoom={cam.z}
+              follow={follow}
+              onZoomIn={() => setCam((c) => ({ ...c, z: Math.min(MAX_Z, c.z * 1.15) }))}
+              onZoomOut={() => setCam((c) => ({ ...c, z: Math.max(MIN_Z, c.z * 0.87) }))}
+              onFit={fitAll}
+              onFollow={() => setFollow(true)}
+            />,
+            controlsRoot,
+          )
+        : null}
       {hostMode && selected ? (
         <Inspector
           artifact={selected.a}
@@ -693,7 +709,6 @@ function ReviewChip({ a }: { a: Art }) {
 }
 
 function CanvasControls({
-  count,
   zoom,
   follow,
   onZoomIn,
@@ -701,7 +716,6 @@ function CanvasControls({
   onFit,
   onFollow,
 }: {
-  count: number;
   zoom: number;
   follow: boolean;
   onZoomIn: () => void;
@@ -711,64 +725,19 @@ function CanvasControls({
 }) {
   return (
     <div className="canvas-controls" onPointerDown={(e) => e.stopPropagation()}>
-      <span className="acount">
-        {count} artifact{count === 1 ? "" : "s"}
-      </span>
-      <button className="cbtn" data-tip="Zoom in" aria-label="Zoom in" onClick={onZoomIn}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-zoom-in-icon lucide-zoom-in" style={{ display: "block", margin: "auto" }}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+      <button type="button" className="cbtn" data-tip="Zoom in" aria-label="Zoom in" onClick={onZoomIn}>
+        <ZoomIn aria-hidden="true" />
       </button>
-      <button className="cbtn" data-tip="Zoom out" aria-label="Zoom out" onClick={onZoomOut}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-zoom-out-icon lucide-zoom-out" style={{ display: "block", margin: "auto" }}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+      <button type="button" className="cbtn" data-tip="Zoom out" aria-label="Zoom out" onClick={onZoomOut}>
+        <ZoomOut aria-hidden="true" />
       </button>
-      <button className="cbtn" data-tip="Fit canvas" onClick={onFit}>
-        fit
+      <button type="button" className="cbtn" data-tip="Fit canvas" aria-label="Fit canvas" onClick={onFit}>
+        <Maximize2 aria-hidden="true" />
       </button>
-      <button className={"cbtn" + (follow ? " active" : "")} data-tip="Follow latest" onClick={onFollow}>
-        follow
+      <button type="button" className={"cbtn" + (follow ? " active" : "")} data-tip="Follow latest" aria-label="Follow latest" aria-pressed={follow} onClick={onFollow}>
+        <LocateFixed aria-hidden="true" />
       </button>
       <span className="zoom-read">{Math.round(zoom * 100)}%</span>
-    </div>
-  );
-}
-
-function RemoteCursor({ participant, x, y }: { participant: ParticipantPresence; x: number; y: number }) {
-  return (
-    <div className="remote-cursor" style={{ left: x, top: y, "--pc": participant.color } as CSSProperties}>
-      <span className="cursor-arrow" />
-      <span className="cursor-label">{participant.name}</span>
-    </div>
-  );
-}
-
-function PresenceDock({ state, send, hostMode }: { state: HandyState; send: (e: ClientEvent) => void; hostMode: boolean }) {
-  const kick = (p: ParticipantPresence): void => {
-    if (confirm(`Remove ${p.name} from the meeting?`)) send({ type: "host.kick", id: p.id });
-  };
-  return (
-    <div className="presence-dock" onPointerDown={(e) => e.stopPropagation()}>
-      <span className="presence-title">room</span>
-      <div className="presence-avatars">
-        {state.presence.map((p) => {
-          const isSelf = p.id === state.selfId;
-          const canKick = hostMode && !isSelf;
-          return (
-            <span
-              key={p.id}
-              className={"presence-avatar" + (isSelf ? " self" : "") + (canKick ? " kickable" : "")}
-              style={{ background: p.color }}
-              data-tip={isSelf ? `${p.name} (you)` : canKick ? `${p.name} — click ✕ to remove` : p.name}
-            >
-              {initials(p.name)}
-              {canKick ? (
-                <button className="presence-kick" aria-label={`Remove ${p.name}`} onClick={() => kick(p)}>
-                  ✕
-                </button>
-              ) : null}
-            </span>
-          );
-        })}
-      </div>
-      <span className="presence-count">{state.presence.length} online</span>
     </div>
   );
 }
@@ -1019,7 +988,7 @@ function DNA({ state, send }: { state: HandyState; send: (e: ClientEvent) => voi
   return (
     <div className="dna" onPointerDown={(e) => e.stopPropagation()}>
       <div className="dna-h">
-        <span>DESIGN DNA</span>
+        <span>Design profile</span>
         <button className="reset" data-tip="forget learned style" aria-label="forget learned style" onClick={() => send({ type: "resetTaste" })}>
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-cw-icon lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
         </button>
@@ -1160,12 +1129,6 @@ function clock(ts: number): string {
   return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(ts);
 }
 
-function initials(name: string): string {
-  const clean = name.trim();
-  if (!clean) return "?";
-  const parts = clean.split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
-}
 
 function cssEscape(value: string): string {
   return value.replace(/["\\]/g, "\\$&");

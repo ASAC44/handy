@@ -5,32 +5,26 @@ import { Rail } from "./components/Rail";
 import { ContextStrip } from "./components/ContextStrip";
 import { Canvas } from "./components/Canvas";
 import { Bottom } from "./components/Bottom";
-import { CaptureDock } from "./components/CaptureDock";
+import { BottomDock } from "./components/BottomDock";
 import { ParticipantBar } from "./components/ParticipantBar";
-import { Settings } from "./components/Settings";
+import { Topbar } from "./components/Topbar";
 import { TooltipHost } from "./components/TooltipHost";
 import { DragLayer, type DragLayerHandle } from "./components/DragLayer";
 import { RecapView } from "./components/RecapView";
+import { Logo } from "./components/Logo";
 import { useCapture } from "./useCapture";
 import { checkGate, getKey, seedKeyFromUrl, setKey } from "./auth";
-import { Logo } from "./components/Logo";
 
-/** Builds the .main grid-template-columns: a fixed track per visible rail with
- *  the canvas always taking the remaining 1fr in the middle. */
-function buildCols(showLeft: boolean, showRight: boolean, leftW: number, rightW: number): string {
-  const parts: string[] = [];
-  if (showLeft) parts.push(`${leftW}px`);
-  parts.push("1fr");
-  if (showRight) parts.push(`${rightW}px`);
-  return parts.join(" ");
-}
+/** Builds the sidebar + canvas grid tracks. */
+const buildCols = (showSidebar: boolean, width: number): string =>
+  showSidebar ? `${width}px 1fr` : "1fr";
 
 type GateState = "checking" | "locked" | "open";
 
 /** Locks the entire experience (host AND guests) behind the meeting password when
  *  the server has one configured. The server enforces it independently — this is
  *  the friendly front door, not the lock itself. */
-export function App() {
+export function DashboardPage() {
   const [gate, setGate] = useState<GateState>("checking");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,22 +143,24 @@ function Meeting() {
   const hostMode = self?.role
     ? self.role === "host"
     : state.selfId === null && !getKey() && new URLSearchParams(location.search).has("host");
-  const { leftPanels, rightPanels, railWidth, movePanel, resizePanels, resizeRail } = useLayout();
+  const { leftPanels, railWidth, movePanel, resizePanels, resizeRail } = useLayout();
 
   // When the meeting ends (or you leave / are removed), stop your local mic capture.
   useEffect(() => {
     if ((state.ended || state.left || state.kicked) && cap.speechOn) cap.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.ended, state.left, state.kicked, cap.speechOn]);
-  // Only `dragging` is lifted here (it flips twice per drag, to force both rails
-  // to render so an empty side can show a drop zone). The ghost + drop target
+  // Only `dragging` is lifted here so the rail can show its drop target. The ghost + drop target
   // live inside DragLayer so per-pointer-move updates don't re-render this tree.
   const [dragging, setDragging] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [canvasControlsRoot, setCanvasControlsRoot] = useState<HTMLDivElement | null>(null);
   const dragRef = useRef<DragLayerHandle>(null);
 
-  const showLeft = leftPanels.length > 0 || dragging;
-  const showRight = rightPanels.length > 0 || dragging;
-  const cols = buildCols(showLeft, showRight, railWidth.left, railWidth.right);
+  const showSidebar = leftPanels.length > 0 || dragging;
+  const collapsed = sidebarCollapsed && !dragging;
+  const sidebarWidth = collapsed ? 40 : railWidth.left;
+  const cols = buildCols(showSidebar, sidebarWidth);
   const panelProps = { state, hostMode, send };
 
   // Live preview while a rail-width handle drags: write the grid track directly
@@ -172,9 +168,7 @@ function Meeting() {
   const previewRail = (s: Side, px: number): void => {
     const m = document.querySelector(".main") as HTMLElement | null;
     if (!m) return;
-    const lw = s === "left" ? px : railWidth.left;
-    const rw = s === "right" ? px : railWidth.right;
-    m.style.gridTemplateColumns = buildCols(showLeft, showRight, lw, rw);
+    if (s === "left") m.style.gridTemplateColumns = buildCols(showSidebar, px);
   };
 
   if (state.kicked) return <Removed />;
@@ -182,30 +176,21 @@ function Meeting() {
   if (state.ended) return <RecapView state={state} send={send} hostMode={hostMode} onLeave={leave} />;
   return (
     <div className={"app" + (hostMode ? "" : " viewer") + (dragging ? " dragging" : "")}>
-      <header className="topbar">
-        <div className="brand">
-          <span className="logo"><Logo /></span> Handy <span className="bsub">meeting agents</span>
-        </div>
-        <span className={"conn " + (state.connected ? "on" : "off")}>
-          {state.connected ? "● connected" : "○ offline"}
-        </span>
-        <CaptureDock hostMode={hostMode} state={state} send={send} onLeave={leave} />
-        <div className="spacer" />
-        {cap.speechOn ? (
-          <div className="status">
-            <span className="live">
-              <i /> {cap.mode === "ptt" ? (cap.talking ? "TALK" : "PTT") : "REC"}
-            </span>
-          </div>
-        ) : null}
-        <div className="model">gemma-4-31b</div>
-        <Settings state={state} send={send} setAbMode={setAbMode} hostMode={hostMode} />
-      </header>
+      <Topbar
+        hostMode={hostMode}
+        state={state}
+        send={send}
+        setAbMode={setAbMode}
+        onLeave={leave}
+        capture={cap}
+      />
       <main className="main" style={{ gridTemplateColumns: cols }}>
-        {showLeft ? (
+        {showSidebar ? (
           <Rail
             side="left"
             panels={leftPanels}
+            collapsed={collapsed}
+            onToggle={() => setSidebarCollapsed((current) => !current)}
             panelProps={panelProps}
             railWidth={railWidth.left}
             dragging={dragging}
@@ -216,25 +201,18 @@ function Meeting() {
           />
         ) : null}
         <section className="canvasCol">
-          <ContextStrip state={state} send={send} hostMode={hostMode} />
-          <Canvas state={state} send={send} hostMode={hostMode} />
+          <ContextStrip state={state} send={send} hostMode={hostMode} controlsRef={setCanvasControlsRoot} />
+          <Canvas state={state} send={send} hostMode={hostMode} controlsRoot={canvasControlsRoot} />
+          <BottomDock hostMode={false}>
+            <ParticipantBar cap={cap} />
+          </BottomDock>
         </section>
-        {showRight ? (
-          <Rail
-            side="right"
-            panels={rightPanels}
-            panelProps={panelProps}
-            railWidth={railWidth.right}
-            dragging={dragging}
-            dragRef={dragRef}
-            resizePanels={resizePanels}
-            previewRail={previewRail}
-            commitRail={resizeRail}
-          />
-        ) : null}
       </main>
-      {hostMode ? <Bottom state={state} send={send} /> : null}
-      <ParticipantBar cap={cap} state={state} />
+      {hostMode ? (
+        <BottomDock hostMode>
+          <Bottom state={state} send={send} />
+        </BottomDock>
+      ) : null}
       <DragLayer ref={dragRef} movePanel={movePanel} onDraggingChange={setDragging} />
       <TooltipHost />
     </div>

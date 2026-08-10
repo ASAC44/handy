@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-/** UI-only layout preferences for the meeting rails — which side each panel is
- *  docked on, its order within that rail, its relative height, and each rail's
- *  width. Persisted to localStorage like the other `handy.*` prefs
+/** UI-only layout preferences for the meeting sidebar — panel order, relative
+ *  heights, and width. Persisted to localStorage like the other `handy.*` prefs
  *  (see ThemeToggle.tsx); deliberately NOT in the ws.ts reducer, which is
  *  driven purely by server events. */
 
@@ -17,8 +16,8 @@ export interface PanelLayout {
 }
 
 export interface LayoutState {
-  v: 3; // schema version → validate/migrate hook (bump to reset stale saved layouts)
-  /** Flat, ordered list; a rail's render order is `order.filter(side)`. */
+  v: 7; // schema version → validate/migrate hook (bump to reset stale saved layouts)
+  /** Panel order in the single sidebar. */
   order: PanelLayout[];
   /** Independent px width per rail (applied to the .main grid track). */
   railWidth: Record<Side, number>;
@@ -34,14 +33,13 @@ const WEIGHT_MIN = 0.25;
 
 export const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
-/** Default: transcript + fact-check stacked on the left, rolling summary on its
- *  own right rail. Both rails 300px; left keeps the 1.8 / 0.7 transcript-heavy ratio. */
+/** Transcript is the primary tab; summary and fact-check share the Insights tab. */
 const DEFAULT: LayoutState = {
-  v: 3,
+  v: 7,
   order: [
-    { id: "transcript", side: "left", weight: 1.8 },
-    { id: "factcheck", side: "left", weight: 0.7 },
-    { id: "summary", side: "right", weight: 1.0 },
+    { id: "transcript", side: "left", weight: 1 },
+    { id: "summary", side: "left", weight: 1.2 },
+    { id: "factcheck", side: "left", weight: 0.8 },
   ],
   railWidth: { left: 300, right: 300 },
 };
@@ -49,7 +47,7 @@ const DEFAULT: LayoutState = {
 function validate(x: unknown): x is LayoutState {
   if (!x || typeof x !== "object") return false;
   const o = x as Record<string, unknown>;
-  if (o.v !== 3 || !Array.isArray(o.order)) return false;
+  if (o.v !== 7 || !Array.isArray(o.order)) return false;
   const rw = o.railWidth as Record<string, unknown> | undefined;
   if (!rw || !Number.isFinite(rw.left) || !Number.isFinite(rw.right)) return false;
   const ids = new Set<string>();
@@ -57,7 +55,7 @@ function validate(x: unknown): x is LayoutState {
     if (!p || typeof p !== "object") return false;
     const e = p as Record<string, unknown>;
     if (typeof e.id !== "string" || !KNOWN.includes(e.id as PanelId)) return false;
-    if (e.side !== "left" && e.side !== "right") return false;
+    if (e.side !== "left") return false;
     if (!Number.isFinite(e.weight)) return false;
     ids.add(e.id);
   }
@@ -68,8 +66,8 @@ function validate(x: unknown): x is LayoutState {
 
 function normalize(x: LayoutState): LayoutState {
   return {
-    v: 3,
-    order: x.order.map((p) => ({ ...p, weight: Math.max(WEIGHT_MIN, p.weight) })),
+    v: 7,
+    order: x.order.map((p) => ({ ...p, side: "left", weight: Math.max(WEIGHT_MIN, p.weight) })),
     railWidth: {
       left: clamp(x.railWidth.left, RAIL_MIN, RAIL_MAX),
       right: clamp(x.railWidth.right, RAIL_MIN, RAIL_MAX),
@@ -98,10 +96,8 @@ function saveLayout(l: LayoutState): void {
 
 export interface LayoutApi {
   leftPanels: PanelLayout[];
-  rightPanels: PanelLayout[];
   railWidth: Record<Side, number>;
-  /** Move `id` to `toSide`, inserting before `beforeId` on that side
-   *  (null → append). Handles both cross-rail docking and in-rail reorder. */
+  /** Move `id` to `toSide`, inserting before `beforeId` (`null` appends). */
   movePanel: (id: PanelId, toSide: Side, beforeId: PanelId | null) => void;
   /** Set two adjacent panels' height weights at once (from a splitter drag). */
   resizePanels: (aId: PanelId, bId: PanelId, aWeight: number, bWeight: number) => void;
@@ -118,17 +114,16 @@ export function useLayout(): LayoutApi {
   }, [layout]);
 
   const leftPanels = useMemo(() => layout.order.filter((p) => p.side === "left"), [layout]);
-  const rightPanels = useMemo(() => layout.order.filter((p) => p.side === "right"), [layout]);
 
   const movePanel = useCallback((id: PanelId, toSide: Side, beforeId: PanelId | null) => {
     setLayout((l) => {
       const moving = l.order.find((p) => p.id === id);
       if (!moving) return l;
       const rest = l.order.filter((p) => p.id !== id);
-      const updated: PanelLayout = { ...moving, side: toSide };
-      let idx = rest.length; // default: append to the end of that side's block
+      const updated: PanelLayout = { ...moving, side: "left" };
+      let idx = rest.length;
       if (beforeId && beforeId !== id) {
-        const i = rest.findIndex((p) => p.id === beforeId && p.side === toSide);
+        const i = rest.findIndex((p) => p.id === beforeId);
         if (i >= 0) idx = i;
       }
       return { ...l, order: [...rest.slice(0, idx), updated, ...rest.slice(idx)] };
@@ -158,5 +153,5 @@ export function useLayout(): LayoutApi {
 
   const resetLayout = useCallback(() => setLayout(DEFAULT), []);
 
-  return { leftPanels, rightPanels, railWidth: layout.railWidth, movePanel, resizePanels, resizeRail, resetLayout };
+  return { leftPanels, railWidth: layout.railWidth, movePanel, resizePanels, resizeRail, resetLayout };
 }

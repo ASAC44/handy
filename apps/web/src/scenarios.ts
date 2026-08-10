@@ -1,4 +1,4 @@
-/** The built-in demo meetings the host can replay. Shared by the transcript-header
+/** The built-in demo meetings the host can replay. Shared by the settings
  *  scenario dropdown and the footer replay control so both stay in sync. The full
  *  transcripts + gold labels live server-side in test-transcripts.json; these are
  *  just the picker labels (ids must match the server scenarios). */

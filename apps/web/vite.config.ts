@@ -1,11 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "node:path";
 
 // The web app connects to the server's WebSocket. In dev it talks directly to
 // :3001 (see src/ws.ts, VITE_WS_URL), but this proxy also lets a same-origin
 // "/ws" work behind a single host in production-like setups.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
   // transformers.js (WebGPU Whisper) resolves its ORT wasm/model assets dynamically —
   // keep Vite from pre-bundling it, and don't down-level the module worker's top-level await.
   optimizeDeps: { exclude: ["@huggingface/transformers"] },

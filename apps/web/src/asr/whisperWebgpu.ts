@@ -108,7 +108,7 @@ interface Job {
 
 export class WhisperWebgpuProvider implements AsrProvider {
   readonly id = "whisper-webgpu" as const;
-  readonly label = "Whisper (your GPU)";
+  readonly label = "Whisper (on device)";
 
   private worker: Worker | null = null;
   private handler: ((m: WorkerMsg) => void) | null = null;

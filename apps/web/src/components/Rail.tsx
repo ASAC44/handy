@@ -10,11 +10,12 @@ import {
   type RefObject,
 } from "react";
 import type { ClientEvent } from "@handy/shared";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HandyState } from "../ws";
-import { SCENARIOS } from "../scenarios";
-import { CustomSelect } from "./CustomSelect";
 import { clamp, PANEL_MIN_PX, RAIL_MAX, RAIL_MIN, type PanelId, type PanelLayout, type Side } from "../useLayout";
 import type { DragLayerHandle } from "./DragLayer";
+import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 interface PanelProps {
   state: HandyState;
@@ -33,6 +34,8 @@ const PANELS: Record<PanelId, { title: string; render: (p: PanelProps) => ReactN
 interface RailProps {
   side: Side;
   panels: PanelLayout[];
+  collapsed: boolean;
+  onToggle: () => void;
   panelProps: PanelProps;
   railWidth: number;
   dragging: boolean;
@@ -42,24 +45,70 @@ interface RailProps {
   commitRail: (side: Side, px: number) => void;
 }
 
-/** A docked column of panels (left or right of the canvas). Panels are flex
+/** A docked column of panels beside the canvas. Panels are flex
  *  items whose grow factor is their height weight; a PanelSplitter sits between
  *  each pair, and a RailWidthHandle hugs the inner edge. */
-export function Rail({ side, panels, panelProps, railWidth, dragging, dragRef, resizePanels, previewRail, commitRail }: RailProps) {
+export function Rail({ side, panels, collapsed, onToggle, panelProps, railWidth, dragging, dragRef, resizePanels, previewRail, commitRail }: RailProps) {
+  const transcript = panels.find((panel) => panel.id === "transcript");
+  const insights = panels.filter((panel) => panel.id !== "transcript");
   return (
-    <aside className={"rail rail-" + side}>
-      {panels.length === 0 && dragging ? <div className="dropZone">Drop panel here</div> : null}
-      {panels.map((p, i) => (
-        <Fragment key={p.id}>
-          <PanelFrame panel={p} title={PANELS[p.id].title} weight={p.weight} dragRef={dragRef}>
-            {PANELS[p.id].render(panelProps)}
-          </PanelFrame>
-          {i < panels.length - 1 ? (
-            <PanelSplitter above={p} below={panels[i + 1]} onResize={resizePanels} />
-          ) : null}
-        </Fragment>
-      ))}
-      <RailWidthHandle side={side} width={railWidth} onPreview={previewRail} onCommit={commitRail} />
+    <aside className={`rail rail-${side}${collapsed ? " collapsed" : ""}`} aria-label="Meeting sidebar">
+      {collapsed ? (
+        <div className="railCollapsedBar">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="railToggle"
+            onClick={onToggle}
+            aria-label="Expand meeting sidebar"
+            aria-expanded={false}
+          >
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </div>
+      ) : (
+        <Tabs defaultValue="transcript" className="railTabs">
+          <div className="railTabsBar">
+            <TabsList variant="line" className="railTabList" aria-label="Meeting sidebar views">
+              <TabsTrigger value="transcript" className="railTabTrigger">
+                Transcript <span className="rec" aria-hidden="true" />
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="railTabTrigger">Insights</TabsTrigger>
+            </TabsList>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="railToggle"
+              onClick={onToggle}
+              aria-label="Collapse meeting sidebar"
+              aria-expanded={true}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+          </div>
+          <TabsContent value="transcript" className="railTabContent">
+            {transcript ? (
+              <PanelFrame panel={transcript} title={PANELS.transcript.title} weight={1} dragRef={dragRef}>
+                {PANELS.transcript.render(panelProps)}
+              </PanelFrame>
+            ) : dragging ? <div className="dropZone">Drop panel here</div> : null}
+          </TabsContent>
+          <TabsContent value="insights" className="railTabContent railInsights">
+            {insights.length === 0 && dragging ? <div className="dropZone">Drop panel here</div> : null}
+            {insights.map((panel, index) => (
+              <Fragment key={panel.id}>
+                <PanelFrame panel={panel} title={PANELS[panel.id].title} weight={panel.weight} dragRef={dragRef}>
+                  {PANELS[panel.id].render(panelProps)}
+                </PanelFrame>
+                {index < insights.length - 1 ? (
+                  <PanelSplitter above={panel} below={insights[index + 1]} onResize={resizePanels} />
+                ) : null}
+              </Fragment>
+            ))}
+          </TabsContent>
+        </Tabs>
+      )}
+      {!collapsed ? <RailWidthHandle side={side} width={railWidth} onPreview={previewRail} onCommit={commitRail} /> : null}
     </aside>
   );
 }
@@ -276,32 +325,12 @@ function RailWidthHandle({
   );
 }
 
-function Transcript({ state, hostMode, send }: { state: HandyState; hostMode: boolean; send: (e: ClientEvent) => void }) {
+function Transcript({ state, hostMode }: { state: HandyState; hostMode: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
   }, [state.transcript.length]);
   return (
-    <>
-      <div className="panel-h">
-        Live transcript
-        <span className="ph-spacer" />
-        {hostMode ? (
-          <span className="demoPick">
-            <span className="demoK">demo</span>
-            <CustomSelect
-              className="scenarioSelect"
-              value={state.scenarioId ?? ""}
-              onChange={(val) => send({ type: "start", scenarioId: val })}
-              ariaLabel="Demo scenario"
-              title="Switch demo scenario"
-              placeholder="Pick a demo…"
-              options={SCENARIOS.map((sc) => ({ value: sc.id, label: sc.title }))}
-            />
-          </span>
-        ) : null}
-        <span className="rec" />
-      </div>
       <div className="panel-b trans" ref={ref}>
         {state.transcript.length === 0 && <div className="empty">Waiting for the meeting…</div>}
         {state.transcript.map((l) => {
@@ -326,12 +355,11 @@ function Transcript({ state, hostMode, send }: { state: HandyState; hostMode: bo
           return (
             <div key={l.id} className={"line" + (l.kind === "partial" ? " partial" : "")}>
               <span className="sp">{l.speaker ?? "…"}</span>
-              {l.text}
+              <span className="utterance">{l.text}</span>
             </div>
           );
         })}
       </div>
-    </>
   );
 }
 
@@ -340,11 +368,11 @@ function Summary({ state }: { state: HandyState }) {
   return (
     <>
       <div className="panel-h">
-        Rolling summary <span className="tag sum">summarizer</span>
+        Rolling summary
       </div>
       <div className="panel-b">
         <div className="sum-tldr">
-          <span className="k">TL;DR</span>
+          <span className="k">Summary</span>
           {s?.tldr ?? "Listening…"}
         </div>
         <Sec cls="" title="Decisions" items={s?.decisions ?? []} render={(d) => d} />
@@ -395,10 +423,8 @@ function Sec<T>({
 function FactCheck({ state }: { state: HandyState }) {
   return (
     <>
-      <div className="panel-h">
-        Fact-check <span className="tag fc">factcheck</span>
-      </div>
-      <div className="panel-b">
+      <div className="panel-h factcheck-h">Fact-check</div>
+      <div className="panel-b factcheck-b">
         {state.factchecks.length === 0 && <div className="empty">No checkable claims yet.</div>}
         {state.factchecks.map((f, i) => (
           <div className="fc" key={i}>

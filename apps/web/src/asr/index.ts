@@ -55,7 +55,7 @@ export function asrProviders(): AsrProviderMeta[] {
     { id: "gemma-local", label: "Gemma 4 E4B (local)", available: true, hint: "on-device via Ollama; ~1s/utterance, finals only" },
     {
       id: "whisper-webgpu",
-      label: "Whisper (your GPU)",
+      label: "Whisper (on device)",
       available: webgpuAvailableCached(),
       hint: webgpuAvailableCached() ? "on-device · WebGPU · multilingual · ~200MB first load" : "needs WebGPU (Chrome/Edge)",
     },

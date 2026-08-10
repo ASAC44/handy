@@ -60,11 +60,12 @@ function serveWeb(pathname: string): Response {
   // "dist-secret" can't satisfy startsWith(".../dist").
   if (!isInside(webRoot, target)) return new Response("Forbidden", { status: 403 });
 
-  if (existsSync(target) && statSync(target).isFile()) {
+  const file = existsSync(target) && statSync(target).isDirectory() ? resolve(target, "index.html") : target;
+  if (existsSync(file) && statSync(file).isFile()) {
     // Re-check after resolving symlinks so a symlink inside dist can't escape it.
-    if (!isInside(realWebRoot, realpathSync(target))) return new Response("Forbidden", { status: 403 });
-    return new Response(Bun.file(target), {
-      headers: { "content-type": mime[extname(target)] ?? "application/octet-stream" },
+    if (!isInside(realWebRoot, realpathSync(file))) return new Response("Forbidden", { status: 403 });
+    return new Response(Bun.file(file), {
+      headers: { "content-type": mime[extname(file)] ?? "application/octet-stream" },
     });
   }
 

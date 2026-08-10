@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import type { HandyState } from "../ws";
 import { asrProviders, GEMMA_VAD_DEFAULTS, WHISPER_MODELS, type AsrProviderId } from "../asr";
 import type { Capture } from "../useCapture";
 import { CustomSelect } from "./CustomSelect";
@@ -31,9 +30,8 @@ const LANGS: { code: string; label: string }[] = [
 ];
 
 /** The shared bottom bar — every participant's own mic controls (host and guests alike). */
-export function ParticipantBar({ cap, state }: { cap: Capture; state: HandyState }) {
+export function ParticipantBar({ cap }: { cap: Capture }) {
   const providers = asrProviders();
-  const self = state.presence.find((p) => p.id === state.selfId);
   const priv = PRIVACY[cap.engine];
   const usesVad = cap.engine === "gemma-local" || cap.engine === "whisper-webgpu"; // engines with the client energy VAD
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -45,11 +43,6 @@ export function ParticipantBar({ cap, state }: { cap: Capture; state: HandyState
   return (
     <footer className="micBar">
       <div className="micGroup">
-        {self ? (
-          <span className="micWho">
-            <i style={{ background: self.color }} /> {self.name}
-          </span>
-        ) : null}
         <CustomSelect
           className="asrSelect"
           value={cap.engine}

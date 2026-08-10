@@ -189,7 +189,7 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
 
   const playFile = async (file: File): Promise<void> => {
     if (!engineSupportsPlayback(engine)) {
-      setError("Pick Gemma (local) or Whisper (your GPU) to play a recording");
+      setError("Pick Gemma (local) or Whisper (on device) to play a recording");
       return;
     }
     if (asrRef.current) stop();

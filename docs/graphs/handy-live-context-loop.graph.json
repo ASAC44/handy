@@ -1,0 +1,116 @@
+{
+  "title": "How Handy turns a meeting into working context",
+  "subtitle": "Conversation becomes evidence, prototypes, decisions, and a reusable meeting package while the room is still live",
+  "description": "A three-stage view of Handy: meeting inputs enter a routed live agent loop, become shared in-room artifacts, and leave as reusable exports. DataHub metadata supplies data context.",
+  "zones": [
+    { "id": "inputs", "label": "1 · WHAT ENTERS THE ROOM", "tone": "blue", "width": 0.95 },
+    { "id": "loop", "label": "2 · THE LIVE AGENT LOOP", "tone": "violet", "width": 1.35 },
+    { "id": "outcomes", "label": "3 · WHAT THE ROOM GETS", "tone": "green", "width": 1.2 }
+  ],
+  "nodes": [
+    {
+      "id": "conversation",
+      "zone": "inputs",
+      "title": "People speak and share the screen",
+      "body": ["live transcript · optional screen frame"],
+      "note": "Raw frames stay on the meeting server",
+      "status": "external",
+      "size": "wide",
+      "row": 1,
+      "span": 2,
+      "evidence": ["apps/web/src/useCapture.ts", "apps/server/src/room.ts"]
+    },
+    {
+      "id": "files",
+      "zone": "inputs",
+      "title": "The host accepts useful files",
+      "body": ["research · specs · workspace context"],
+      "note": "Guest uploads wait for host review",
+      "status": "implemented",
+      "size": "standard",
+      "row": 2,
+      "span": 2,
+      "evidence": ["apps/server/src/context.ts", "apps/web/src/components/ContextStrip.tsx"]
+    },
+    {
+      "id": "datahub",
+      "zone": "inputs",
+      "title": "DataHub adds data meaning",
+      "body": ["schemas · lineage · owners · quality"],
+      "status": "planned",
+      "size": "standard",
+      "row": 3,
+      "span": 2,
+      "evidence": ["apps/web/src/landing/LandingSections.tsx"]
+    },
+    {
+      "id": "router",
+      "zone": "loop",
+      "title": "A router decides what matters now",
+      "body": ["recent transcript + summary + accepted context"],
+      "note": "Heavy agents do not run on every utterance",
+      "status": "implemented",
+      "size": "wide",
+      "row": 1,
+      "span": 2,
+      "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/router.ts", "packages/shared/src/prompts.ts"]
+    },
+    {
+      "id": "understand",
+      "zone": "loop",
+      "title": "Agents structure and check the discussion",
+      "body": ["rolling decisions · owners · open questions", "retrieved evidence when search is configured"],
+      "status": "implemented",
+      "size": "wide",
+      "row": 2,
+      "span": 2,
+      "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/summarizer.ts", "apps/server/src/agents/factcheck.ts", "apps/server/src/search.ts"]
+    },
+    {
+      "id": "build",
+      "zone": "loop",
+      "title": "The idea becomes a live prototype",
+      "body": ["streamed HTML · review · next-step edits", "the chosen style becomes Design DNA"],
+      "status": "implemented",
+      "size": "wide",
+      "row": 3,
+      "span": 2,
+      "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/prototype.ts", "apps/server/src/agents/critic.ts", "apps/server/src/agents/nextsteps.ts", "packages/shared/src/themes.ts"]
+    },
+    {
+      "id": "room",
+      "zone": "outcomes",
+      "title": "Everyone sees one shared live room",
+      "body": ["transcript · evidence · prototypes · presence"],
+      "note": "Settled events replay for late joiners",
+      "status": "implemented",
+      "size": "wide",
+      "row": 1,
+      "span": 2,
+      "evidence": ["apps/server/src/room.ts", "apps/web/src/ws.ts", "apps/web/src/components/Canvas.tsx"]
+    },
+    {
+      "id": "recap",
+      "zone": "outcomes",
+      "title": "The meeting leaves a reusable package",
+      "body": ["recap · transcript · summary", "prototypes · DESIGN.md · manifest"],
+      "note": "Saved under the host export folder",
+      "status": "implemented",
+      "size": "wide",
+      "row": 3,
+      "span": 2,
+      "evidence": ["apps/server/src/room.ts", "apps/server/src/exports.ts", "apps/server/src/agents/finaldoc.ts", "apps/web/src/components/RecapView.tsx"]
+    }
+  ],
+  "edges": [
+    { "from": "conversation", "to": "router", "tone": "violet", "route": "horizontal" },
+    { "from": "files", "to": "router", "tone": "violet", "route": "orthogonal" },
+    { "from": "datahub", "to": "router", "tone": "amber", "route": "orthogonal" },
+    { "from": "router", "to": "understand", "tone": "violet", "route": "vertical" },
+    { "from": "router", "to": "build", "tone": "violet", "route": "vertical" },
+    { "from": "understand", "to": "room", "tone": "green", "route": "orthogonal" },
+    { "from": "build", "to": "room", "tone": "green", "route": "orthogonal" },
+    { "from": "room", "to": "recap", "tone": "green", "route": "vertical" },
+    { "from": "room", "to": "build", "tone": "amber", "route": "feedback" }
+  ]
+}
