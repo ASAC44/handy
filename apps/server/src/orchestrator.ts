@@ -51,6 +51,10 @@ const MAX_REVIEW_PASSES = 1;
  *  into ONE learned build that fires once the speaker pauses. Wide enough to swallow the
  *  natural mid-sentence pauses within a single wish, so one idea = one build. */
 const BUILD_DEBOUNCE_MS = 1500;
+const TURN_DEBOUNCE_MS = 650;
+const AMBIENT_IDEA_WORDS = /\b(let'?s|what if|how about|maybe|could we|we should|we need|imagine)\b/i;
+const PROTOTYPE_DETAIL_WORDS = /\b(add|show|include|change|make|move|remove|animate|animated|icon|colour|color|pink|backdrop|bar|card|table|chart|filter|button|field|column|layout|client|customer|order|dashboard|page|screen)\b/i;
+const RETRY_WORDS = /\b(try|retry|again|regenerate|prototype)\b/i;
 
 /** Compile a critic's fixable issues into a single edit instruction for the evolve pass. */
 function compileChange(issues: ReviewIssue[]): string {
@@ -70,6 +74,8 @@ const NOOP_DECISION: RouterDecision = {
   factcheck: { trigger: false, claims: [] },
 };
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+const looksRenderable = (html: string): boolean =>
+  html.trim().length > 200 && /<(?:!doctype\s+html|html|body)[\s>]/i.test(html) && /<\/html>\s*$/i.test(html);
 
 /** Reject after `ms` if `p` hasn't settled — so a slow/hung agent call can't spin forever.
  *  (The underlying request may keep running; this only unblocks the caller + the UI.) */
@@ -93,7 +99,7 @@ const PROTOTYPE_WORDS =
   /\b(build|make|mock|mockup|prototype|design|sketch|wireframe|dashboard|chart|graph|page|landing|board|kanban|flow|form|table|app|ui|screen|widget|visuali[sz]e)\b/i;
 const SCREEN_WORDS = /\b(this|screen|share|shared|slide|deck|diagram|whiteboard|mockup|figma|visual|screenshot|as shown)\b/i;
 const FACT_WORDS = /\b(\d+[%$kmb]?|percent|million|billion|q[1-4]|january|february|march|april|may|june|july|august|september|october|november|december|industry|category|market)\b/i;
-const CHANGE_WORDS = /\b(remove|rename|replace|drop|delete|expose|change|deprecate)\b/i;
+const CHANGE_WORDS = /\b(remove|rename|replace|drop|delete|expose|change|deprecate|privacy|sensitive|mask|permission|access)\b/i;
 
 function heuristicExpect(text: string, prev: MeetingSummary | null): FixtureSegment["expect"] {
   const prototype = PROTOTYPE_WORDS.test(text);
@@ -165,6 +171,8 @@ export class Orchestrator {
   private transcript: string[] = [];
   private summary: MeetingSummary | null = null;
   private liveQueue: Promise<void> = Promise.resolve();
+  private pendingTurns: FixtureSegment[] = [];
+  private turnTimer: ReturnType<typeof setTimeout> | null = null;
   /** True while a first-build fan-out is on screen waiting for the room to pick a
    *  design direction (live mode only — mock auto-picks). Blocks a second fan-out
    *  from stacking, and is resolved off the segment queue so the transcript keeps flowing. */
@@ -172,6 +180,7 @@ export class Orchestrator {
   /** Prototypes built this meeting — the latest is the base for the next evolution,
    *  and all of them are embedded in the final recap document. */
   private artifacts: BuiltArtifact[] = [];
+  private failedPrototypeIntent: string | null = null;
   /** Next-step suggestions are generated once per artifact id. Keeps immediate
    *  suggestion calls from duplicating later review/finally calls. */
   private nextStepRequested = new Set<string>();
@@ -191,6 +200,9 @@ export class Orchestrator {
 
   stop(): void {
     this.runId++;
+    if (this.turnTimer) clearTimeout(this.turnTimer);
+    this.turnTimer = null;
+    this.pendingTurns = [];
   }
 
   /** Reset all in-memory meeting state: cancel in-flight work, drop the transcript
@@ -201,11 +213,13 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.renderRepaired.clear();
     this.cancelPendingBuild();
     this.liveQueue = Promise.resolve();
     this.awaitingPick = false;
+    this.pendingTurns = [];
     liveTurnSeq = 0;
   }
 
@@ -276,6 +290,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.awaitingPick = false;
     this.lastTitle = scn.title;
@@ -294,6 +309,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.failedPrototypeIntent = null;
     this.nextStepRequested.clear();
     this.lastTitle = title;
     this.liveQueue = Promise.resolve();
@@ -324,11 +340,28 @@ export class Orchestrator {
       text: clean,
       expect: heuristicExpect(clean, this.summary),
     };
-    this.liveQueue = this.liveQueue
-      .then(() => this.playSegment(seg, my, false))
-      .catch((err) => {
-        console.error("[live] transcript processing failed", errMsg(err));
-      });
+    // Speech belongs to the shared meeting immediately. Agent work can be queued, but
+    // no participant's turn should appear missing or be lost when the meeting ends.
+    this.send({ type: "transcript.final", text: seg.text, ts: Date.now(), speaker: seg.speaker });
+    this.transcript.push(`${seg.speaker}: ${seg.text}`);
+    this.pendingTurns.push(seg);
+    if (this.turnTimer) clearTimeout(this.turnTimer);
+    this.turnTimer = setTimeout(() => {
+      this.turnTimer = null;
+      const turns = this.pendingTurns.splice(0);
+      if (!turns.length || my !== this.runId) return;
+      const combinedText = turns.map((turn) => turn.text).join(" ");
+      const combined: FixtureSegment = {
+        t: turns.at(-1)!.t,
+        speaker: turns.length === 1 ? turns[0]!.speaker : "Meeting",
+        ms: 0,
+        text: combinedText,
+        expect: heuristicExpect(combinedText, this.summary),
+      };
+      this.liveQueue = this.liveQueue
+        .then(() => this.playSegment(combined, my, false, true))
+        .catch((err) => console.error("[live] transcript processing failed", errMsg(err)));
+    }, TURN_DEBOUNCE_MS);
   }
 
   /** A user clicked one of the generated next-step buttons under a prototype. Treat
@@ -349,7 +382,7 @@ export class Orchestrator {
     this.runtime.send(ev);
   }
 
-  private async playSegment(seg: FixtureSegment, my: number, paced = true): Promise<void> {
+  private async playSegment(seg: FixtureSegment, my: number, paced = true, alreadyRecorded = false): Promise<void> {
     // A queued live segment may resume after the run was cancelled (stop/end/clear bumps
     // runId). Bail before emitting transcript.final or mutating this.transcript so nothing
     // lands after a meeting has ended.
@@ -361,8 +394,10 @@ export class Orchestrator {
         await sleep(460 * RATE);
       }
     }
-    this.send({ type: "transcript.final", text: seg.text, ts: Date.now(), speaker: seg.speaker });
-    this.transcript.push(`${seg.speaker}: ${seg.text}`);
+    if (!alreadyRecorded) {
+      this.send({ type: "transcript.final", text: seg.text, ts: Date.now(), speaker: seg.speaker });
+      this.transcript.push(`${seg.speaker}: ${seg.text}`);
+    }
     if (paced) await sleep(Math.max(500, seg.ms * RATE));
     if (my !== this.runId || !seg.expect) return;
 
@@ -375,8 +410,9 @@ export class Orchestrator {
     const agents = this.runtime.agents;
     if (!agents.router) return;
 
-    const decision = await this.router(seg, context);
+    const routed = await this.router(seg, context);
     if (my !== this.runId) return;
+    const decision = this.withAmbientPrototype(seg, routed);
     this.send({ type: "router.decision", decision });
 
     if (decision.summary_update && agents.summarizer) {
@@ -417,6 +453,28 @@ export class Orchestrator {
     }
   }
 
+  /** Natural meeting language is often an incremental thought, not a command. Keep the
+   *  LLM router as the main judge, but do not let an obvious product idea or visual
+   *  follow-up disappear because it was phrased as “what if…” or “oh, add…”. */
+  private withAmbientPrototype(seg: FixtureSegment, decision: RouterDecision): RouterDecision {
+    if (decision.prototype.trigger) return decision;
+    const active = this.currentArtifact();
+    const startsIdea = AMBIENT_IDEA_WORDS.test(seg.text) && PROTOTYPE_WORDS.test(seg.text);
+    const evolvesIdea = !!active && PROTOTYPE_DETAIL_WORDS.test(seg.text);
+    const retriesFailure = !!this.failedPrototypeIntent && RETRY_WORDS.test(seg.text);
+    if (!startsIdea && !evolvesIdea && !retriesFailure) return decision;
+    const recent = this.transcript.slice(-5).join(" ").replace(/\s+/g, " ").slice(-700);
+    const intent = active
+      ? `${active.intent}. Apply this new meeting direction: ${seg.text}`
+      : retriesFailure
+        ? `${this.failedPrototypeIntent}. Retry after the previous generation failed.`
+        : recent;
+    return {
+      ...decision,
+      prototype: { trigger: true, intent, uses_screen: SCREEN_WORDS.test(seg.text) },
+    };
+  }
+
   private async summarize(seg: FixtureSegment, context: string): Promise<MeetingSummary | null> {
     this.telemetry("summarizer", 760, 520);
     if (config.agents === "mock") return seg.expect!.summary ?? summarizeMock(this.transcript, this.summary);
@@ -436,7 +494,8 @@ export class Orchestrator {
     return factcheckLive(claims, context);
   }
 
-  /** Prototype build: fan-out 3 variants the first time, single learned-style build after. */
+  /** Prototype build: fixtures keep the design-choice demo; live meetings create one
+   *  useful artifact immediately and then continuously evolve it from conversation. */
   private async build(seg: FixtureSegment, decision: RouterDecision, my: number, context: string, company: CompanyContext): Promise<void> {
     // Live mode waits for a human to pick the design DNA (no auto-pick). While that
     // first fan-out is still on screen, skip new fan-outs so we don't stack competing
@@ -447,6 +506,18 @@ export class Orchestrator {
     const intent = decision.prototype.intent || seg.expect?.prototype?.intent || "Prototype";
     const usesScreen = decision.prototype.uses_screen;
     const buildId = `b${++buildSeq}`;
+
+    if (!this.runtime.learned && config.agents !== "mock") {
+      const theme = RECOMMENDED;
+      this.runtime.learn(theme);
+      await this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, undefined, context, company.sources);
+      if (my !== this.runId) return;
+      const built = this.currentArtifact();
+      if (built && built.buildId === buildId) {
+        this.scheduleArtifactPolish(built, my);
+      }
+      return;
+    }
 
     if (!this.runtime.learned) {
       const variants: VariantInfo[] = FANOUT.map((k) => ({
@@ -494,8 +565,12 @@ export class Orchestrator {
       // evolution clones the polished artifact (and the recap embeds the polished one).
       const built = this.currentArtifact();
       if (built && built.buildId === buildId) {
-        await this.reviewAndRefine(built, my);
-        await this.suggestNextSteps(built, my);
+        if (config.agents === "mock") {
+          await this.reviewAndRefine(built, my);
+          await this.suggestNextSteps(built, my);
+        } else {
+          this.scheduleArtifactPolish(built, my);
+        }
       }
     }
   }
@@ -542,9 +617,7 @@ export class Orchestrator {
       if (dead()) return;
       const built = this.currentArtifact();
       if (built && built.buildId === buildId) {
-        await this.reviewAndRefine(built, my, gen);
-        if (dead()) return;
-        await this.suggestNextSteps(built, my);
+        this.scheduleArtifactPolish(built, my, gen);
       }
     } finally {
       if (this.liveBuildId === buildId) this.liveBuildId = null;
@@ -579,9 +652,19 @@ export class Orchestrator {
     if (my !== this.runId) return;
     const built = this.currentArtifact();
     if (built && built.buildId === buildId) {
-      await this.reviewAndRefine(built, my);
-      await this.suggestNextSteps(built, my);
+      this.scheduleArtifactPolish(built, my);
     }
+  }
+
+  /** Critic + next steps are useful polish, but they must not hold up conversation or
+   *  collide with the main prototype/final-recap calls on a hackathon API quota. */
+  private scheduleArtifactPolish(a: BuiltArtifact, my: number, gen?: number): void {
+    setTimeout(() => {
+      if (my !== this.runId || (gen !== undefined && gen !== this.buildGen) || !this.hasArtifact(a.id)) return;
+      void this.reviewAndRefine(a, my, gen).finally(() => {
+        if (my === this.runId && (gen === undefined || gen === this.buildGen)) void this.suggestNextSteps(a, my);
+      });
+    }, 1800);
   }
 
   private async suggestNextSteps(a: BuiltArtifact, my: number): Promise<void> {
@@ -802,23 +885,26 @@ export class Orchestrator {
         ({ html, ms, tokPerS, tokens } = r);
       }
     } catch (err) {
-      // A build that errors (e.g. 429) must NOT leave its card stuck "building". Settle it:
-      // an evolve falls back to the unchanged base; a from-scratch build with no base is dropped.
       console.error("[prototype] build failed", errMsg(err));
       if (!alive()) return;
-      const fallback = base?.html ?? "";
-      this.send({ type: "prototype.complete", id, buildId, html: fallback, ideaToArtifactMs: 0, themeKey, companySources });
-      if (!baseline && fallback) this.recordArtifact({ id, buildId, intent, themeKey, html: fallback, variant, context, companySources });
+      if (!baseline) this.failedPrototypeIntent = intent;
+      this.send({ type: "prototype.error", id, buildId, message: "Prototype generation failed. Say ‘try the prototype again’ to retry." });
       return;
     }
     if (!alive()) return;
+    if (!looksRenderable(html)) {
+      console.error("[prototype] model returned empty or invalid HTML");
+      if (!baseline) this.failedPrototypeIntent = intent;
+      this.send({ type: "prototype.error", id, buildId, message: "The model returned no usable prototype. Say ‘try the prototype again’ to retry." });
+      return;
+    }
     this.telemetry("prototype", tokPerS, tokens);
     this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey, companySources });
     // Remember the canonical (non-baseline) build: base for the next evolution + recap.
     if (!baseline) {
+      this.failedPrototypeIntent = null;
       const artifact = { id, buildId, intent, themeKey, html, variant, context, companySources };
       this.recordArtifact(artifact);
-      void this.suggestNextSteps(artifact, my);
     }
   }
 

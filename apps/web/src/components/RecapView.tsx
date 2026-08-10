@@ -24,7 +24,9 @@ export function RecapView({
   const doc = state.finalDoc;
   const drafting = !doc || doc.status === "building";
   const failed = doc?.status === "done" && !doc.html.trim(); // server should prevent this; guard anyway
-  const renderedHtml = useMemo(() => (doc?.html ? normalizeRecapHtml(doc.html) : ""), [doc?.html]);
+  // Do not mount a half-written HTML document. Guests tended to arrive after completion
+  // and saw the recap; the host mounted the stream mid-document and got a black iframe.
+  const renderedHtml = useMemo(() => (doc?.status === "done" && doc.html ? normalizeRecapHtml(doc.html) : ""), [doc]);
   const exportFiles = useMemo(() => orderedExportFiles(state.exports.files), [state.exports.files]);
   const recapFile = exportFiles.find((file) => file.kind === "recap");
   const manifestFile = state.exports.files.find((file) => file.kind === "manifest");
@@ -80,26 +82,30 @@ export function RecapView({
             </a>
           ) : null}
           {hostMode ? (
-            <button
-              className="capBtn primary"
-              onClick={() => {
-                if (confirm("Start a new meeting? This clears the recap and transcript for everyone.")) {
-                  send({ type: "meeting.clear" });
-                }
-              }}
-              data-tip="Clear the recap and start a fresh meeting"
-            >
-              New meeting
-            </button>
+            <>
+              <a className="capBtn" href="/">Back home</a>
+              <button
+                className="capBtn primary"
+                onClick={() => {
+                  if (confirm("Start a new meeting? This clears the recap and transcript for everyone.")) {
+                    send({ type: "meeting.clear" });
+                  }
+                }}
+                data-tip="Clear the recap and start a fresh meeting"
+              >
+                New meeting
+              </button>
+            </>
           ) : (
-            <button className="capBtn stop" onClick={onLeave} data-tip="Leave the meeting">
-              Exit
-            </button>
+            <>
+              <button className="capBtn" onClick={onLeave} data-tip="Disconnect from the meeting">Leave</button>
+              <a className="capBtn primary" href="/">Back home</a>
+            </>
           )}
         </div>
       </header>
       <div className="recapBody">
-        {exportFiles.length ? <ExportPanel root={state.exports.root} files={exportFiles} /> : null}
+        {exportFiles.length ? <ExportPanel files={exportFiles} /> : null}
         {renderedHtml ? (
           <iframe className="recapFrame" sandbox="allow-scripts" srcDoc={renderedHtml} title="Meeting recap" />
         ) : failed ? (
@@ -117,13 +123,11 @@ export function RecapView({
   );
 }
 
-function ExportPanel({ root, files }: { root: string; files: ExportFileInfo[] }) {
+function ExportPanel({ files }: { files: ExportFileInfo[] }) {
   return (
     <aside className="recapExports" aria-label="Meeting exports">
       <div className="exportKicker">Saved exports</div>
-      <div className="exportRoot" title={root}>
-        {root}
-      </div>
+      <div className="exportRoot">Downloadable files from this meeting</div>
       <div className="exportList">
         {files.map((file) => (
           <a key={file.id} className="exportFile" href={exportHref(file.url)} download>
@@ -139,7 +143,7 @@ function ExportPanel({ root, files }: { root: string; files: ExportFileInfo[] })
 
 function orderedExportFiles(files: ExportFileInfo[]): ExportFileInfo[] {
   const order: Record<string, number> = { recap: 0, prototype: 1, design: 2, summary: 3, transcript: 4, manifest: 5, readme: 6 };
-  return [...files].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9) || a.name.localeCompare(b.name));
+  return files.filter((file) => file.size > 0).sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9) || a.name.localeCompare(b.name));
 }
 
 function exportHref(url: string): string {

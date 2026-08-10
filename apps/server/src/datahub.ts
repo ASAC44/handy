@@ -10,10 +10,13 @@ export class DataHubMemory {
   private client: Client | null = null;
   private connecting: Promise<Client> | null = null;
   private current: CompanyContext = { prompt: "", sources: [] };
+  private remembered = new Map<string, CompanySource>();
+  private rememberedContent = new Map<string, string>();
   private state: DataHubState = {
     status: config.datahubEnabled ? "connecting" : "disabled",
     query: "",
     sources: [],
+    frontendUrl: config.datahubFrontendUrl,
   };
 
   constructor(private onState: (state: DataHubState) => void) {}
@@ -27,8 +30,17 @@ export class DataHubMemory {
   }
 
   clearLocal(): void {
+    this.remembered.clear();
+    this.rememberedContent.clear();
     this.current = { prompt: "", sources: [] };
-    this.publish({ ...this.state, query: "", sources: [], updatedAt: Date.now() });
+    this.publish({ ...this.state, query: "", sources: [], updatedAt: Date.now(), frontendUrl: config.datahubFrontendUrl });
+  }
+
+  forgetLocal(urn: string): void {
+    this.remembered.delete(urn);
+    this.rememberedContent.delete(urn);
+    this.current = { ...this.current, sources: this.current.sources.filter((source) => source.urn !== urn) };
+    this.publish({ ...this.state, sources: this.current.sources, updatedAt: Date.now() });
   }
 
   async refresh(rawQuery: string): Promise<CompanyContext> {
@@ -56,17 +68,27 @@ export class DataHubMemory {
           : {},
       ]);
 
-      const sources = uniqueSources([...assetSources, ...documentSources]);
+      // Keep sources already used in this meeting visible while adding the latest
+      // topic matches. DataHub remains the durable store; this is the meeting view.
+      const sources = uniqueSources([
+        ...this.remembered.values(),
+        ...assetSources,
+        ...documentSources,
+        ...this.current.sources,
+      ]).map((source) => withUrl(source));
       const prompt = [
         "DATAHUB COMPANY CONTEXT (trusted company metadata and memory):",
         `Search: ${query}`,
         `Catalog matches: ${compact(entities || assetHits)}`,
         `Relevant schema: ${compact(schema)}`,
         `Relevant documents: ${compact(excerpts)}`,
+        this.rememberedContent.size
+          ? `Files added in this meeting:\n${[...this.rememberedContent.entries()].map(([urn, content]) => `${urn}\n${content}`).join("\n\n")}`
+          : "",
         "Use exact company terms and fields. Treat generated example values as synthetic; metadata does not prove live business values.",
-      ].join("\n\n").slice(0, 14_000);
+      ].filter(Boolean).join("\n\n").slice(-14_000);
       this.current = { prompt, sources };
-      this.publish({ status: "connected", query, sources, updatedAt: Date.now() });
+      this.publish({ status: "connected", query, sources, updatedAt: Date.now(), frontendUrl: config.datahubFrontendUrl });
     } catch (error) {
       this.publish({ ...this.state, status: "unavailable", message: message(error), updatedAt: Date.now() });
     }
@@ -123,11 +145,14 @@ export class DataHubMemory {
   }
 
   private remember(source: CompanySource, content: string): void {
+    source = withUrl(source);
+    this.remembered.set(source.urn, source);
+    this.rememberedContent.set(source.urn, content.slice(0, 8_000));
     this.current = {
       prompt: `${this.current.prompt}\n\nNEW DATAHUB MEMORY — ${source.title}:\n${content}`.trim().slice(-14_000),
       sources: uniqueSources([source, ...this.current.sources]),
     };
-    this.publish({ status: "connected", query: this.state.query, sources: this.current.sources, updatedAt: Date.now() });
+    this.publish({ status: "connected", query: this.state.query, sources: this.current.sources, updatedAt: Date.now(), frontendUrl: config.datahubFrontendUrl });
   }
 
   private async call(name: string, args: Record<string, unknown>): Promise<ToolData> {
@@ -187,6 +212,11 @@ function sourceFromHit(hit: any): CompanySource | null {
   if (!urn) return null;
   const title = entity?.info?.title ?? entity?.properties?.name ?? entity?.name ?? shortUrn(urn);
   return { urn, title, kind: urn.startsWith("urn:li:document:") ? "document" : "asset" };
+}
+
+function withUrl(source: CompanySource): CompanySource {
+  const base = config.datahubFrontendUrl.replace(/\/$/, "");
+  return { ...source, url: `${base}/search?query=${encodeURIComponent(source.urn)}` };
 }
 
 function savedSource(saved: ToolData, title: string): CompanySource {

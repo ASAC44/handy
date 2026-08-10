@@ -62,6 +62,7 @@ export class Room implements MeetingRuntime {
   private inviteSeq = 0;
   /** True once the host has ended the meeting for everyone (recap is being shown). */
   private ended = false;
+  private contextSources = new Map<string, string>();
 
   get workspaceRoot(): string {
     return this.context.workspaceRoot;
@@ -277,11 +278,14 @@ export class Room implements MeetingRuntime {
       case "context.reject":
         if (this.isHost(ws)) void this.rejectContext(ev.id);
         break;
+      case "context.remove":
+        if (this.isHost(ws)) void this.removeContext(ev.id);
+        break;
       case "context.clear":
         if (this.isHost(ws)) void this.clearContext();
         break;
       case "meeting.clear":
-        if (this.isHost(ws)) this.clearMeeting(ws);
+        if (this.isHost(ws)) void this.clearMeeting(ws);
         break;
       case "meeting.end":
         if (this.isHost(ws)) this.endMeeting(ws);
@@ -539,8 +543,17 @@ export class Room implements MeetingRuntime {
 
   private async clearContext(): Promise<void> {
     const context = await this.context.clear();
+    this.contextSources.clear();
     this.datahub.clearLocal();
     this.broadcast({ type: "context.snapshot", context });
+  }
+
+  private async removeContext(id: string): Promise<void> {
+    if (!(await this.context.remove(id))) return;
+    const urn = this.contextSources.get(id);
+    if (urn) this.datahub.forgetLocal(urn);
+    this.contextSources.delete(id);
+    this.broadcast({ type: "context.removed", id });
   }
 
   private async saveContextToDataHub(id: string): Promise<void> {
@@ -550,6 +563,11 @@ export class Room implements MeetingRuntime {
     this.send({ type: "datahub.memory", memory: { kind: "file", id, title: readable.title, status: "saving" } });
     try {
       const source = await this.datahub.saveFile({ ...readable, id, meetingId: this.context.meetingId });
+      if (!this.context.acceptedText(id)) {
+        this.datahub.forgetLocal(source.urn);
+        return;
+      }
+      this.contextSources.set(id, source.urn);
       this.send({ type: "datahub.memory", memory: { kind: "file", id, title: readable.title, status: "saved", urn: source.urn } });
     } catch (error) {
       console.error("[datahub] file save failed", error);
@@ -561,7 +579,7 @@ export class Room implements MeetingRuntime {
    *  wipe history, learned DNA, pending picks, screen capture, and uploaded context,
    *  then broadcast a single `meeting.clear` so every client resets to a clean slate.
    *  Presence (who's in the room) is intentionally preserved. */
-  private clearMeeting(ws: ServerWebSocket<WsData>): void {
+  private async clearMeeting(ws: ServerWebSocket<WsData>): Promise<void> {
     this.orch.clear();
     this.learned = null;
     this.picks.clear();
@@ -572,9 +590,11 @@ export class Room implements MeetingRuntime {
     this.history = [];
     this.ended = false; // starting fresh also lifts the recap lock
     this.datahub.clearLocal();
+    this.contextSources.clear();
     const byHostId = this.presence.get(ws)?.id ?? "";
-    void this.context.clear();
+    const context = await this.context.clear();
     this.exports.beginMeeting("Handy Meeting");
+    this.broadcast({ type: "context.snapshot", context });
     this.broadcast({ type: "meeting.clear", byHostId, at: Date.now() });
     this.broadcast({ type: "export.snapshot", exports: this.exports.snapshot() });
   }

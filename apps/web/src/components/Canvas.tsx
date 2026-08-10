@@ -542,7 +542,7 @@ function ArtifactCard({
             {a.variant!.recommended ? <i>&#9733;</i> : null}
           </span>
         ) : (
-          <span className="art-side">{a.evolving && a.status === "building" ? "Revising" : "Cerebras"}</span>
+          <span className="art-side">{a.status === "error" ? "Needs retry" : a.evolving && a.status === "building" ? "Revising" : "Cerebras"}</span>
         )}
         <span className="art-title">{a.intent}</span>
         {viewers.length ? (
@@ -583,10 +583,10 @@ function ArtifactCard({
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         </button>
-        <span className="art-time">{a.status === "done" && a.ms != null ? (a.ms / 1000).toFixed(2) + "s" : "…"}</span>
+        <span className="art-time">{a.status === "error" ? "failed" : a.status === "done" && a.ms != null ? (a.ms / 1000).toFixed(2) + "s" : "…"}</span>
       </div>
       <div className="art-body">
-        <ScaledArtifactPreview artifact={a} />
+        {a.status === "error" ? <ArtifactFailure message={a.error} /> : <ScaledArtifactPreview artifact={a} />}
         {a.status === "building" ? (
           <div className="build-sheen">
             <span />
@@ -655,6 +655,15 @@ function ScaledArtifactPreview({ artifact }: { artifact: Art }) {
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function ArtifactFailure({ message }: { message?: string }) {
+  return (
+    <div className="artifact-failure" role="status">
+      <b>No black screen.</b>
+      <span>{message ?? "Prototype generation failed. Say ‘try the prototype again’ to retry."}</span>
     </div>
   );
 }
@@ -766,7 +775,7 @@ function Inspector({
         <span>status</span>
         <b>{artifact.status}</b>
         <span>latency</span>
-        <b>{artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</b>
+        <b>{artifact.status === "error" ? "failed" : artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</b>
         <span>source</span>
         <b>{artifact.usesScreen ? "screen" : "transcript"}</b>
       </div>
@@ -877,7 +886,7 @@ function PrototypeLightbox({
             <span>
               {viewport.w}×{viewport.h}
             </span>
-            <span>{artifact.status === "done" && artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</span>
+            <span>{artifact.status === "error" ? "failed" : artifact.status === "done" && artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</span>
             {artifact.usesScreen ? <span>screen-aware</span> : <span>transcript</span>}
           </div>
           <button className="prototype-close" data-tip="Close preview" aria-label="Close preview" onClick={onClose}>
@@ -885,7 +894,7 @@ function PrototypeLightbox({
           </button>
         </div>
         <div className="prototype-frame" ref={frameRef}>
-          <div className="prototype-viewport-stage" style={{ width: scaledW, height: scaledH }}>
+          {artifact.status === "error" ? <ArtifactFailure message={artifact.error} /> : <div className="prototype-viewport-stage" style={{ width: scaledW, height: scaledH }}>
             <div
               className="prototype-viewport"
               style={{
@@ -905,7 +914,7 @@ function PrototypeLightbox({
                 title={`${artifact.id} large preview`}
               />
             </div>
-          </div>
+          </div>}
         </div>
         <NextStepButtons artifact={artifact} send={send} />
         <button
@@ -1125,6 +1134,8 @@ function kindLabel(kind: ActivityEvent["kind"]): string {
       return "pick";
     case "dna":
       return "dna";
+    case "datahub":
+      return "datahub";
     case "end":
       return "end";
   }

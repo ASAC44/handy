@@ -122,9 +122,10 @@ function Left() {
           <span className="logo"><Logo /></span> Handy
         </div>
         <div className="lockTitle">You left the meeting</div>
-        <button className="lockBtn" onClick={() => location.reload()}>
-          Rejoin
-        </button>
+        <div className="lockActions">
+          <button className="lockBtn" onClick={() => location.reload()}>Rejoin</button>
+          <a className="lockBtn secondary" href="/">Back home</a>
+        </div>
       </div>
     </div>
   );

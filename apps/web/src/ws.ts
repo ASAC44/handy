@@ -39,7 +39,8 @@ export interface Artifact {
   usesScreen: boolean;
   themeKey: ThemeKey;
   html: string;
-  status: "building" | "done";
+  status: "building" | "done" | "error";
+  error?: string;
   ms?: number;
   variant?: VariantInfo;
   /** This build is an edit cloned from a prior artifact (seeded with its HTML). */
@@ -78,6 +79,7 @@ export type ActivityKind =
   | "nextstep"
   | "pick"
   | "dna"
+  | "datahub"
   | "end";
 export interface ActivityEvent {
   id: number;
@@ -234,6 +236,12 @@ function reducer(s: HandyState, a: Action): HandyState {
       return { ...s, context: { ...s.context, items: upsertContext(s.context.items, ev.item) } };
     case "context.updated":
       return { ...s, context: { ...s.context, items: upsertContext(s.context.items, ev.item) } };
+    case "context.removed":
+      return {
+        ...s,
+        context: { ...s.context, items: s.context.items.filter((item) => item.id !== ev.id) },
+        datahubMemory: s.datahubMemory.filter((memory) => !(memory.kind === "file" && memory.id === ev.id)),
+      };
     case "export.snapshot":
       return { ...s, exports: ev.exports };
     case "capture.status":
@@ -312,10 +320,24 @@ function reducer(s: HandyState, a: Action): HandyState {
         title: ev.result.checks.length ? `${ev.result.checks.length} claim${ev.result.checks.length === 1 ? "" : "s"} checked` : "Fact-check checked",
         detail: ev.result.checks[0]?.claim ?? "No checkable claims",
       });
-      return { ...s, factchecks: [...ev.result.checks], ...patch };
+      const prior = s.factchecks.filter(
+        (old) => !ev.result.checks.some((fresh) => fresh.claim.trim().toLowerCase() === old.claim.trim().toLowerCase()),
+      );
+      return { ...s, factchecks: [...ev.result.checks, ...prior].slice(0, 12), ...patch };
     }
-    case "datahub.state":
-      return { ...s, datahub: ev.state };
+    case "datahub.state": {
+      const added = ev.state.sources.filter((source) => !s.datahub.sources.some((old) => old.urn === source.urn));
+      if (!added.length) return { ...s, datahub: ev.state };
+      return {
+        ...s,
+        datahub: ev.state,
+        ...appendActivity(s, {
+          kind: "datahub",
+          title: `${added.length} DataHub source${added.length === 1 ? "" : "s"} added`,
+          detail: added.map((source) => source.title).join(", "),
+        }),
+      };
+    }
     case "datahub.memory":
       return { ...s, datahubMemory: upsertMemory(s.datahubMemory, ev.memory) };
     case "datahub.impact":
@@ -366,6 +388,18 @@ function reducer(s: HandyState, a: Action): HandyState {
           kind: "complete",
           title: "Artifact rendered",
           detail: `${(ev.ideaToArtifactMs / 1000).toFixed(2)}s`,
+          buildId: ev.buildId,
+          artifactId: ev.id,
+        }),
+      };
+    case "prototype.error":
+      return {
+        ...s,
+        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, status: "error", error: ev.message } : p)),
+        ...appendActivity(s, {
+          kind: "prototype",
+          title: "Prototype needs another pass",
+          detail: ev.message,
           buildId: ev.buildId,
           artifactId: ev.id,
         }),
@@ -494,6 +528,7 @@ function reducer(s: HandyState, a: Action): HandyState {
         transcript: [],
         summary: null,
         factchecks: [],
+        context: { ...s.context, items: [] },
         datahubMemory: [],
         impacts: [],
         artifacts: [],

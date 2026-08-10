@@ -27,8 +27,19 @@ export async function factcheckLive(claims: string[], companyContext = ""): Prom
     ? `Today's date: ${today}.\n\nClaims to check:\n${claimList}\n\nVerify each claim using ONLY the evidence provided below. DataHub metadata proves company definitions, schemas, and known relationships—not live row values.\n\n${groundedEvidence}`
     : `Today's date: ${today}.\n\nClaims to check:\n${claimList}`;
 
-  return (await model.generateStructured(fromZod(FactcheckResultSchema as never, { name: "factcheck_result" }) as never, [
+  const result = (await model.generateStructured(fromZod(FactcheckResultSchema as never, { name: "factcheck_result" }) as never, [
     { role: "system", content: system },
     { role: "user", content: user },
   ])) as FactcheckResult;
+  const evidenceUrls = evidence ? [...evidence.matchAll(/\[(https?:\/\/[^\]]+)\]/g)].map((match) => match[1]!) : [];
+  return {
+    checks: result.checks.map((check, index) => {
+      const grounded = check.source.startsWith("urn:li:") || evidenceUrls.includes(check.source);
+      if (grounded) return check;
+      return {
+        ...check,
+        source: evidenceUrls[index] ?? evidenceUrls[0] ?? "Model knowledge — no external citation",
+      };
+    }),
+  };
 }

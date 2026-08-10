@@ -5,6 +5,7 @@ export interface CompanySource {
   urn: string;
   title: string;
   kind: "asset" | "document";
+  url?: string;
 }
 
 export interface DataHubState {
@@ -13,6 +14,7 @@ export interface DataHubState {
   sources: CompanySource[];
   updatedAt?: number;
   message?: string;
+  frontendUrl?: string;
 }
 
 export interface DataHubMemoryState {
@@ -90,6 +92,8 @@ export interface ContextBundle {
   acceptedAt?: number;
   rejectedAt?: number;
   workspacePath?: string;
+  /** Short readable excerpt for the in-meeting context viewer. */
+  preview?: string;
 }
 
 export interface ContextSnapshot {
@@ -144,6 +148,7 @@ export type ServerEvent =
   | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string; companySources?: CompanySource[] }
   | { type: "prototype.token"; id: string; delta: string }
   | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey; companySources?: CompanySource[] }
+  | { type: "prototype.error"; id: string; buildId: string; message: string }
   // A learned build was superseded by a newer one before finishing — drop its card(s).
   | { type: "prototype.cancel"; buildId: string }
   // Partner / critic agent reviewing a built artifact (id), then refining it in place.
@@ -178,6 +183,7 @@ export type ServerEvent =
   | { type: "context.snapshot"; context: ContextSnapshot }
   | { type: "context.item"; item: ContextBundle }
   | { type: "context.updated"; item: ContextBundle }
+  | { type: "context.removed"; id: string }
   // Files durably written under the host's export folder for this meeting.
   | { type: "export.snapshot"; exports: ExportSnapshot }
   | { type: "meeting.clear"; byHostId: string; at: number }
@@ -213,6 +219,7 @@ export type ClientEvent =
   | { type: "presence.ping"; ping: Omit<CursorPing, "updatedAt"> }
   | { type: "context.accept"; id: string }
   | { type: "context.reject"; id: string }
+  | { type: "context.remove"; id: string }
   | { type: "meeting.clear" }
   | { type: "context.clear" }
   // Host ends the meeting for everyone (triggers the final-document recap).

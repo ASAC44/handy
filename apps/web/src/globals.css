@@ -176,6 +176,7 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .lockBtn{height:38px;border:1px solid color-mix(in oklab, var(--primary) 40%, transparent);border-radius:9px;background:color-mix(in oklab, var(--primary) 8%, transparent);color:var(--primary);font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;cursor:pointer;transition:.15s}
 .lockBtn:hover:not(:disabled){background:color-mix(in oklab, var(--primary) 16%, transparent)}
 .lockBtn:disabled{opacity:.5;cursor:default}
+.lockActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lockActions .lockBtn{display:grid;place-items:center;text-decoration:none}.lockBtn.secondary{border-color:var(--input);background:transparent;color:var(--muted-foreground)}
 .lockError{font-family:var(--font-mono);font-size:11px;color:var(--destructive);text-align:center}
 /* ── Shared participant mic bar (bottom, every participant) ───────────── */
 .micBar{position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--border);background:transparent}
@@ -288,7 +289,7 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .fc .v-supported{background:color-mix(in oklab, var(--chart-4) 13%, transparent);color:var(--chart-4)}
 .fc .v-contradicted{background:color-mix(in oklab, var(--destructive) 12%, transparent);color:var(--destructive)}
 .fc .v-unverified{background:color-mix(in oklab, var(--chart-3) 14%, transparent);color:var(--chart-3)}
-.fc .conf{color:var(--muted-foreground)} .fc .src{color:var(--chart-4);width:100%}
+.fc .conf{color:var(--muted-foreground)} .fc .src{color:var(--chart-4);width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}.fc a.src:hover{text-decoration:underline}
 .fc .note{margin-top:8px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--card);font-size:12px;line-height:1.5;color:var(--muted-foreground)}
 .factcheck-b .impact{border-bottom:1px solid var(--border);padding:8px 0}
 .impact .claim{line-height:1.5;margin-bottom:8px;font-size:14px}
@@ -311,7 +312,9 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .ctxCanvasControls{display:flex;align-items:center;flex:none;padding-left:7px;border-left:1px solid var(--border)}
 .ctxK{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--chart-2)}
 .ctxCount{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--muted-foreground);white-space:nowrap}
-.dhStatus{font-family:var(--font-mono);font-size:10px;white-space:nowrap;padding:2px 7px;border:1px solid var(--input);border-radius:99px;color:var(--muted-foreground)}
+.ctxLedgerBtn{display:flex;align-items:center;gap:9px;padding:3px 5px;border:0;border-radius:6px;background:transparent;cursor:pointer}
+.ctxLedgerBtn:hover,.ctxLedgerBtn:focus-visible{background:var(--popover);outline:none}
+.dhStatus{font-family:var(--font-mono);font-size:10px;white-space:nowrap;padding:2px 7px;border:1px solid var(--input);border-radius:99px;color:var(--muted-foreground);background:transparent;cursor:pointer}
 .dhStatus.connected{color:var(--chart-4);border-color:color-mix(in oklab,var(--chart-4) 35%,transparent)}
 .dhStatus.connecting{color:var(--chart-3)}
 .dhStatus.unavailable{color:var(--destructive)}
@@ -326,7 +329,13 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .ctxBusy{color:var(--chart-3)}
 .ctxErr{color:var(--destructive)}
 .ctxOk{color:var(--primary)}
-.ctxQueue{position:absolute;top:44px;right:0;width:min(420px,52vw);max-height:245px;overflow:auto;z-index:20;background:var(--popover);backdrop-filter:blur(12px);border:1px solid var(--input);border-radius:11px;padding:8px;box-shadow:var(--shadow-lg)}
+.ctxQueue{position:absolute;top:44px;left:10px;width:min(470px,calc(100vw - 40px));max-height:min(620px,72vh);overflow:auto;z-index:20;background:var(--popover);border:1px solid var(--input);border-radius:11px;padding:10px;box-shadow:var(--shadow-lg)}
+.ctxPanelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:3px 3px 10px;border-bottom:1px solid var(--border)}
+.ctxPanelHead>div{display:flex;min-width:0;flex-direction:column;gap:3px}.ctxPanelHead b{font-size:13px}.ctxPanelHead span{font-family:var(--font-mono);font-size:9.5px;color:var(--muted-foreground)}
+.ctxPanelHead>button{width:25px;height:25px;border:1px solid var(--input);border-radius:6px;background:transparent;color:var(--muted-foreground);font-size:17px;cursor:pointer}
+.ctxSection{padding:10px 2px 2px}.ctxSection+.ctxSection{border-top:1px solid var(--border);margin-top:8px}
+.ctxSectionTitle{display:flex;justify-content:space-between;margin:0 2px 7px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)}
+.ctxSectionTitle span{font-variant-numeric:tabular-nums}
 .ctxItem{display:grid;grid-template-columns:1fr auto;gap:3px 8px;border:1px solid var(--border);border-radius:8px;background:var(--popover);padding:8px 9px;margin-bottom:6px}
 .ctxItem:last-child{margin-bottom:0}
 .ctxItem.accepted{border-color:color-mix(in oklab, var(--primary) 30%, transparent)}
@@ -336,9 +345,16 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .ctxReview{grid-row:1 / span 2;grid-column:2;display:flex;align-items:center;gap:5px}
 .ctxReview button,.ctxStatus{height:24px;border:1px solid var(--input);border-radius:7px;background:var(--popover);color:var(--muted-foreground);font-family:var(--font-mono);font-size:10px;padding:0 8px}
 .ctxReview button{cursor:pointer}
-.ctxReview button:first-child{border-color:color-mix(in oklab, var(--primary) 40%, transparent);color:var(--primary);background:color-mix(in oklab, var(--primary) 7%, transparent)}
-.ctxReview button:last-child{border-color:color-mix(in oklab, var(--destructive) 36%, transparent);color:var(--destructive);background:color-mix(in oklab, var(--destructive) 6%, transparent)}
+.ctxReview button.accept{border-color:color-mix(in oklab, var(--primary) 40%, transparent);color:var(--primary);background:color-mix(in oklab, var(--primary) 7%, transparent)}
+.ctxReview button.reject{border-color:color-mix(in oklab, var(--destructive) 36%, transparent);color:var(--destructive);background:color-mix(in oklab, var(--destructive) 6%, transparent)}
+.ctxReview button.remove{border-color:color-mix(in oklab, var(--destructive) 36%, transparent);color:var(--destructive);background:color-mix(in oklab, var(--destructive) 6%, transparent)}
 .ctxStatus{display:inline-flex;align-items:center}
+.ctxPreview{grid-column:1/-1;max-height:210px;overflow:auto;margin:7px 0 0;padding:9px;border:1px solid var(--border);border-radius:7px;background:var(--muted);color:var(--foreground);font:10.5px/1.5 var(--font-mono);white-space:pre-wrap;word-break:break-word}
+.ctxEmpty{padding:8px 3px;font-family:var(--font-mono);font-size:10.5px;color:var(--muted-foreground)}
+.dhSource{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:6px;padding:8px 9px;border:1px solid var(--border);border-radius:8px;color:var(--foreground);text-decoration:none}
+.dhSource:hover{background:var(--muted);border-color:var(--input)}.dhSource span,.dhSource i{font-family:var(--font-mono);font-size:9.5px;color:var(--muted-foreground);font-style:normal}.dhSource b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.ctxDurable{margin:9px 2px 1px;padding-top:9px;border-top:1px solid var(--border);font:9.5px/1.45 var(--font-mono);color:var(--muted-foreground)}
+@media (max-width:760px){.ctxDrop,.ctxPath{display:none}.contextDock{gap:5px}.ctxCount{display:none}.ctxActions{gap:4px}.ctxQueue{left:4px;width:calc(100vw - 18px)}}
 
 /* ── Canvas viewport ─────────────────────────────────────────────────── */
 .cbtn{display:grid;place-items:center;width:32px;height:32px;padding:0;color:var(--muted-foreground);background:transparent;border:0;border-radius:7px;cursor:pointer;transition:.15s}
@@ -517,6 +533,8 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .prototype-close{width:33px;height:33px;border:1px solid color-mix(in oklab, var(--destructive) 36%, transparent);border-radius:8px;background:color-mix(in oklab, var(--destructive) 7%, transparent);color:var(--destructive);font-size:20px;line-height:1;cursor:pointer}
 .prototype-close:hover{background:color-mix(in oklab, var(--destructive) 14%, transparent)}
 .prototype-frame{min-height:0;display:grid;place-items:center;overflow:hidden;padding:14px 68px;background:var(--muted)}
+.artifact-failure{width:100%;height:100%;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:24px;text-align:center;background:var(--card);color:var(--muted-foreground)}
+.artifact-failure b{font-size:13px;color:var(--destructive)}.artifact-failure span{max-width:320px;font:11px/1.5 var(--font-mono)}
 .prototype-modal>.nextsteps{min-height:56px;padding:10px 68px;background:var(--muted)}
 .prototype-viewport-stage{position:relative;overflow:hidden;border:1px solid var(--input);border-radius:9px;background:var(--background);box-shadow:0 16px 44px color-mix(in oklab, var(--foreground) 18%, transparent)}
 .prototype-viewport{position:absolute;left:0;top:0;transform-origin:0 0;background:var(--background)}
@@ -736,6 +754,7 @@ button.setRow:hover{background:var(--muted)}
 .recapDrafting i{width:7px;height:7px;border-radius:50%;background:var(--primary);animation:recapPulse 1s ease-in-out infinite}
 @keyframes recapPulse{0%,100%{opacity:.3}50%{opacity:1}}
 .recapActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.recapActions a{display:inline-flex;align-items:center;text-decoration:none}
 .recapBody{flex:1;min-height:0;padding:16px;display:flex;gap:14px}
 .recapFrame{flex:1;width:100%;border:1px solid var(--input);border-radius:12px;background:var(--background);box-shadow:var(--shadow-sm);overflow:hidden}
 .recapPlaceholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted-foreground);font-family:var(--font-mono);font-size:12px}
