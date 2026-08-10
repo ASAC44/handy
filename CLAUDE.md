@@ -15,7 +15,23 @@ from section 7. Reconcile changes against it.
 
 ## Commands
 
-Requires Bun ≥ 1.1. Run from repo root unless noted.
+**Running the app is Docker by default** — `docker-compose.yml` brings up the Bun server
+(web + `/ws` + API on one port `:3001`) behind a **Tailscale sidecar** that serves it as an
+isolated tailnet node (`https://$TS_HOSTNAME.<tailnet>.ts.net`, tailnet-only `serve`, not
+funnel). Needs `TS_AUTHKEY` in `.env`. The working tree is bind-mounted and the server runs
+under `bun --watch`, so server/orchestrator edits hot-reload; web edits need a rebuild.
+
+```bash
+docker compose up                       # build + run (logs in foreground); the default run path
+docker compose up -d                     # detached
+docker compose logs -f app               # follow the server log (live agent calls)
+docker compose down                      # stop; tailnet node goes offline
+docker compose exec app bun run build    # rebuild web bundle after apps/web edits
+# After a package.json/lockfile change: docker compose build && docker compose down -v
+#   (the anonymous node_modules volumes re-seed from the image)
+```
+
+The rest below run **directly on the host** (no Docker) — needs Bun ≥ 1.1, from repo root.
 
 ```bash
 bun install

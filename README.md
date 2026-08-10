@@ -113,9 +113,50 @@ compile against.
 └─ docs/positioning.md     Sidebar vs the 2026 AI-meeting landscape + the honest A/B
 ```
 
-## Quick start (mock mode, no keys)
+## Run it (Docker is the default)
 
-Requires [Bun](https://bun.sh) ≥ 1.1.
+Sidebar runs in **Docker with a Tailscale sidecar**, so the app comes up as its own
+**isolated node on your tailnet** (e.g. `https://sidebar.tail1234.ts.net`) — no host-level
+funnel, and the whole thing tears down with one command. The Bun server serves the web app,
+`/ws`, and the API on a single port, so one `tailscale serve` carries everything.
+
+```bash
+cp .env.example .env
+# In .env:
+#  - AGENTS=mock works with no keys; set AGENTS=live + CEREBRAS_API_KEY for real inference
+#  - add a Tailscale auth key for the sidecar (ephemeral + reusable):
+#      https://login.tailscale.com/admin/settings/keys
+#    TS_AUTHKEY=tskey-auth-...
+#    TS_HOSTNAME=sidebar        # -> https://sidebar.<your-tailnet>.ts.net (tailnet only)
+
+docker compose up              # build + run both containers (logs in foreground)
+```
+
+Open `https://<TS_HOSTNAME>.<your-tailnet>.ts.net` from any device on your tailnet (host
+login uses `HOST_PASSCODE` / `MEETING_PASSWORD`).
+
+| Command | Does |
+|---|---|
+| `docker compose up` / `up -d` | build + run, foreground / detached |
+| `docker compose logs -f app` | follow the server log (live agent calls show here) |
+| `docker compose down` | stop; the tailnet node goes offline |
+| `docker compose exec app bun run build` | rebuild the web bundle after web-only edits |
+
+**Hot-reload:** your working tree is bind-mounted and the server runs under `bun --watch`,
+so server / orchestrator edits reload live. Web (`apps/web`) edits need a `bun run build`
+(command above) then a refresh. Change a `package.json` / lockfile → `docker compose build`
+**and** `docker compose down -v` (the anonymous `node_modules` volumes re-seed from the image).
+
+> Files: [`Dockerfile`](Dockerfile), [`docker-compose.yml`](docker-compose.yml),
+> [`docker/tailscale/serve.json`](docker/tailscale/serve.json). The sidecar serves
+> **tailnet-only** (Tailscale `serve`); to expose publicly, switch the handler to `funnel`.
+> If you use local-Gemma ASR or the GPU A/B baseline, the compose file already points
+> `OLLAMA_URL` / `BASELINE_BASE_URL` at `host.docker.internal`.
+
+## Quick start without Docker (mock mode, no keys)
+
+Prefer Docker (above). To run directly on the host — handy for quick, key-less local dev —
+with [Bun](https://bun.sh) ≥ 1.1:
 
 ```bash
 bun install
@@ -128,10 +169,13 @@ Review / Launch Page Jam). It streams the fixture transcript over the WebSocket,
 fires, the summary updates, and the prototype agent fans out three designs onto the canvas —
 pick one and watch the Design DNA lock in.
 
-## Live shared room (host machine + Tailscale Funnel)
+## Live shared room without Docker (host machine + Tailscale Funnel)
 
-The fastest production-shaped path: one participant hosts Sidebar on their own machine,
-captures their screen, and serves the shared UI. Everyone else opens the same URL.
+> Legacy host path — **Docker (above) is the default.** Use this only to run on the host
+> directly without containers.
+
+One participant hosts Sidebar on their own machine, captures their screen, and serves the
+shared UI. Everyone else opens the same URL.
 
 ```bash
 bun install

@@ -1,0 +1,70 @@
+# Sidebar on Docker with an isolated Tailscale node.
+#
+#   tailscale  — joins your tailnet as its OWN node (default name: sidebar) and serves
+#                the app over tailnet-only HTTPS at https://<TS_HOSTNAME>.<your-tailnet>.ts.net
+#                (Tailscale `serve`, NOT funnel — private to your tailnet, no public exposure).
+#   app        — the Bun server (web + /ws + API on :3001). Shares the tailscale node's
+#                network namespace, so `serve` reaches it at 127.0.0.1:3001.
+#
+# Prereqs: an auth key in .env (TS_AUTHKEY=...). Create an ephemeral + reusable key at
+#   https://login.tailscale.com/admin/settings/keys
+#
+# Run:  docker compose up          (logs in foreground; Ctrl-C to stop)
+#       docker compose down        (tear down; tailnet node goes offline)
+#       docker compose exec app bun run build   (rebuild web after web-only edits)
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: ${TS_HOSTNAME:-sidebar}
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:?set TS_AUTHKEY in .env — get one at https://login.tailscale.com/admin/settings/keys}
+      - TS_HOSTNAME=${TS_HOSTNAME:-sidebar}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      # Userspace networking off so we get a real tun device (kernel networking).
+      - TS_USERSPACE=false
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./docker/tailscale/serve.json:/config/serve.json:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    # Lets the shared netns reach services on your host (e.g. local Ollama) via
+    # host.docker.internal. Auto-present on Docker Desktop; explicit for Linux hosts.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # No host port published on purpose — this node is reached over the tailnet only.
+    # For a quick local check without the tailnet, run:
+    #   docker compose exec app bun -e "console.log(await (await fetch('http://localhost:3001/health')).text())"
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      - tailscale
+    # Share the tailscale node's network namespace so its `serve` proxy can reach the
+    # app at 127.0.0.1:3001 and the app inherits the tailnet identity.
+    network_mode: service:tailscale
+    # All app config (AGENTS, keys, MEETING_PASSWORD, ...) comes from .env.
+    env_file: .env
+    environment:
+      - PORT=3001
+      # If you use the local-Gemma ASR or the GPU A/B baseline, point these at your host
+      # (localhost inside the container is the container, not your machine):
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - BASELINE_BASE_URL=http://host.docker.internal:11434
+    volumes:
+      - ./:/app
+      # Anonymous volumes preserve the image's Linux node_modules instead of the host's
+      # Windows-built ones leaking in through the bind-mount above.
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/shared/node_modules
+    command: sh -c "bun run build && bun --watch apps/server/src/index.ts"
+    restart: unless-stopped
+
+volumes:
+  tailscale-state:
