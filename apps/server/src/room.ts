@@ -285,7 +285,7 @@ export class Room implements MeetingRuntime {
         if (this.isHost(ws)) void this.clearContext();
         break;
       case "meeting.clear":
-        if (this.isHost(ws)) this.clearMeeting(ws);
+        if (this.isHost(ws)) void this.clearMeeting(ws);
         break;
       case "meeting.end":
         if (this.isHost(ws)) this.endMeeting(ws);
@@ -579,7 +579,7 @@ export class Room implements MeetingRuntime {
    *  wipe history, learned DNA, pending picks, screen capture, and uploaded context,
    *  then broadcast a single `meeting.clear` so every client resets to a clean slate.
    *  Presence (who's in the room) is intentionally preserved. */
-  private clearMeeting(ws: ServerWebSocket<WsData>): void {
+  private async clearMeeting(ws: ServerWebSocket<WsData>): Promise<void> {
     this.orch.clear();
     this.learned = null;
     this.picks.clear();
@@ -592,8 +592,9 @@ export class Room implements MeetingRuntime {
     this.datahub.clearLocal();
     this.contextSources.clear();
     const byHostId = this.presence.get(ws)?.id ?? "";
-    void this.context.clear();
+    const context = await this.context.clear();
     this.exports.beginMeeting("Handy Meeting");
+    this.broadcast({ type: "context.snapshot", context });
     this.broadcast({ type: "meeting.clear", byHostId, at: Date.now() });
     this.broadcast({ type: "export.snapshot", exports: this.exports.snapshot() });
   }

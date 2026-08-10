@@ -528,6 +528,7 @@ function reducer(s: HandyState, a: Action): HandyState {
         transcript: [],
         summary: null,
         factchecks: [],
+        context: { ...s.context, items: [] },
         datahubMemory: [],
         impacts: [],
         artifacts: [],
