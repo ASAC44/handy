@@ -26,7 +26,7 @@
   --paper:#ece8df; --paper2:#f4f1ea; --card:#fbf9f4; --card2:#fffefb;
   --border:#e2ddd0; --border2:#d3ccba;
   --ink:#211e18; --muted:#5f5848; --dim:#857c69;
-  --mint:#16715c; --mint-soft:rgba(22,113,92,.08); --mint-line:rgba(22,113,92,.28);
+  --mint:#16715c; --mint-dim:#4a917f; --mint-soft:rgba(22,113,92,.08); --mint-line:rgba(22,113,92,.28);
   --blue:#345c9c; --amber:#9a6f12; --violet:#6a57a3; --rose:#a8516a; --red:#b23a2c;
   --shadow:0 1px 2px rgba(48,40,28,.05), 0 14px 40px rgba(48,40,28,.08);
   --shadow-lg:0 24px 70px rgba(48,40,28,.18);
@@ -48,6 +48,8 @@ body{
     radial-gradient(70% 50% at -5% 0%, rgba(22,113,92,.05), transparent 60%);
 }
 a{color:inherit;text-decoration:none}
+code{font-family:var(--mono);font-size:.9em;color:var(--mint);background:var(--mint-soft);
+  border:1px solid var(--mint-line);border-radius:5px;padding:1px 5px}
 ::selection{background:rgba(22,113,92,.18)}
 :focus-visible{outline:2px solid var(--mint);outline-offset:3px;border-radius:3px}
 
@@ -212,7 +214,7 @@ section{padding:84px 0}
 
 /* ── Design DNA ─────────────────────────────────────────────────────────── */
 .dna{display:grid;grid-template-columns:.9fr 1.1fr;gap:42px;align-items:center;margin-top:40px}
-.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
 .sw{border-radius:13px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);
   transition:.2s;cursor:default}
 .sw:hover{transform:translateY(-4px)}
@@ -229,6 +231,7 @@ section{padding:84px 0}
 .dna .note{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:16px;letter-spacing:.02em}
 .dna .note b{color:var(--mint)}
 @media(max-width:820px){.dna{grid-template-columns:1fr;gap:28px}}
+@media(max-width:560px){.swatches{grid-template-columns:repeat(2,1fr)}}
 
 /* ── The room (capabilities) ────────────────────────────────────────────── */
 .room{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
@@ -294,6 +297,21 @@ footer .colophon b{color:var(--muted)}
 .member .gh svg{flex:none}
 @media(max-width:680px){.team-grid{grid-template-columns:1fr}}
 
+/* ── Brand logo (Domi's mark) ───────────────────────────────────────────── */
+.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+.brandmark{width:24px;height:24px;align-self:center;flex:none}
+footer .brandmark{width:20px;height:20px}
+
+/* ── About the name ─────────────────────────────────────────────────────── */
+.origin{display:flex;align-items:center;gap:42px}
+.origin-mark{width:108px;height:108px;flex:none}
+.origin-text{min-width:0}
+.origin .def{font-family:var(--serif);font-size:clamp(23px,3.2vw,34px);letter-spacing:-.015em;line-height:1.2;color:var(--ink);margin:15px 0 0}
+.origin .def .ipa{font-family:var(--mono);font-size:.5em;color:var(--mint);letter-spacing:.02em;margin:0 .3em;font-style:normal}
+.origin .def i{color:var(--muted);font-size:.62em;font-style:italic;margin-right:.1em}
+.origin .origin-body{font-size:18px;color:var(--muted);max-width:60ch;line-height:1.62;margin:18px 0 0}
+@media(max-width:720px){.origin{flex-direction:column;align-items:flex-start;gap:24px}.origin-mark{width:84px;height:84px}}
+
 /* ── scroll reveal ──────────────────────────────────────────────────────── */
 .rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
 .rv.shown{opacity:1;transform:none}
@@ -306,10 +324,36 @@ footer .colophon b{color:var(--muted)}
 </head>
 <body>
 
+<!-- Brand logo (Domi's mark) — defined once, reused via <use> in nav, footer, and the name section -->
+<svg class="svg-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <clipPath id="sbLogoClip"><path d="M360,84L360,316C360,329.246 349.246,340 336,340L64,340C50.754,340 40,329.246 40,316L40,84C40,70.754 50.754,60 64,60L336,60C349.246,60 360,70.754 360,84Z"/></clipPath>
+  <symbol id="sb-logo" viewBox="0 0 400 400" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2">
+    <g clip-path="url(#sbLogoClip)"><g transform="matrix(1.489865,0,0,1,-19.594612,0)"><rect x="40" y="60" width="110" height="280" fill="var(--border)" stroke="var(--border)" stroke-width="0.79"/></g></g>
+    <path d="M360,84L360,316C360,329.246 349.246,340 336,340L64,340C50.754,340 40,329.246 40,316L40,84C40,70.754 50.754,60 64,60L336,60C349.246,60 360,70.754 360,84Z" fill="none" stroke="var(--border)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="4"/>
+    <path d="M150,60L150,340" fill="none" stroke="var(--border)" stroke-width="12" stroke-linejoin="miter" stroke-miterlimit="4"/>
+    <g transform="matrix(1,0,0,1,24.856471,0.382784)"><path d="M240,111C240,114.311 237.311,117 234,117L196,117C192.689,117 190,114.311 190,111C190,107.689 192.689,105 196,105L234,105C237.311,105 240,107.689 240,111Z" fill="var(--mint)" fill-opacity="0.35"/></g>
+    <g transform="matrix(1,0,0,1,29.856471,0.382784)"><path d="M280,111C280,114.311 277.311,117 274,117L256,117C252.689,117 250,114.311 250,111C250,107.689 252.689,105 256,105L274,105C277.311,105 280,107.689 280,111Z" fill="var(--mint)" fill-opacity="0.35"/></g>
+    <g transform="matrix(0.912509,0,0,1,39.589868,0)"><path d="M330,154C330,158.967 325.581,163 320.137,163L199.863,163C194.419,163 190,158.967 190,154C190,149.033 194.419,145 199.863,145L320.137,145C325.581,145 330,149.033 330,154Z" fill="var(--mint)"/></g>
+    <g transform="matrix(1,0,0,1,24.856471,14)"><path d="M300,186C300,189.311 297.311,192 294,192L196,192C192.689,192 190,189.311 190,186C190,182.689 192.689,180 196,180L294,180C297.311,180 300,182.689 300,186Z" fill="var(--mint)" fill-opacity="0.75"/></g>
+    <g transform="matrix(1,0,0,1,24.856471,31.004779)"><path d="M320,216C320,219.311 317.311,222 314,222L196,222C192.689,222 190,219.311 190,216C190,212.689 192.689,210 196,210L314,210C317.311,210 320,212.689 320,216Z" fill="var(--mint)" fill-opacity="0.75"/></g>
+    <g transform="matrix(1,0,0,1,24.856471,49.760766)"><path d="M280,246C280,249.311 277.311,252 274,252L196,252C192.689,252 190,249.311 190,246C190,242.689 192.689,240 196,240L274,240C277.311,240 280,242.689 280,246Z" fill="var(--mint)" fill-opacity="0.75"/></g>
+    <ellipse cx="105" cy="375" rx="80" ry="15" fill="var(--mint-dim)" fill-opacity="0.6"/>
+    <path d="M105,95L105,74" fill="none" stroke="var(--mint)" stroke-width="14" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4"/>
+    <circle cx="105" cy="74" r="14" fill="var(--mint)"/>
+    <g transform="matrix(1.04756,0,0,1.04756,-9.036316,-4.28036)"><path d="M190,147.276L190,152.724C190,184.335 164.335,210 132.724,210L77.276,210C45.665,210 20,184.335 20,152.724L20,147.276C20,115.665 45.665,90 77.276,90L132.724,90C164.335,90 190,115.665 190,147.276Z" fill="var(--mint)"/></g>
+    <path d="M180,295C180,336.394 146.394,370 105,370C63.606,370 30,336.394 30,295C30,253.606 63.606,220 105,220C146.394,220 180,253.606 180,295Z" fill="var(--mint)"/>
+    <path d="M175,146C175,157.59 165.59,167 154,167L91,167C79.41,167 70,157.59 70,146C70,134.41 79.41,125 91,125L154,125C165.59,125 175,134.41 175,146Z" fill="var(--border)"/>
+    <g transform="matrix(1.340245,0,0,1.340245,-39.024504,-49.675775)"><circle cx="100" cy="146" r="9" fill="var(--mint)"/></g>
+    <g transform="matrix(1.340245,0,0,1.340245,-42.107972,-49.675775)"><circle cx="140" cy="146" r="9" fill="var(--mint)"/></g>
+    <circle cx="24" cy="280" r="22" fill="var(--mint)"/>
+    <g transform="matrix(1,0,0,1,-15.411461,-4)"><circle cx="195" cy="250" r="22" fill="var(--mint)"/></g>
+  </symbol>
+</svg>
+
 <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
 <nav class="nav">
   <div class="wrap row">
-    <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
+    <div class="brand"><svg class="brandmark" aria-hidden="true"><use href="#sb-logo"/></svg> Sidebar <span class="bsub">ambient meeting copilot</span></div>
     <div class="links">
       <a href="#speed">Speed</a>
       <a href="#agents">The panel</a>
@@ -392,6 +436,7 @@ footer .colophon b{color:var(--muted)}
       <span><span class="s">&#9624;</span> Self-contained HTML</span>
       <span>Rendered in a <b>sandboxed iframe</b></span>
       <span>Strict <b>structured outputs</b></span>
+      <span>Exports a <b>Google DESIGN.md</b></span>
       <span>On-device or cloud <b>transcription</b></span>
       <span>In-memory <b>&mdash; no database</b></span>
       <span>Runs on <b>Bun</b></span>
@@ -436,7 +481,7 @@ footer .colophon b{color:var(--muted)}
   <div class="wrap">
     <div class="sec-head rv">
       <span class="eyebrow">The panel</span>
-      <h2>Four agents in the margin. <em>A cheap router conducts.</em></h2>
+      <h2>A panel of four. <em>A router runs the room.</em></h2>
       <p>Every utterance hits a fast structured router that decides who acts — so the heavy agents never
         fire on every sentence. The work happens quietly alongside the conversation.</p>
     </div>
@@ -474,10 +519,10 @@ footer .colophon b{color:var(--muted)}
       <div class="agent rv">
         <div class="role">The learning loop</div>
         <div class="nm">Design DNA</div>
-        <p>The first build fans out three design languages in parallel. You pick one, and that taste is
-          injected into every later prototype — and the closing recap. Preference learning carried
-          through to inference.</p>
-        <div class="tags"><span class="tg">fan-out &times;3</span><span class="tg">pick once</span><span class="tg">inherited</span></div>
+        <p>The first build fans out four design languages in parallel. You pick one, and that taste —
+          exported as a Google <code>DESIGN.md</code> — is injected into every later prototype and the
+          closing recap. Preference learning carried through to inference.</p>
+        <div class="tags"><span class="tg">fan-out &times;4</span><span class="tg">pick once</span><span class="tg">Google DESIGN.md</span></div>
       </div>
     </div>
   </div>
@@ -489,12 +534,20 @@ footer .colophon b{color:var(--muted)}
     <div class="sec-head rv">
       <span class="eyebrow">Design DNA</span>
       <h2>Pick a style once. <em>Every build after inherits it.</em></h2>
-      <p>The first idea fans out three ways at once — you choose the one that feels right. From then on,
-        the prototype agent builds in your taste, no prompting required.</p>
+      <p>The first idea fans out four ways at once — you choose the one that feels right. From then on,
+        the prototype agent builds in your taste, exported as a Google <code>DESIGN.md</code> — no
+        prompting required.</p>
     </div>
 
     <div class="dna">
       <div class="swatches rv">
+        <div class="sw pick" style="--a:#6750a4;--b:#625b71">
+          <div class="top" style="background:#fef7ff">
+            <span class="chip" style="background:#6750a4"></span>
+            <div><span class="ln" style="background:#cac4d0"></span><span class="ln s" style="background:#f3edf7"></span></div>
+          </div>
+          <div class="cap"><b>Material You</b><span class="got">picked</span></div>
+        </div>
         <div class="sw" style="--a:#6ee7b7;--b:#7c9cff">
           <div class="top" style="background:#0e1320">
             <span class="chip" style="background:#6ee7b7"></span>
@@ -502,7 +555,7 @@ footer .colophon b{color:var(--muted)}
           </div>
           <div class="cap"><b>Midnight</b><span class="got">picked</span></div>
         </div>
-        <div class="sw pick" style="--a:#e8883a;--b:#cf6a4c">
+        <div class="sw" style="--a:#e8883a;--b:#cf6a4c">
           <div class="top" style="background:#f6efe4">
             <span class="chip" style="background:#e8883a"></span>
             <div><span class="ln" style="background:#e3d6c2"></span><span class="ln s" style="background:#efe5d5"></span></div>
@@ -518,11 +571,13 @@ footer .colophon b{color:var(--muted)}
         </div>
       </div>
       <div class="rv">
-        <p style="font-size:17px;color:var(--muted);margin:0">Three real design systems — editorial serif,
-          geometric dark, neon mono — fanned out the moment you describe the first thing. Whichever you
-          pick becomes a hard visual constraint baked into the system prompt, so the second build, the
-          tenth, and the final meeting recap all look of-a-piece.</p>
-        <p class="note">runtime &rarr; <b>learn(chosen)</b> &rarr; injected into every prototype + the recap</p>
+        <p style="font-size:17px;color:var(--muted);margin:0">Four real design systems — Material&nbsp;You,
+          geometric dark, editorial serif, neon mono — fanned out the moment you describe the first thing.
+          Whichever you pick becomes the meeting's <b>Design DNA</b>, expressed as a Google <code>DESIGN.md</code>
+          (YAML design tokens + prose) and baked into the system prompt — so the second build, the tenth, and
+          the final recap all look of-a-piece. Download it from the panel; it passes Google's own
+          <code>design.md</code> linter clean.</p>
+        <p class="note">runtime &rarr; <b>learn(chosen)</b> &rarr; <b>DESIGN.md</b> &rarr; injected into every prototype + the recap</p>
       </div>
     </div>
   </div>
@@ -556,7 +611,7 @@ footer .colophon b{color:var(--muted)}
           live. No throttling, no faking the slow side.</p></div>
       <div class="cap rv"><div class="ic">&#9636;</div><h3>Shareable recap</h3>
         <p>End the meeting and a closing agent streams a self-contained HTML recap — summary, decisions,
-          action items, prototypes built — in your learned style.</p></div>
+          action items, prototypes built, and the meeting's <em>DESIGN.md</em> — in your learned style.</p></div>
     </div>
   </div>
 </section>
@@ -571,10 +626,26 @@ footer .colophon b{color:var(--muted)}
     <div class="flow rv">
       <div class="step"><span class="n">01</span><h4>Speak</h4><p>Speech becomes transcript — on-device or via ElevenLabs Scribe — and lands as a chunk.</p></div>
       <div class="step"><span class="n">02</span><h4>Route</h4><p>A strict structured router decides who should act: summarize, build, fact-check — or stay quiet.</p></div>
-      <div class="step"><span class="n">03</span><h4>Fan out</h4><p>The first buildable idea streams three design languages in parallel, each rendered live.</p></div>
+      <div class="step"><span class="n">03</span><h4>Fan out</h4><p>The first buildable idea streams four design languages in parallel, each rendered live.</p></div>
       <div class="step"><span class="n">04</span><h4>Pick</h4><p>You choose the one that fits — or a short timeout takes the recommended cut.</p></div>
-      <div class="step"><span class="n">05</span><h4>Learn</h4><p>That taste becomes the Design DNA, injected into every later build for the rest of the meeting.</p></div>
+      <div class="step"><span class="n">05</span><h4>Learn</h4><p>That taste becomes the Design DNA — a Google <code>DESIGN.md</code> — injected into every later build for the rest of the meeting.</p></div>
       <div class="step"><span class="n">06</span><h4>Recap</h4><p>When it ends, a closing agent drafts a shareable HTML recap in the same learned style.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── About the name ───────────────────────────────────────────────────── -->
+<section id="origin">
+  <div class="wrap">
+    <div class="origin rv">
+      <svg class="origin-mark" aria-hidden="true"><use href="#sb-logo"/></svg>
+      <div class="origin-text">
+        <span class="eyebrow">About the name</span>
+        <p class="def">side&#183;bar <span class="ipa">/ˈsaɪd.bɑːr/</span> <i>n.</i> &mdash; a small panel beside the main thing.</p>
+        <p class="origin-body">We named it when it still fit in the margin — one quiet rail in the corner of your call.
+          Then we kept adding: prototypes, screen vision, live fact-checking, a shared room, a streamed recap.
+          Somewhere in there the sidebar grew into a full system. The name is the only thing that stayed small.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -630,7 +701,7 @@ footer .colophon b{color:var(--muted)}
 <footer>
   <div class="wrap">
     <div class="row">
-      <div class="brand"><span class="logo">&#9624;</span> Sidebar <span class="bsub">ambient meeting copilot</span></div>
+      <div class="brand"><svg class="brandmark" aria-hidden="true"><use href="#sb-logo"/></svg> Sidebar <span class="bsub">ambient meeting copilot</span></div>
       <div class="fl">
         <a href="https://github.com/igorls/sidebar" target="_blank" rel="noopener">Repository</a>
         <a href="#speed">Speed</a>
