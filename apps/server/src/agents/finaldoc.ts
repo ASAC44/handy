@@ -51,7 +51,7 @@ export async function finalDocLive(input: RecapInput, onToken: (delta: string) =
   const tokens = Math.round(html.length / 4);
   const theme = input.theme ?? THEMES[RECOMMENDED];
   const appendix = artifactGalleryHtml(input.artifacts, theme) + designMdSectionHtml(input.theme, theme);
-  const doc = injectGallery(extractHtml(html), appendix);
+  const doc = injectGallery(extractHtml(html), appendix, theme);
   return { html: doc, ms, tokens, tokPerS: ms > 0 ? Math.round((tokens / ms) * 1000) : 0 };
 }
 
@@ -71,16 +71,16 @@ export function artifactGalleryHtml(artifacts: RecapArtifact[], t: ThemeTokens):
   const cards = artifacts
     .map(
       (a) =>
-        `<figure style="margin:0;border:1px solid ${t.border};border-radius:${t.radius};overflow:hidden;background:${t.surface};box-shadow:${t.shadow}">` +
-        `<figcaption style="padding:10px 14px;font-size:13px;font-weight:600;color:${t.ink};border-bottom:1px solid ${t.border};background:${t.surface2}">${esc(a.intent)}</figcaption>` +
-        `<iframe sandbox="allow-scripts" loading="lazy" title="${escAttr(a.intent)}" style="width:100%;height:460px;border:0;display:block;background:#fff" srcdoc="${escAttr(a.html)}"></iframe>` +
+        `<figure class="sidebar-recap-prototype-card">` +
+        `<figcaption>${esc(a.intent)}</figcaption>` +
+        `<iframe class="sidebar-recap-prototype-frame" sandbox="allow-scripts" loading="lazy" title="${escAttr(a.intent)}" srcdoc="${escAttr(a.html)}"></iframe>` +
         `</figure>`,
     )
     .join("");
   return (
-    `<section style="margin:34px 0 0">` +
-    `<h2 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 14px;font-weight:700">Prototypes built · ${artifacts.length}</h2>` +
-    `<div style="display:flex;flex-direction:column;gap:18px">${cards}</div>` +
+    `<section class="sidebar-recap-prototypes">` +
+    `<h2>Prototypes built · ${artifacts.length}</h2>` +
+    `<div class="sidebar-recap-gallery">${cards}</div>` +
     `</section>`
   );
 }
@@ -91,22 +91,75 @@ export function artifactGalleryHtml(artifacts: RecapArtifact[], t: ThemeTokens):
 export function designMdSectionHtml(theme: ThemeTokens | null, t: ThemeTokens): string {
   if (!theme) return "";
   return (
-    `<section style="margin:34px 0 0">` +
-    `<h2 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 6px;font-weight:700">This meeting&#39;s DESIGN.md</h2>` +
-    `<p style="font-size:12px;color:${t.mut};margin:0 0 12px">The learned Design DNA, exported in Google&#39;s DESIGN.md format (YAML tokens + prose).</p>` +
-    `<pre style="margin:0;padding:16px;background:${t.surface};border:1px solid ${t.border};border-radius:${t.radius};box-shadow:${t.shadow};color:${t.ink};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow:auto">${esc(toDesignMd(theme))}</pre>` +
+    `<section class="sidebar-recap-design">` +
+    `<h2>This meeting&#39;s DESIGN.md</h2>` +
+    `<p>The learned Design DNA, exported in Google&#39;s DESIGN.md format (YAML tokens + prose).</p>` +
+    `<details>` +
+    `<summary>View DESIGN.md</summary>` +
+    `<pre>${esc(toDesignMd(theme))}</pre>` +
+    `</details>` +
     `</section>`
   );
 }
 
-/** Insert the gallery inside the document — before </body>, else before </html>, else
- *  appended — so a model that omits </body> still keeps the gallery in the body. */
-export function injectGallery(html: string, gallery: string): string {
+function recapAppendixCss(t: ThemeTokens): string {
+  return `<style id="sidebar-recap-css">
+html,body{min-height:100%}
+body{margin:0!important;padding:0!important;max-width:none!important;display:block!important;overflow-x:hidden;background:${t.bg};color:${t.ink};font-family:${t.font};line-height:1.6}
+.sidebar-recap-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:48px 0 72px}
+.sidebar-recap-main{max-width:860px;margin:0 auto}
+.sidebar-recap-main>*:first-child{margin-top:0}
+.sidebar-recap-main>*:last-child{margin-bottom:0}
+.sidebar-recap-appendix{margin-top:42px;display:grid;gap:32px}
+.sidebar-recap-prototypes,.sidebar-recap-design{margin:0}
+.sidebar-recap-prototypes>h2,.sidebar-recap-design>h2{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 14px;font-weight:700}
+.sidebar-recap-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px;align-items:start}
+.sidebar-recap-prototype-card{margin:0;border:1px solid ${t.border};border-radius:${t.radius};overflow:hidden;background:${t.surface};box-shadow:${t.shadow}}
+.sidebar-recap-prototype-card figcaption{padding:11px 14px;font-size:13px;font-weight:700;color:${t.ink};border-bottom:1px solid ${t.border};background:${t.surface2}}
+.sidebar-recap-prototype-frame{width:100%;height:min(620px,72vh);min-height:440px;border:0;display:block;background:#fff}
+.sidebar-recap-design p{font-size:12px;color:${t.mut};margin:0 0 12px}
+.sidebar-recap-design details{border:1px solid ${t.border};border-radius:${t.radius};background:${t.surface};box-shadow:${t.shadow};overflow:hidden}
+.sidebar-recap-design summary{cursor:pointer;padding:13px 16px;color:${t.ink};font-weight:700;list-style:none}
+.sidebar-recap-design summary::-webkit-details-marker{display:none}
+.sidebar-recap-design summary:after{content:"+";float:right;color:${t.mut};font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.sidebar-recap-design details[open] summary{border-bottom:1px solid ${t.border};background:${t.surface2}}
+.sidebar-recap-design details[open] summary:after{content:"-"}
+.sidebar-recap-design pre{margin:0;max-height:520px;padding:16px;color:${t.ink};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow:auto}
+@media (max-width:720px){.sidebar-recap-shell{width:min(100% - 20px,1180px);padding:26px 0 48px}.sidebar-recap-prototype-frame{height:520px;min-height:360px}}
+</style>`;
+}
+
+/** Insert the appendix inside a controlled shell before </body>, else before </html>, else
+ *  appended — so model CSS cannot force the recap, prototypes, and DESIGN.md into cramped columns. */
+export function injectGallery(html: string, gallery: string, theme: ThemeTokens = THEMES[RECOMMENDED]): string {
   if (!gallery) return html;
-  const lower = html.toLowerCase();
-  const at = (tag: string): number => lower.lastIndexOf(tag);
-  const idx = at("</body>") !== -1 ? at("</body>") : at("</html>");
-  return idx !== -1 ? html.slice(0, idx) + gallery + html.slice(idx) : html + gallery;
+  const withCss = injectRecapCss(html, theme);
+  if (/sidebar-recap-shell/.test(withCss)) return withCss;
+  const body = /<body\b[^>]*>/i.exec(withCss);
+  if (body) {
+    const bodyStart = body.index + body[0].length;
+    const lower = withCss.toLowerCase();
+    const bodyEnd = lower.lastIndexOf("</body>");
+    if (bodyEnd !== -1) {
+      const inner = withCss.slice(bodyStart, bodyEnd);
+      const wrapped =
+        `<div class="sidebar-recap-shell"><main class="sidebar-recap-main">${inner}</main>` +
+        `<div class="sidebar-recap-appendix">${gallery}</div></div>`;
+      return withCss.slice(0, bodyStart) + wrapped + withCss.slice(bodyEnd);
+    }
+  }
+  const lower = withCss.toLowerCase();
+  const idx = lower.lastIndexOf("</html>");
+  const wrapped = `<div class="sidebar-recap-shell"><main class="sidebar-recap-main">${withCss}</main><div class="sidebar-recap-appendix">${gallery}</div></div>`;
+  return idx !== -1 ? withCss.slice(0, idx) + wrapped + withCss.slice(idx) : wrapped;
+}
+
+function injectRecapCss(html: string, theme: ThemeTokens): string {
+  if (/id=["']sidebar-recap-css["']/.test(html)) return html;
+  const css = recapAppendixCss(theme);
+  const headEnd = html.toLowerCase().lastIndexOf("</head>");
+  if (headEnd !== -1) return html.slice(0, headEnd) + css + html.slice(headEnd);
+  return css + html;
 }
 
 /**
@@ -124,7 +177,7 @@ export function buildRecapHtml(input: RecapInput): string {
         .map((a) => `<tr><td class="owner">${esc(a.owner || "unassigned")}</td><td>${esc(a.task)}</td></tr>`)
         .join("")}</tbody></table>`
     : "";
-  const gallery = artifactGalleryHtml(input.artifacts, t) + designMdSectionHtml(input.theme, t);
+  const appendix = artifactGalleryHtml(input.artifacts, t) + designMdSectionHtml(input.theme, t);
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meeting Recap</title><style>
 *{box-sizing:border-box}body{margin:0;background:${t.bg};color:${t.ink};font-family:${t.font};line-height:1.6;padding:44px 28px 64px;max-width:760px;margin:0 auto}
 .k{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:${t.accent};font-weight:700;margin:0 0 6px}
@@ -138,7 +191,9 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:${t.mut};border-bottom:1px solid ${t.border};padding:0 10px 8px}
 td{padding:9px 10px;border-bottom:1px solid ${t.border};vertical-align:top}tr:last-child td{border-bottom:0}
 .owner{color:${t.accent2};font-weight:600;white-space:nowrap}
-</style></head><body>
+</style>${recapAppendixCss(t)}</head><body>
+<div class="sidebar-recap-shell">
+<main class="sidebar-recap-main">
 <p class="k">Meeting Recap</p>
 <h1>${esc(input.title || "Meeting")}</h1>
 <p class="meta">Drafted live by the Sidebar agents · ${s.action_items.length} action item${s.action_items.length === 1 ? "" : "s"} · ${input.artifacts.length} prototype${input.artifacts.length === 1 ? "" : "s"}</p>
@@ -146,6 +201,8 @@ ${section("Executive summary", `<p class="lead">${esc(s.tldr || "No summary was 
 ${section("Key decisions", li(s.decisions))}
 ${section("Action items", actions)}
 ${section("Open questions", li(s.open_questions))}
-${gallery}
+</main>
+<div class="sidebar-recap-appendix">${appendix}</div>
+</div>
 </body></html>`;
 }
