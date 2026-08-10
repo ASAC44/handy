@@ -9,10 +9,11 @@ WebSocket event stream. Built on **Cerebras + Gemma 4** via
 The hero is the **real-time prototype agent**: a spoken idea becomes a working,
 screen-aware HTML proof-of-concept in **~1.5s** — fast enough that the artifact appears
 *while the idea is still alive in the room*. When the first idea is built, the agent
-**fans out three design languages in parallel**; you pick one and Sidebar **learns your
-taste** (a "Design DNA" injected into every later build — real preference learning carried
-through to inference). When the meeting ends, a closing agent streams a **shareable HTML
-recap** in that same learned style.
+**fans out four design languages in parallel**; you pick one and Sidebar **learns your
+taste** — a "Design DNA" injected into every later build (real preference learning carried
+through to inference) and exported as a Google
+[`DESIGN.md`](https://github.com/google-labs-code/design.md). When the meeting ends, a
+closing agent streams a **shareable HTML recap** in that same learned style.
 
 > **Status: hackathon MVP** (Cerebras × Google DeepMind Gemma 4). Runs end-to-end in
 > fixture mode with **no keys**. It also has a real **live shared room**: a host captures
@@ -56,10 +57,14 @@ don't fire on every utterance.
 - **Fact-check** — retrieve-then-ground: each routed claim is searched via **Tavily**, then
   Gemma judges it against the snippets (verdict / confidence / source / note). Falls back to
   the model's own knowledge when no `TAVILY_API_KEY` is set.
-- **Design DNA** — the first build fans out three styles (Midnight / Warm / Neon) in
-  parallel; you pick one (or a 4.2s timeout picks the recommended) and that design language
-  is injected into the prototype system prompt so **every later build inherits your taste**.
-  The closing recap uses it too.
+- **Design DNA → Google `DESIGN.md`** — the first build fans out four styles (Material You /
+  Midnight / Warm / Neon) in parallel; you pick one (or a 4.2s timeout picks the recommended
+  Material You) and that design language is injected into the prototype system prompt so
+  **every later build inherits your taste**. The learned style is expressed as a Google
+  [`DESIGN.md`](https://github.com/google-labs-code/design.md) — YAML design tokens
+  (Material-3 roles) + prose — which you can **view / copy / download** from the DNA panel,
+  and the closing recap embeds it as an appendix. The emitted file passes
+  `npx @google/design.md lint` (0 errors / 0 warnings). The closing recap uses the style too.
 
 ## The live room
 
@@ -99,7 +104,7 @@ compile against.
 .
 ├─ packages/shared/   @sidebar/shared — WS event protocol (events.ts), Zod schemas +
 │                     inferred types (schemas.ts), agent prompts (prompts.ts), design
-│                     languages + mock prototype builders (themes.ts)
+│                     languages + mock builders (themes.ts) + DESIGN.md serializer (designmd.ts)
 ├─ apps/server/       Bun.serve WebSocket (/ws) + static host + a shared Room that owns
 │                     the Orchestrator and the four agents (router/summarizer/prototype/
 │                     factcheck) + the closing finaldoc agent
@@ -166,8 +171,9 @@ bun run dev                   # server on :3001, web on :5173
 
 Open <http://localhost:5173>, pick a scenario at the bottom (Q3 Sprint Planning / Growth
 Review / Launch Page Jam). It streams the fixture transcript over the WebSocket, the router
-fires, the summary updates, and the prototype agent fans out three designs onto the canvas —
-pick one and watch the Design DNA lock in.
+fires, the summary updates, and the prototype agent fans out four designs onto the canvas —
+pick one and watch the Design DNA lock in (then **view / download** its Google `DESIGN.md`
+from the DNA panel).
 
 ## Live shared room without Docker (host machine + Tailscale Funnel)
 
@@ -263,10 +269,12 @@ presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
   (`session.ts`) that forwards to one shared in-memory `Room` (`room.ts`, implements
   `MeetingRuntime`). The room owns presence, invites, file context, the learned Design DNA,
   and one `Orchestrator` (`orchestrator.ts`) that drives the meeting and the agents. No DB.
-- **The fan-out → pick → learn loop.** The first prototype build fans out 3 themes in
+- **The fan-out → pick → learn loop.** The first prototype build fans out 4 themes in
   parallel, awaits the user's `pick` (or 4.2s timeout → recommended), then `learn(chosen)`
   locks the Design DNA. Later builds are single-shot in the learned theme (and race the GPU
-  baseline when A/B is on).
+  baseline when A/B is on). The learned DNA is serialized to a Google `DESIGN.md`
+  (`packages/shared/src/designmd.ts`) for prompt injection, the DNA-panel download, and the
+  recap appendix — `ThemeTokens` stays the internal source of truth.
 - **Cancellation.** The orchestrator guards every `await` with `if (my !== this.runId)
   return`; `runId` bumps on a new `start()`/`startLive()`/`clear()`/`stop()`, so in-flight
   async work from a stale run self-cancels. Preserve this when adding awaits.

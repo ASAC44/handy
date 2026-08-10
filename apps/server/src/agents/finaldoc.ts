@@ -1,6 +1,6 @@
 import { finalDocModel } from "../llm";
 import { extractHtml, type StreamResult } from "./prototype";
-import { finalDocSystemFor, type MeetingSummary, type ThemeKey, type ThemeTokens, THEMES, RECOMMENDED } from "@sidebar/shared";
+import { finalDocSystemFor, toDesignMd, type MeetingSummary, type ThemeKey, type ThemeTokens, THEMES, RECOMMENDED } from "@sidebar/shared";
 
 /** A prototype produced during the meeting, embedded in the recap's gallery. */
 export interface RecapArtifact {
@@ -50,7 +50,8 @@ export async function finalDocLive(input: RecapInput, onToken: (delta: string) =
   const ms = Math.round(performance.now() - t0);
   const tokens = Math.round(html.length / 4);
   const theme = input.theme ?? THEMES[RECOMMENDED];
-  const doc = injectGallery(extractHtml(html), artifactGalleryHtml(input.artifacts, theme));
+  const appendix = artifactGalleryHtml(input.artifacts, theme) + designMdSectionHtml(input.theme, theme);
+  const doc = injectGallery(extractHtml(html), appendix);
   return { html: doc, ms, tokens, tokPerS: ms > 0 ? Math.round((tokens / ms) * 1000) : 0 };
 }
 
@@ -84,6 +85,20 @@ export function artifactGalleryHtml(artifacts: RecapArtifact[], t: ThemeTokens):
   );
 }
 
+/** The learned Design DNA, rendered as its Google DESIGN.md appendix — so the shareable
+ *  recap carries the meeting's design system in Google's portable token format. Styled
+ *  with the same theme so it reads of-a-piece. Empty when no design was ever picked. */
+export function designMdSectionHtml(theme: ThemeTokens | null, t: ThemeTokens): string {
+  if (!theme) return "";
+  return (
+    `<section style="margin:34px 0 0">` +
+    `<h2 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 6px;font-weight:700">This meeting&#39;s DESIGN.md</h2>` +
+    `<p style="font-size:12px;color:${t.mut};margin:0 0 12px">The learned Design DNA, exported in Google&#39;s DESIGN.md format (YAML tokens + prose).</p>` +
+    `<pre style="margin:0;padding:16px;background:${t.surface};border:1px solid ${t.border};border-radius:${t.radius};box-shadow:${t.shadow};color:${t.ink};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow:auto">${esc(toDesignMd(theme))}</pre>` +
+    `</section>`
+  );
+}
+
 /** Insert the gallery inside the document — before </body>, else before </html>, else
  *  appended — so a model that omits </body> still keeps the gallery in the body. */
 export function injectGallery(html: string, gallery: string): string {
@@ -109,7 +124,7 @@ export function buildRecapHtml(input: RecapInput): string {
         .map((a) => `<tr><td class="owner">${esc(a.owner || "unassigned")}</td><td>${esc(a.task)}</td></tr>`)
         .join("")}</tbody></table>`
     : "";
-  const gallery = artifactGalleryHtml(input.artifacts, t);
+  const gallery = artifactGalleryHtml(input.artifacts, t) + designMdSectionHtml(input.theme, t);
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meeting Recap</title><style>
 *{box-sizing:border-box}body{margin:0;background:${t.bg};color:${t.ink};font-family:${t.font};line-height:1.6;padding:44px 28px 64px;max-width:760px;margin:0 auto}
 .k{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:${t.accent};font-weight:700;margin:0 0 6px}

@@ -14,12 +14,17 @@ import {
   type FactcheckResult,
   type VariantInfo,
   type AgentName,
+  type PrototypeReview,
+  type ReviewIssue,
 } from "@sidebar/shared";
 import { mockStream, liveStream, evolveStream, getBaseline, type StreamResult } from "./agents/prototype";
 import { routeLive } from "./agents/router";
 import { summarizeLive } from "./agents/summarizer";
 import { factcheckLive } from "./agents/factcheck";
+import { reviewLive, reviewMock } from "./agents/critic";
+import { nextStepsLive, nextStepsMock } from "./agents/nextsteps";
 import { finalDocLive, buildRecapHtml, type RecapInput } from "./agents/finaldoc";
+import { prototypeModel } from "./llm";
 
 /** A completed prototype kept in memory — the base for the next evolution and the
  *  source for the final recap's artifact gallery. */
@@ -29,12 +34,25 @@ interface BuiltArtifact {
   intent: string;
   themeKey: ThemeKey;
   html: string;
+  variant?: VariantInfo;
 }
 
 const RATE = 0.6; // compress fixture pacing for a snappier replay
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 let buildSeq = 0;
 let liveTurnSeq = 0;
+/** Max review rounds per artifact: review (1) → refine → re-review (2) → refine → re-review (3). */
+const MAX_REVIEW_PASSES = 3;
+
+/** Compile a critic's fixable issues into a single edit instruction for the evolve pass. */
+function compileChange(issues: ReviewIssue[]): string {
+  const lines = issues.map((it, i) => `${i + 1}. [${it.severity}/${it.area}] ${it.what} — FIX: ${it.fix}`);
+  return (
+    "A reviewer flagged these fixable issues in the current prototype. Apply the smallest set of " +
+    "edits that fixes ALL of them while preserving everything that already works:\n" +
+    lines.join("\n")
+  );
+}
 
 /** Safe "do nothing" decision used when a live router call fails — skips the turn. */
 const NOOP_DECISION: RouterDecision = {
@@ -44,6 +62,24 @@ const NOOP_DECISION: RouterDecision = {
   factcheck: { trigger: false, claims: [] },
 };
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+/** Reject after `ms` if `p` hasn't settled — so a slow/hung agent call can't spin forever.
+ *  (The underlying request may keep running; this only unblocks the caller + the UI.) */
+function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(msg)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
 
 const PROTOTYPE_WORDS =
   /\b(build|make|mock|mockup|prototype|design|sketch|wireframe|dashboard|chart|graph|page|landing|board|kanban|flow|form|table|app|ui|screen|widget|visuali[sz]e)\b/i;
@@ -128,6 +164,9 @@ export class Orchestrator {
    *  and all of them are embedded in the final recap document. */
   private artifacts: BuiltArtifact[] = [];
   private lastTitle = "Live Meeting";
+  /** Artifacts already repaired once from a client render-failure report. The LOOP GUARD:
+   *  a page is auto-repaired at most once, so a persistently-broken render can't ping-pong. */
+  private renderRepaired = new Set<string>();
 
   constructor(private runtime: MeetingRuntime) {}
 
@@ -143,6 +182,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.renderRepaired.clear();
     this.liveQueue = Promise.resolve();
     this.awaitingPick = false;
     liveTurnSeq = 0;
@@ -251,6 +291,20 @@ export class Orchestrator {
       });
   }
 
+  /** A user clicked one of the generated next-step buttons under a prototype. Treat
+   *  that as an explicit prototype evolution request, bypassing the router. */
+  requestPrototypeNext(artifactId: string, intent: string, speaker?: string): void {
+    const clean = intent.replace(/\s+/g, " ").trim().slice(0, 240);
+    if (!clean) return;
+    const my = this.runId;
+    const by = speaker?.trim() || "Host";
+    this.liveQueue = this.liveQueue
+      .then(() => this.buildSuggestedNext(artifactId, clean, by, my))
+      .catch((err) => {
+        console.error("[nextstep] suggested prototype failed", errMsg(err));
+      });
+  }
+
   private send(ev: ServerEvent): void {
     this.runtime.send(ev);
   }
@@ -352,23 +406,24 @@ export class Orchestrator {
         variants.map((v) => this.streamOne(v.id, buildId, intent, usesScreen, v.themeKey, buildKey, 1850, my, v)),
       );
       if (my !== this.runId) return;
+      // Partner agent polishes EVERY variant in the background, in place — the variant
+      // cards keep updating while the room studies them and picks a direction.
+      for (const a of this.artifacts.filter((x) => x.buildId === buildId)) {
+        void this.reviewAndRefine(a, my).finally(() => {
+          void this.suggestNextSteps(a, my);
+        });
+      }
       if (config.agents === "mock") {
         // Unattended fixture replay: auto-pick the recommended theme after a short beat.
         const chosen = await this.awaitPickWithTimeout(buildId, 4200);
         if (my !== this.runId) return;
-        this.pruneFanout(buildId, chosen);
-        this.runtime.learn(chosen);
-        this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+        this.resolveFanout(buildId, chosen, my);
       } else {
         // Live: let the room decide in their own time — no auto-pick. Resolve OFF the
         // segment queue so the transcript / summary keep flowing while people choose.
         this.awaitingPick = true;
         void this.runtime.awaitPick(buildId).then((chosen) => {
-          this.awaitingPick = false;
-          if (my !== this.runId) return;
-          this.pruneFanout(buildId, chosen);
-          this.runtime.learn(chosen);
-          this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+          this.resolveFanout(buildId, chosen, my);
         });
       }
     } else {
@@ -382,6 +437,118 @@ export class Orchestrator {
         tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base));
       }
       await Promise.all(tasks);
+      if (my !== this.runId) return;
+      // Single learned-style build: review + refine before returning, so the next
+      // evolution clones the polished artifact (and the recap embeds the polished one).
+      const built = this.currentArtifact();
+      if (built && built.buildId === buildId) {
+        await this.reviewAndRefine(built, my);
+        await this.suggestNextSteps(built, my);
+      }
+    }
+  }
+
+  private async buildSuggestedNext(artifactId: string, intent: string, speaker: string, my: number): Promise<void> {
+    if (my !== this.runId || !this.runtime.agents.prototype) return;
+    const base = this.artifacts.find((a) => a.id === artifactId) ?? this.currentArtifact();
+    if (!base) return;
+
+    // Clicking a suggestion under a first-pass variant should count as choosing that
+    // design direction before we evolve it.
+    if (!this.runtime.learned && base.variant) {
+      this.resolveFanout(base.buildId, base.themeKey, my);
+      this.runtime.resolvePick(base.buildId, base.themeKey);
+    }
+
+    const text = `Next step: ${intent}`;
+    this.send({ type: "transcript.final", text, ts: Date.now(), speaker });
+    this.transcript.push(`${speaker}: ${text}`);
+
+    const buildId = `b${++buildSeq}`;
+    const theme = this.runtime.learned?.key ?? base.themeKey;
+    const buildKey: PrototypeKey = inferPrototypeKey(`${intent} ${base.intent}`);
+    const usesScreen = false;
+    const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base)];
+    if (this.runtime.abMode) {
+      tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base));
+    }
+    await Promise.all(tasks);
+    if (my !== this.runId) return;
+    const built = this.currentArtifact();
+    if (built && built.buildId === buildId) {
+      await this.reviewAndRefine(built, my);
+      await this.suggestNextSteps(built, my);
+    }
+  }
+
+  private async suggestNextSteps(a: BuiltArtifact, my: number): Promise<void> {
+    if (my !== this.runId || !this.runtime.agents.nextstep || !this.hasArtifact(a.id) || !a.html.trim()) return;
+    this.send({ type: "nextsteps.start", id: a.id, buildId: a.buildId });
+    this.telemetry("nextstep", 720, 140);
+    const theme = THEMES[a.themeKey];
+    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    try {
+      const suggestions =
+        config.agents === "mock"
+          ? await nextStepsMock(a.intent)
+          : await withTimeout(nextStepsLive(a.intent, transcript, a.html, theme), 8_000, "next-step suggestions timed out");
+      if (my !== this.runId || !this.hasArtifact(a.id)) return;
+      this.send({ type: "nextsteps.result", id: a.id, buildId: a.buildId, suggestions });
+    } catch (err) {
+      console.error("[nextstep] suggestions failed", errMsg(err));
+      if (my === this.runId && this.hasArtifact(a.id)) this.send({ type: "nextsteps.error", id: a.id, buildId: a.buildId });
+    }
+  }
+
+  /**
+   * Partner / critic loop: review a built artifact against the intent, and while the
+   * critic asks to `refine`, apply an edit pass (reuses the SEARCH/REPLACE evolve path)
+   * and re-review — up to MAX_REVIEW_PASSES. Mutates the artifact's HTML in place so it
+   * becomes the base for the next evolution and the version embedded in the recap.
+   * Emits `critic.*` so the UI can show the reviewer working. Honours the runId guard.
+   */
+  private async reviewAndRefine(a: BuiltArtifact, my: number): Promise<void> {
+    const theme = THEMES[a.themeKey];
+    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    for (let pass = 1; pass <= MAX_REVIEW_PASSES; pass++) {
+      if (my !== this.runId) return;
+      this.send({ type: "critic.start", id: a.id, buildId: a.buildId, pass });
+
+      let review: PrototypeReview;
+      try {
+        review =
+          config.agents === "mock"
+            ? await reviewMock(a.intent)
+            : await withTimeout(reviewLive(a.intent, transcript, a.html, theme), 12_000, "review timed out");
+      } catch (err) {
+        console.error("[critic] review failed", errMsg(err));
+        // Settle the UI so the "reviewing…" chip clears instead of spinning forever.
+        if (my === this.runId) this.send({ type: "critic.error", id: a.id, buildId: a.buildId });
+        return; // never block on a failed/slow review
+      }
+      if (my !== this.runId) return;
+
+      const willRefine = config.agents !== "mock" && review.verdict === "refine" && review.issues.length > 0 && pass < MAX_REVIEW_PASSES;
+      this.send({ type: "critic.result", id: a.id, buildId: a.buildId, pass, review, final: !willRefine });
+      if (!willRefine) return;
+
+      // Refine: edit the current document to address the flagged issues.
+      try {
+        const r = await evolveStream(a.html, compileChange(review.issues), transcript, theme, null, () => {}, prototypeModel());
+        if (my !== this.runId) return;
+        if (r.html && r.html !== a.html) {
+          a.html = r.html; // base for the next evolution + the recap
+          this.send({ type: "critic.refined", id: a.id, buildId: a.buildId, pass, html: r.html, ms: r.ms });
+        } else {
+          // The edit couldn't be applied (no-op) — settle the UI as reviewed and stop.
+          this.send({ type: "critic.result", id: a.id, buildId: a.buildId, pass, review, final: true });
+          return;
+        }
+      } catch (err) {
+        console.error("[critic] refine failed", errMsg(err));
+        this.send({ type: "critic.result", id: a.id, buildId: a.buildId, pass, review, final: true });
+        return;
+      }
     }
   }
 
@@ -393,10 +560,28 @@ export class Orchestrator {
     this.artifacts.push(a);
   }
 
+  private hasArtifact(id: string): boolean {
+    return this.artifacts.some((a) => a.id === id);
+  }
+
+  /** Resolve a fan-out once, whether the room clicked "use this design" or a
+   *  suggestion button under a variant implicitly chose that direction. */
+  private resolveFanout(buildId: string, chosen: ThemeKey, my: number): void {
+    const stillHasVariants = this.artifacts.some((a) => a.buildId === buildId && a.variant);
+    if (!this.awaitingPick && !stillHasVariants) return;
+    this.awaitingPick = false;
+    if (my !== this.runId) return;
+    this.pruneFanout(buildId, chosen);
+    this.runtime.learn(chosen);
+    this.send({ type: "fanout.resolved", buildId, chosenThemeKey: chosen });
+  }
+
   /** After a fan-out pick, drop the losing variants so the chosen one is the base for
    *  the next evolution and the only entry in the recap for that build. */
   private pruneFanout(buildId: string, chosen: ThemeKey): void {
-    this.artifacts = this.artifacts.filter((a) => a.buildId !== buildId || a.themeKey === chosen);
+    this.artifacts = this.artifacts
+      .filter((a) => a.buildId !== buildId || a.themeKey === chosen)
+      .map((a) => (a.buildId === buildId && a.themeKey === chosen ? { ...a, variant: undefined } : a));
   }
 
   private async streamOne(
@@ -446,7 +631,7 @@ export class Orchestrator {
     this.telemetry("prototype", tokPerS, tokens);
     this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey });
     // Remember the canonical (non-baseline) build: base for the next evolution + recap.
-    if (!baseline) this.recordArtifact({ id, buildId, intent, themeKey, html });
+    if (!baseline) this.recordArtifact({ id, buildId, intent, themeKey, html, variant });
   }
 
   private async awaitPickWithTimeout(buildId: string, ms: number): Promise<ThemeKey> {
