@@ -21,6 +21,25 @@ import { config } from "./config";
  * The model self-terminates well under these ceilings, so a generous cap costs ~0
  * latency; it only ever bites when the model genuinely needs the room.
  */
+/** Official OpenAI GPT-5 Chat Completions uses `max_completion_tokens` and,
+ *  when reasoning is enabled, rejects custom sampling controls. Keep the
+ *  existing Cerebras/OpenAI-compatible request shape unchanged everywhere
+ *  else. */
+export function normalizeProviderParameters(
+  baseUrl: string,
+  modelId: string,
+  defaultParameters: Record<string, unknown>,
+): Record<string, unknown> {
+  const officialOpenAiGpt5 =
+    baseUrl.toLowerCase().includes("api.openai.com") && /^gpt-5(?:-|$)/i.test(modelId);
+  if (!officialOpenAiGpt5) return defaultParameters;
+
+  const { max_tokens, temperature: _temperature, top_p: _topP, ...parameters } = defaultParameters;
+  return max_tokens === undefined
+    ? parameters
+    : { ...parameters, max_completion_tokens: max_tokens };
+}
+
 function cerebras(defaultParameters: Record<string, unknown>): AIModel {
   return new AIModel({
     model: config.modelId,
@@ -28,7 +47,11 @@ function cerebras(defaultParameters: Record<string, unknown>): AIModel {
     providers: [
       { type: "openai", url: config.cerebrasBaseUrl, apiKey: config.cerebrasApiKey },
     ],
-    defaultParameters,
+    defaultParameters: normalizeProviderParameters(
+      config.cerebrasBaseUrl,
+      config.modelId,
+      defaultParameters,
+    ),
   });
 }
 
