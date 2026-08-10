@@ -81,7 +81,7 @@
       "id": "growth-sync-en",
       "title": "Growth Sync (English)",
       "lang": "en",
-      "setting": "English twin of growth-sync-ptbr — a tired but lively Monday metrics sync. Churn is creeping up; someone's sick of the spreadsheet scavenger hunt; a dashboard gets wished for offhand amid puppy chaos and a possessed coffee machine. Quick, funny, real — minimal dead air.",
+      "setting": "English twin of growth-sync-ptbr — a tired but lively Monday metrics sync, denser this time. Churn is creeping up three months running, MRR's growing but net-new is slowing, and someone wonders aloud how that stacks up against the benchmark (a factcheckable aside). A single dashboard — trend + goal line, MRR, retention, SMB-vs-mid-market — gets wished for offhand amid puppy chaos and a possessed coffee machine, and two follow-ups get handed out. Quick, funny, real — packed but never a spec.",
       "participants": [
         { "name": "Sam", "voice_id": "Fahco4VZzobUeiPqni1S", "voice_name": "male-a" },
         { "name": "Priya", "voice_id": "DODLEQrClDo8wCz460ld", "voice_name": "Lauren" },
@@ -89,22 +89,29 @@
         { "name": "Lena", "voice_id": "MClEFoImJXBTgLwdLI5n", "voice_name": "Ivy" }
       ],
       "turns": [
-        { "speaker": "Sam", "kind": "offtopic", "say": "Okay, we're rolling. Morning! How was everyone's weekend — someone make it sound fun.", "text": "Okay, we're rolling. Morning! How was everyone's weekend, someone make it sound fun." },
+        { "speaker": "Sam", "kind": "offtopic", "say": "Okay, we're rolling. Morning! How was everyone's weekend — somebody make it sound fun.", "text": "Okay, we're rolling. Morning! How was everyone's weekend, somebody make it sound fun." },
         { "speaker": "Marcus", "kind": "offtopic", "say": "[laughs] Mine was a disaster. Got a puppy Saturday, haven't slept since. It ate an entire shoe, Sam. A WHOLE shoe.", "text": "Mine was a disaster. Got a puppy Saturday, haven't slept since. It ate an entire shoe, Sam. A whole shoe." },
         { "speaker": "Priya", "kind": "offtopic", "say": "[laughs] Just the one shoe? Rookie numbers.", "text": "Just the one shoe? Rookie numbers." },
-        { "speaker": "Sam", "say": "[laughs] Okay, okay — before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me.", "text": "Okay, okay, before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me." },
-        { "speaker": "Marcus", "note": "numbers", "say": "Ugh, don't. It's up again. Four-one this month, we were at three-six.", "text": "Ugh, don't. It's up again. Four one this month, we were at three six." },
+        { "speaker": "Sam", "say": "[laughs] Okay — before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me.", "text": "Okay, before Marcus pulls up puppy photos, can we do numbers? Marcus, churn, hit me." },
+        { "speaker": "Marcus", "note": "numbers", "say": "Ugh, don't. It's up again. Four-one this month — we were at three-six.", "text": "Ugh, don't. It's up again. Four one this month, we were at three six." },
         { "speaker": "Lena", "say": "[groans] That's three months straight it's been climbing.", "text": "That's three months straight it's been climbing." },
-        { "speaker": "Priya", "note": "pain point", "say": "And I always find out by digging through, like, four spreadsheets. Every Monday it's a little archaeology dig.", "text": "And I always find out by digging through, like, four spreadsheets. Every Monday it's a little archaeology dig." },
+        { "speaker": "Sam", "say": "And MRR — where'd we land?", "text": "And MRR, where'd we land?" },
+        { "speaker": "Marcus", "note": "numbers (MRR, net-new slowing)", "say": "One-forty-two, still growing. But the churn's eating the new logos — net new's down to like four K.", "text": "One forty two, still growing. But the churn's eating the new logos, net new's down to like four K." },
+        { "speaker": "Priya", "note": "factcheckable external claim (benchmark) — should trip the live factcheck agent", "say": "Wait — isn't healthy SaaS churn supposed to be, like, under three percent? We're way past that.", "text": "Wait, isn't healthy SaaS churn supposed to be, like, under three percent? We're way past that." },
+        { "speaker": "Lena", "note": "pain point — retention/cohort curve is never on hand (sets up the retention panel)", "say": "And retention I basically never see. I'd have to rebuild the cohort curve by hand every single time.", "text": "And retention I basically never see. I'd have to rebuild the cohort curve by hand every single time." },
+        { "speaker": "Priya", "note": "pain point — the four spreadsheets", "say": "Right? And I get all of this by digging through, like, four spreadsheets every Monday. It's a little archaeology dig.", "text": "Right? And I get all of this by digging through, like, four spreadsheets every Monday. It's a little archaeology dig." },
         { "speaker": "Marcus", "kind": "crosstalk", "overlapMs": 700, "say": "[overlapping] —the archaeology dig, exactly—", "text": "the archaeology dig, exactly" },
-        { "speaker": "Sam", "say": "Right? By the time I've actually got the number, it's already out of date.", "text": "Right? By the time I've actually got the number, it's already out of date." },
-        { "speaker": "Lena", "note": "buildable intent (dashboard) — buried & softened: retention implied ('who's actually still with us'), metrics not a clean triplet", "say": "Honestly? I just want one screen I can glance at and go, okay we're fine, or, oh no. The churn, the revenue, who's actually still with us. That's it. That's the whole wish.", "text": "Honestly? I just want one screen I can glance at and go, okay we're fine, or, oh no. The churn, the revenue, who's actually still with us. That's it. That's the whole wish." },
+        { "speaker": "Sam", "say": "And by the time I've actually got the number, it's already out of date.", "text": "And by the time I've actually got the number, it's already out of date." },
+        { "speaker": "Lena", "note": "buildable intent (dashboard) — buried as a wish, richer: trend + goal line, MRR, retention ('who's still with us'), SMB-vs-mid-market split", "say": "Honestly? I just want ONE screen I can glance at. The churn over time — with a line for where we actually want to be — the MRR, and who's still with us. And split it SMB versus mid-market, 'cause that's where it's bleeding.", "text": "Honestly? I just want one screen I can glance at. The churn over time, with a line for where we actually want to be, the MRR, and who's still with us. And split it SMB versus mid-market, because that's where it's bleeding." },
         { "speaker": "Marcus", "say": "And it updates itself. I never want to touch another CSV as long as I live.", "text": "And it updates itself. I never want to touch another CSV as long as I live." },
         { "speaker": "Priya", "kind": "crosstalk", "overlapMs": 650, "say": "[overlapping] —death to CSVs—", "text": "death to CSVs" },
-        { "speaker": "Sam", "kind": "offtopic", "say": "[laughs] Strong. Okay, completely unrelated — is the coffee machine possessed? Mine handed me hot water and contempt this morning.", "text": "Strong. Okay, completely unrelated, is the coffee machine possessed? Mine handed me hot water and contempt this morning." },
-        { "speaker": "Lena", "kind": "offtopic", "say": "[laughs] It spelled my name Lemma. I've accepted it. I'm Lemma now.", "text": "It spelled my name Lemma. I've accepted it. I'm Lemma now." },
-        { "speaker": "Sam", "say": "[laughs] Welcome, Lemma. Okay — Marcus, can you get me the churn cohorts by Thursday, before I lose it?", "text": "Welcome, Lemma. Okay, Marcus, can you get me the churn cohorts by Thursday, before I lose it?" },
-        { "speaker": "Marcus", "say": "On it. Right after the puppy's nap.", "text": "On it. Right after the puppy's nap." }
+        { "speaker": "Sam", "say": "[laughs] Okay, that — yeah. That'd genuinely save my whole Monday.", "text": "Okay, that, yeah. That'd genuinely save my whole Monday." },
+        { "speaker": "Lena", "kind": "offtopic", "say": "[laughs] Oh — the coffee machine spelled my name Lemma this morning. I've accepted it. I'm Lemma now.", "text": "Oh, the coffee machine spelled my name Lemma this morning. I've accepted it. I'm Lemma now." },
+        { "speaker": "Marcus", "kind": "offtopic", "say": "[laughs] Honestly? Lemma's an upgrade.", "text": "Honestly? Lemma's an upgrade." },
+        { "speaker": "Sam", "note": "action item", "say": "[laughs] Okay, focus, focus. Marcus — can you get me the churn cohorts by Thursday, before I lose it?", "text": "Okay, focus, focus. Marcus, can you get me the churn cohorts by Thursday, before I lose it?" },
+        { "speaker": "Marcus", "say": "On it. Right after the puppy's nap.", "text": "On it. Right after the puppy's nap." },
+        { "speaker": "Sam", "note": "action item", "say": "And Priya — send me the MRR waterfall so we stop eyeballing it?", "text": "And Priya, send me the MRR waterfall so we stop eyeballing it?" },
+        { "speaker": "Priya", "say": "Yep. Dropping it right after this.", "text": "Yep. Dropping it right after this." }
       ]
     }
   ]

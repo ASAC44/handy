@@ -1,7 +1,7 @@
-import type { RouterDecision, MeetingSummary, FactcheckResult } from "./schemas";
+import type { RouterDecision, MeetingSummary, FactcheckResult, PrototypeReview, PrototypeSuggestion } from "./schemas";
 import type { ThemeKey, ThemeTokens } from "./themes";
 
-export type AgentName = "router" | "summarizer" | "prototype" | "factcheck";
+export type AgentName = "router" | "summarizer" | "prototype" | "factcheck" | "nextstep";
 /** Global on/off per agent — lets you isolate the audio path or a single agent for testing. */
 export type AgentToggles = Record<AgentName, boolean>;
 
@@ -93,6 +93,18 @@ export type ServerEvent =
   | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string }
   | { type: "prototype.token"; id: string; delta: string }
   | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey }
+  // Partner / critic agent reviewing a built artifact (id), then refining it in place.
+  // `pass` is the 1-based review round; `final` marks the last review (shipped or capped).
+  | { type: "critic.start"; id: string; buildId: string; pass: number }
+  | { type: "critic.result"; id: string; buildId: string; pass: number; review: PrototypeReview; final: boolean }
+  | { type: "critic.refined"; id: string; buildId: string; pass: number; html: string; ms: number }
+  // Review couldn't complete (model error / timeout) — settle the artifact's UI so the
+  // "reviewing…" chip clears instead of spinning forever.
+  | { type: "critic.error"; id: string; buildId: string }
+  // Follow-up design suggestions shown as action buttons below a ready prototype.
+  | { type: "nextsteps.start"; id: string; buildId: string }
+  | { type: "nextsteps.result"; id: string; buildId: string; suggestions: PrototypeSuggestion[] }
+  | { type: "nextsteps.error"; id: string; buildId: string }
   | { type: "fanout.resolved"; buildId: string; chosenThemeKey: ThemeKey }
   | { type: "dna.update"; theme: ThemeTokens | null }
   | { type: "factcheck.result"; result: FactcheckResult }
@@ -130,6 +142,10 @@ export type ClientEvent =
   | { type: "screen.frame"; dataUri: string; width: number; height: number; ts: number }
   | { type: "capture.status"; screen: boolean; speech: boolean; host?: string }
   | { type: "pick"; buildId: string; themeKey: ThemeKey }
+  | { type: "prototype.next"; artifactId: string; buildId: string; intent: string }
+  // A rendered artifact's iframe reported runtime/CDN/load failures — feed them to the
+  // repair (critic/evolve) agent. Server is host-gated + caps repairs per artifact (no loop).
+  | { type: "prototype.renderReport"; artifactId: string; buildId: string; errors: string[] }
   | { type: "resetTaste" }
   | { type: "setAbMode"; enabled: boolean }
   | { type: "setAgent"; agent: AgentName; enabled: boolean }
