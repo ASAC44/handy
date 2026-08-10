@@ -28,7 +28,7 @@ interface PanelProps {
 const PANELS: Record<PanelId, { title: string; render: (p: PanelProps) => ReactNode }> = {
   transcript: { title: "Live transcript", render: (p) => <Transcript {...p} /> },
   summary: { title: "Rolling summary", render: (p) => <Summary state={p.state} /> },
-  factcheck: { title: "Fact-check", render: (p) => <FactCheck state={p.state} /> },
+  factcheck: { title: "Fact & safety", render: (p) => <FactCheck state={p.state} /> },
 };
 
 interface RailProps {
@@ -423,9 +423,21 @@ function Sec<T>({
 function FactCheck({ state }: { state: HandyState }) {
   return (
     <>
-      <div className="panel-h factcheck-h">Fact-check</div>
+      <div className="panel-h factcheck-h">Fact &amp; safety</div>
       <div className="panel-b factcheck-b">
-        {state.factchecks.length === 0 && <div className="empty">No checkable claims yet.</div>}
+        {state.factchecks.length === 0 && state.impacts.length === 0 && <div className="empty">No claims or changes checked yet.</div>}
+        {state.impacts.map((impact, i) => (
+          <div className="impact" key={`${impact.change}-${i}`}>
+            <div className="claim">&ldquo;{impact.change}&rdquo;</div>
+            <div className="row">
+              <span className={"impactVerdict " + impact.verdict}>
+                {impact.verdict === "known-impact" ? "review impact" : impact.verdict === "low-known-impact" ? "low known impact" : "unavailable"}
+              </span>
+              {impact.affected.length ? <span className="conf">{impact.affected.length} downstream</span> : null}
+            </div>
+            <div className="note">{impact.note}</div>
+          </div>
+        ))}
         {state.factchecks.map((f, i) => (
           <div className="fc" key={i}>
             <div className="claim">&ldquo;{f.claim}&rdquo;</div>

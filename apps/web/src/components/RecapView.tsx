@@ -28,6 +28,7 @@ export function RecapView({
   const exportFiles = useMemo(() => orderedExportFiles(state.exports.files), [state.exports.files]);
   const recapFile = exportFiles.find((file) => file.kind === "recap");
   const manifestFile = state.exports.files.find((file) => file.kind === "manifest");
+  const meetingMemory = state.datahubMemory.find((memory) => memory.kind === "meeting");
 
   const download = (): void => {
     if (!renderedHtml) return;
@@ -58,6 +59,7 @@ export function RecapView({
                 <>Final recap ready{doc?.ms ? ` · ${(doc.ms / 1000).toFixed(1)}s` : ""}</>
               )}
             </div>
+            {meetingMemory ? <div className={"recapMemory " + meetingMemory.status}>DataHub memory {meetingMemory.status}</div> : null}
           </div>
         </div>
         <div className="recapActions">
