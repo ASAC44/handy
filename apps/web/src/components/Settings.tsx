@@ -3,7 +3,7 @@ import type { ClientEvent, AgentName } from "@sidebar/shared";
 import type { SidebarState } from "../ws";
 import { ThemeToggle } from "./ThemeToggle";
 
-const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck"];
+const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck", "nextstep"];
 
 /** Gear in the masthead → a small settings popover. Houses the low-frequency controls
  *  that used to clutter the top bar (theme) and footer (A/B race), plus a discoverable

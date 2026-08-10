@@ -390,6 +390,7 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
         <PrototypeLightbox
           artifact={expanded}
           artifacts={state.artifacts}
+          send={send}
           onSelect={(id) => setExpandedId(id)}
           onClose={() => setExpandedId(null)}
         />
@@ -554,6 +555,7 @@ function ArtifactCard({
           </div>
         ) : null}
       </div>
+      <NextStepButtons artifact={a} send={send} />
       {isVar && (
         <div className="art-foot">
           <button
@@ -615,6 +617,38 @@ function ScaledArtifactPreview({ artifact }: { artifact: Art }) {
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function NextStepButtons({ artifact, send }: { artifact: Art; send: (e: ClientEvent) => void }) {
+  if (artifact.status !== "done") return null;
+  if (artifact.nextStepsState === "thinking") {
+    return (
+      <div className="nextsteps loading" aria-label="Generating next-step suggestions" onPointerDown={(e) => e.stopPropagation()}>
+        <i />
+        <i />
+        <i />
+      </div>
+    );
+  }
+  const suggestions = artifact.nextSteps?.slice(0, 3) ?? [];
+  if (!suggestions.length) return null;
+  return (
+    <div className="nextsteps" onPointerDown={(e) => e.stopPropagation()}>
+      {suggestions.map((item) => (
+        <button
+          key={`${artifact.id}-${item.label}`}
+          type="button"
+          data-tip={item.intent}
+          onClick={(e) => {
+            e.stopPropagation();
+            send({ type: "prototype.next", artifactId: artifact.id, buildId: artifact.buildId, intent: item.intent });
+          }}
+        >
+          {item.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -770,11 +804,13 @@ function Inspector({
 function PrototypeLightbox({
   artifact,
   artifacts,
+  send,
   onSelect,
   onClose,
 }: {
   artifact: Art;
   artifacts: Art[];
+  send: (e: ClientEvent) => void;
   onSelect: (id: string) => void;
   onClose: () => void;
 }) {
@@ -880,6 +916,7 @@ function PrototypeLightbox({
             </div>
           </div>
         </div>
+        <NextStepButtons artifact={artifact} send={send} />
         <button
           className="prototype-arrow prev"
           data-tip="Previous prototype"
@@ -1091,6 +1128,8 @@ function kindLabel(kind: ActivityEvent["kind"]): string {
       return "render";
     case "critic":
       return "review";
+    case "nextstep":
+      return "next";
     case "pick":
       return "pick";
     case "dna":

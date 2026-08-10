@@ -1,7 +1,7 @@
 import type { SidebarState } from "../ws";
 import type { ClientEvent, AgentName } from "@sidebar/shared";
 
-const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck"];
+const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck", "nextstep"];
 
 export function Bottom({
   state,

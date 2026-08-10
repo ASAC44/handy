@@ -11,6 +11,7 @@ import {
   type VariantInfo,
   type AgentName,
   type PrototypeReview,
+  type PrototypeSuggestion,
   type AgentToggles,
   type ParticipantPresence,
   type CursorPing,
@@ -42,6 +43,9 @@ export interface Artifact {
   review?: PrototypeReview;
   reviewState?: "reviewing" | "refining" | "reviewed";
   reviewPass?: number;
+  /** Follow-up design moves generated once the prototype is ready. */
+  nextSteps?: PrototypeSuggestion[];
+  nextStepsState?: "thinking" | "ready" | "error";
 }
 export interface Telem { tokPerS: number; tokens: number; latencyMs: number }
 /** The final meeting document (themed HTML recap) streamed when the host ends. */
@@ -65,6 +69,7 @@ export type ActivityKind =
   | "prototype"
   | "complete"
   | "critic"
+  | "nextstep"
   | "pick"
   | "dna"
   | "end";
@@ -359,6 +364,29 @@ function reducer(s: SidebarState, a: Action): SidebarState {
     case "critic.error":
       // Review failed/timed out — clear the spinner; leave the artifact otherwise intact.
       return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, reviewState: "reviewed" } : p)) };
+    case "nextsteps.start":
+      return {
+        ...s,
+        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, nextSteps: undefined, nextStepsState: "thinking" } : p)),
+      };
+    case "nextsteps.result": {
+      const patch = appendActivity(s, {
+        kind: "nextstep",
+        title: ev.suggestions.length ? `${ev.suggestions.length} next step${ev.suggestions.length === 1 ? "" : "s"} suggested` : "No next steps suggested",
+        detail: ev.suggestions.map((item) => item.label).join(", "),
+        buildId: ev.buildId,
+        artifactId: ev.id,
+      });
+      return {
+        ...s,
+        artifacts: s.artifacts.map((p) =>
+          p.id === ev.id ? { ...p, nextSteps: ev.suggestions.slice(0, 3), nextStepsState: "ready" } : p,
+        ),
+        ...patch,
+      };
+    }
+    case "nextsteps.error":
+      return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, nextStepsState: "error" } : p)) };
     case "fanout.resolved": {
       const artifacts = s.artifacts
         .filter((p) => p.buildId !== ev.buildId || !p.variant || p.themeKey === ev.chosenThemeKey)
