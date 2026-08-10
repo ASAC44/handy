@@ -311,11 +311,7 @@ presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
 
 ## License
 
-&copy; 2026 Igor Lins e Silva &amp; Dominique Deschatre. **All rights reserved.**
-This repository is **source-available for evaluation, not open source** — see
-[LICENSE](LICENSE). No use, modification, or redistribution without written
-permission; an open license may follow later. We're not taking external PRs for
-now (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+Licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
