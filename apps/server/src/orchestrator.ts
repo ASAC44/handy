@@ -552,6 +552,62 @@ export class Orchestrator {
     }
   }
 
+  /**
+   * Repair a prototype whose LIVE iframe reported runtime/CDN/load failures (things the
+   * static critic can't see — a script that 404'd, Tailwind that never initialized, a JS
+   * throw). Runs ONE evolve pass targeting those exact errors, surfaced through the same
+   * `critic.*` UI as the partner agent. Host-gated at the call site.
+   *
+   * LOOP GUARD: each artifact is repaired at most once (`renderRepaired`). If the page is
+   * STILL broken after the fix, the next report is ignored — we surface + attempt once,
+   * never ping-pong. (Also no-op in mock mode and when the artifact/build is unknown.)
+   */
+  async repairRender(artifactId: string, buildId: string, errors: string[]): Promise<void> {
+    if (config.agents === "mock" || !errors.length) return;
+    const a = this.artifacts.find((x) => x.id === artifactId && x.buildId === buildId);
+    if (!a || this.renderRepaired.has(artifactId)) return;
+    this.renderRepaired.add(artifactId);
+
+    const my = this.runId;
+    const theme = THEMES[a.themeKey];
+    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    const change =
+      "The rendered prototype reported these BROWSER runtime/load failures. Fix them so it renders " +
+      "correctly — correct or replace a failed resource URL, guard against the missing dependency, or " +
+      "inline a minimal fallback. Change as little else as possible:\n" +
+      errors.slice(0, 8).map((e, i) => `${i + 1}. ${e}`).join("\n");
+
+    this.send({ type: "critic.start", id: a.id, buildId, pass: 1 });
+    try {
+      const r = await withTimeout(
+        evolveStream(a.html, change, transcript, theme, null, () => {}, prototypeModel()),
+        30_000,
+        "render repair timed out",
+      );
+      if (my !== this.runId) return;
+      if (r.html && r.html !== a.html) {
+        a.html = r.html; // base for the next evolution + the recap
+        this.send({ type: "critic.refined", id: a.id, buildId, pass: 1, html: r.html, ms: r.ms });
+      }
+      this.send({
+        type: "critic.result",
+        id: a.id,
+        buildId,
+        pass: 1,
+        review: {
+          verdict: "ship",
+          score: 0.8,
+          summary: `Repaired ${errors.length} render issue${errors.length === 1 ? "" : "s"} reported by the browser.`,
+          issues: [],
+        },
+        final: true,
+      });
+    } catch (err) {
+      console.error("[repair] render repair failed", errMsg(err));
+      if (my === this.runId) this.send({ type: "critic.error", id: a.id, buildId });
+    }
+  }
+
   private currentArtifact(): BuiltArtifact | undefined {
     return this.artifacts[this.artifacts.length - 1];
   }

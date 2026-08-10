@@ -319,6 +319,11 @@ export class Room implements MeetingRuntime {
       case "prototype.next":
         if (!this.ended) this.orch.requestPrototypeNext(ev.artifactId, ev.intent, this.presence.get(ws)?.name);
         break;
+      case "prototype.renderReport":
+        // Host-authoritative so one shared repair runs (not one per guest); the
+        // orchestrator caps it to one attempt per artifact so it can't loop.
+        if (this.isHost(ws) && !this.ended) void this.orch.repairRender(ev.artifactId, ev.buildId, ev.errors);
+        break;
       case "resetTaste":
         this.learned = null;
         this.send({ type: "dna.update", theme: null });
