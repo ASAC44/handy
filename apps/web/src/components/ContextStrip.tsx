@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type DragEvent, type RefCallback } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type RefCallback } from "react";
 import type { ClientEvent, ContextBundle } from "@handy/shared";
 import type { HandyState } from "../ws";
 import { authHeaders } from "../auth";
@@ -87,11 +87,19 @@ export function ContextStrip({
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const [filterNote, setFilterNote] = useState("");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const self = state.presence.find((p) => p.id === state.selfId);
   const items = state.context.items;
   const pending = items.filter((i) => i.status === "pending");
   const accepted = items.filter((i) => i.status === "accepted");
   const mine = items.filter((i) => i.uploadedBy === state.selfId).slice(0, 3);
+
+  useEffect(() => {
+    if (!filterNote) return;
+    const timer = setTimeout(() => setFilterNote(""), 2400);
+    return () => clearTimeout(timer);
+  }, [filterNote]);
 
   const upload = async (incoming: UploadFile[] | FileList | null): Promise<void> => {
     const files = await normalizeUploadFiles(incoming);
@@ -121,6 +129,7 @@ export function ContextStrip({
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `Upload failed (${res.status})`);
       }
+      setPanelOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -182,10 +191,17 @@ export function ContextStrip({
     }
   };
 
-  const accept = (id: string): void => send({ type: "context.accept", id });
-  const reject = (id: string): void => send({ type: "context.reject", id });
+  const accept = (id: string): void => {
+    send({ type: "context.accept", id });
+    if (pending.length === 1) setPanelOpen(false);
+  };
+  const reject = (id: string): void => {
+    send({ type: "context.reject", id });
+    if (pending.length === 1) setPanelOpen(false);
+  };
+  const remove = (id: string): void => send({ type: "context.remove", id });
   const clear = (): void => send({ type: "context.clear" });
-  const queue = hostMode ? pending.slice(0, 3) : mine;
+  const visiblePending = hostMode ? pending : mine.filter((item) => item.status === "pending");
 
   return (
     <div
@@ -204,14 +220,16 @@ export function ContextStrip({
       onDrop={(e) => void onDrop(e)}
     >
       <input ref={fileRef} type="file" multiple hidden onChange={(e: ChangeEvent<HTMLInputElement>) => void upload(e.target.files)} />
-      <span className="ctxK">context</span>
-      <span className="ctxCount">
+      <button className="ctxLedgerBtn" type="button" aria-expanded={panelOpen} onClick={() => setPanelOpen((open) => !open)}>
+        <span className="ctxK">context</span>
+        <span className="ctxCount">
         {accepted.length} accepted
         {pending.length ? ` · ${pending.length} pending` : ""}
-      </span>
-      <span className={"dhStatus " + state.datahub.status} title={state.datahub.message ?? state.datahub.query}>
+        </span>
+      </button>
+      <button className={"dhStatus " + state.datahub.status} type="button" title={state.datahub.message ?? state.datahub.query} onClick={() => setPanelOpen(true)}>
         DataHub {dataHubLabel(state.datahub.status, state.datahub.sources.length)}
-      </span>
+      </button>
       <span className="ctxDrop">Drop files / folders</span>
       <div className="ctxActions">
         {busy ? <span className="ctxBusy">scanning</span> : error ? <span className="ctxErr">{error}</span> : filterNote ? <span className="ctxOk">{filterNote}</span> : null}
@@ -235,11 +253,38 @@ export function ContextStrip({
         ) : null}
         <div className="ctxCanvasControls" ref={controlsRef} />
       </div>
-      {queue.length ? (
-        <div className="ctxQueue">
-          {queue.map((item) => (
-            <ContextRow key={item.id} item={item} memory={state.datahubMemory.find((entry) => entry.kind === "file" && entry.id === item.id)} hostMode={hostMode} onAccept={accept} onReject={reject} />
-          ))}
+      {panelOpen ? (
+        <div className="ctxQueue" role="dialog" aria-label="Knowledge in this meeting">
+          <div className="ctxPanelHead">
+            <div>
+              <b>Knowledge in this meeting</b>
+              <span>Files and DataHub sources shaping every agent</span>
+            </div>
+            <button type="button" aria-label="Close knowledge panel" onClick={() => setPanelOpen(false)}>×</button>
+          </div>
+          {visiblePending.length ? (
+            <section className="ctxSection">
+              <div className="ctxSectionTitle">Needs review</div>
+              {visiblePending.map((item) => (
+                <ContextRow key={item.id} item={item} hostMode={hostMode} onAccept={accept} onReject={reject} onRemove={remove} onView={setPreviewId} expanded={previewId === item.id} />
+              ))}
+            </section>
+          ) : null}
+          <section className="ctxSection">
+            <div className="ctxSectionTitle">Meeting files <span>{accepted.length}</span></div>
+            {accepted.length ? accepted.map((item) => (
+              <ContextRow key={item.id} item={item} memory={state.datahubMemory.find((entry) => entry.kind === "file" && entry.id === item.id)} hostMode={hostMode} onAccept={accept} onReject={reject} onRemove={remove} onView={setPreviewId} expanded={previewId === item.id} />
+            )) : <div className="ctxEmpty">No accepted files yet.</div>}
+          </section>
+          <section className="ctxSection">
+            <div className="ctxSectionTitle">DataHub sources <span>{state.datahub.sources.length}</span></div>
+            {state.datahub.sources.length ? state.datahub.sources.map((source) => (
+              <a className="dhSource" key={source.urn} href={source.url} target="_blank" rel="noreferrer" title={source.urn}>
+                <span>{source.kind}</span><b>{source.title}</b><i>open ↗</i>
+              </a>
+            )) : <div className="ctxEmpty">Relevant catalog sources appear here as the meeting moves.</div>}
+          </section>
+          <div className="ctxDurable">Accepted files are saved to DataHub memory. Removing one here only removes it from this meeting.</div>
         </div>
       ) : null}
     </div>
@@ -252,12 +297,18 @@ function ContextRow({
   hostMode,
   onAccept,
   onReject,
+  onRemove,
+  onView,
+  expanded,
 }: {
   item: ContextBundle;
   memory?: HandyState["datahubMemory"][number];
   hostMode: boolean;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
+  onRemove: (id: string) => void;
+  onView: (id: string | null) => void;
+  expanded: boolean;
 }) {
   return (
     <div className={"ctxItem " + item.status}>
@@ -270,12 +321,16 @@ function ContextRow({
       </span>
       {hostMode && item.status === "pending" ? (
         <span className="ctxReview">
-          <button onClick={() => onAccept(item.id)}>accept</button>
-          <button onClick={() => onReject(item.id)}>reject</button>
+          <button className="accept" onClick={() => onAccept(item.id)}>accept</button>
+          <button className="reject" onClick={() => onReject(item.id)}>reject</button>
         </span>
       ) : (
-        <span className="ctxStatus">{item.status}</span>
+        <span className="ctxReview">
+          {item.preview ? <button type="button" onClick={() => onView(expanded ? null : item.id)}>{expanded ? "hide" : "view"}</button> : null}
+          {hostMode && item.status === "accepted" ? <button className="remove" type="button" onClick={() => onRemove(item.id)}>remove</button> : null}
+        </span>
       )}
+      {expanded && item.preview ? <pre className="ctxPreview">{item.preview}</pre> : null}
     </div>
   );
 }

@@ -444,7 +444,11 @@ function FactCheck({ state }: { state: HandyState }) {
             <div className="row">
               <span className={"verdict v-" + f.verdict}>{f.verdict}</span>
               <span className="conf">confidence {f.confidence}</span>
-              <span className="src">&#128279; {f.source}</span>
+              {sourceHref(f.source, state.datahub.frontendUrl) ? (
+                <a className="src" href={sourceHref(f.source, state.datahub.frontendUrl)} target="_blank" rel="noreferrer">&#128279; {sourceLabel(f.source)}</a>
+              ) : (
+                <span className="src">&#128279; {f.source}</span>
+              )}
             </div>
             {f.note && <div className="note">{f.note}</div>}
           </div>
@@ -452,4 +456,20 @@ function FactCheck({ state }: { state: HandyState }) {
       </div>
     </>
   );
+}
+
+function sourceHref(source: string, datahubUrl?: string): string | undefined {
+  if (/^https?:\/\//i.test(source)) return source;
+  if (source.startsWith("urn:li:") && datahubUrl) return `${datahubUrl.replace(/\/$/, "")}/search?query=${encodeURIComponent(source)}`;
+  return undefined;
+}
+
+function sourceLabel(source: string): string {
+  if (source.startsWith("urn:li:")) return source;
+  try {
+    const url = new URL(source);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return source;
+  }
 }
