@@ -12,13 +12,18 @@ only an idea. Read this before changing the direction or implementing anything.
   prototype maker, prototype critic, next-step agent, and final recap maker.
 - Handy already has a file/folder dropper. Host uploads are accepted immediately; guest
   uploads wait for host acceptance.
-- Accepted files currently live only in Handy's temporary meeting context. Agents receive
-  summaries or previews of them. They do not enter DataHub today.
-- Meeting state is currently in server memory and is not durable.
+- Accepted readable files now enter DataHub as full Context documents and immediately join
+  Handy's shared meeting context.
+- Ending a meeting now saves its structured summary, decisions, tasks, open questions,
+  prototype intents, and used DataHub sources as a Summary document.
 - DataHub has been installed and its local UI/sample catalog have been tested. The product
   and UI gave us a much clearer understanding of its value.
-- No DataHub integration code has been implemented yet. The current changes in
-  `docs/snow` are research and planning only.
+- The DataHub integration is implemented on `feat/datahub-memory`: shared retrieval,
+  file and meeting writeback, lineage-backed safety checks, and visible UI proof.
+- The real local contract passed on August 10: 67 catalog matches, 15 fields on the chosen
+  orders dataset, successful document write, and search recall after about 2.5 seconds.
+- The chosen orders asset returned zero downstream lineage. That is valid and is shown as
+  **low known impact**, not as an error or a guarantee of safety.
 
 ## DataHub in one simple explanation
 

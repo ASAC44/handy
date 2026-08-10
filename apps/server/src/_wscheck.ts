@@ -16,6 +16,7 @@ let fanoutVariants: { themeKey: string; recommended: boolean }[] = [];
 let fanoutDone = 0;
 let picked = false;
 let learnedBuilds = 0;
+let datahubSources = 0;
 
 const ws = new WebSocket(WS_URL);
 ws.onopen = (): void => { log("open → start", scenario); ws.send(JSON.stringify({ type: "start", scenarioId: scenario })); };
@@ -32,6 +33,10 @@ ws.onmessage = (e: MessageEvent): void => {
     }
     case "summary.update": log("summary →", ev.summary.tldr); break;
     case "factcheck.result": log("factcheck →", ev.result.checks.map((c: { verdict: string }) => c.verdict).join(",")); break;
+    case "datahub.state":
+      datahubSources = Math.max(datahubSources, ev.state.sources.length);
+      if (ev.state.status === "connected") log("DataHub →", ev.state.sources.length, "sources");
+      break;
     case "fanout.start":
       fanoutBuildId = ev.buildId; fanoutVariants = ev.variants;
       log("FANOUT", ev.buildId, "intent=\"" + ev.intent + "\"", "→", ev.variants.map((v: { themeKey: string }) => v.themeKey).join(" / "));
@@ -60,13 +65,15 @@ ws.onmessage = (e: MessageEvent): void => {
       const fan = Object.values(builds).filter((b) => b.buildId === fanoutBuildId);
       const distinct = new Set(fan.map((b) => b.html)).size;
       console.log(`\n── HERO LOOP ASSERTIONS ──`);
-      console.log(`${fan.length === 3 ? "✅" : "❌"} fan-out produced ${fan.length} variants (expect 3)`);
+      console.log(`${fan.length === 4 ? "✅" : "❌"} fan-out produced ${fan.length} variants (expect 4)`);
       console.log(`${distinct === fan.length ? "✅" : "❌"} all ${fan.length} variants have DISTINCT html (distinct=${distinct})`);
       console.log(`${picked ? "✅" : "❌"} pick was accepted`);
       console.log(`${learnedBuilds >= 1 ? "✅" : "❌"} learned single-build(s) after pick: ${learnedBuilds}`);
+      if (process.env.EXPECT_DATAHUB === "1") console.log(`${datahubSources > 0 ? "✅" : "❌"} DataHub shared context sources: ${datahubSources}`);
       fan.forEach((b) => console.log(`     ${b.themeKey.padEnd(9)} ${String(b.ms).padStart(5)}ms  ${b.html.length} chars`));
       ws.close();
-      process.exit(distinct === fan.length && fan.length === 3 && picked ? 0 : 1);
+      const datahubOk = process.env.EXPECT_DATAHUB !== "1" || datahubSources > 0;
+      process.exit(distinct === fan.length && fan.length === 4 && picked && datahubOk ? 0 : 1);
     }
   }
 };
