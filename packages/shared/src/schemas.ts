@@ -83,13 +83,16 @@ export type PrototypeReview = z.infer<typeof PrototypeReviewSchema>;
  */
 export const PrototypeSuggestionSchema = z.object({
   /** Short button label. */
-  label: z.string().min(2).max(42),
+  label: z.string(),
   /** Direct instruction that can be fed back into the prototype agent. */
-  intent: z.string().min(8).max(240),
+  intent: z.string(),
 });
 export type PrototypeSuggestion = z.infer<typeof PrototypeSuggestionSchema>;
 
+// No array/string size constraints here on purpose: Cerebras structured output REJECTS the
+// JSON-Schema `maxItems`/`maxLength`/`minLength` they generate (HTTP 400 wrong_api_format).
+// The count (≤3) and lengths are enforced in nextsteps.ts `sanitize()` instead.
 export const PrototypeSuggestionsSchema = z.object({
-  suggestions: z.array(PrototypeSuggestionSchema).max(3),
+  suggestions: z.array(PrototypeSuggestionSchema),
 });
 export type PrototypeSuggestions = z.infer<typeof PrototypeSuggestionsSchema>;

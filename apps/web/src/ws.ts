@@ -328,6 +328,13 @@ function reducer(s: SidebarState, a: Action): SidebarState {
     }
     case "prototype.token":
       return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, html: p.html + ev.delta } : p)) };
+    case "prototype.cancel":
+      // A superseded learned build — remove its (half-built) card(s) so only the latest stays.
+      return {
+        ...s,
+        artifacts: s.artifacts.filter((p) => p.buildId !== ev.buildId),
+        fanoutBuildId: s.fanoutBuildId === ev.buildId ? null : s.fanoutBuildId,
+      };
     case "prototype.complete":
       return {
         ...s,

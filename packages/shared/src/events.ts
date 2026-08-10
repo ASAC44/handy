@@ -93,6 +93,8 @@ export type ServerEvent =
   | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string }
   | { type: "prototype.token"; id: string; delta: string }
   | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey }
+  // A learned build was superseded by a newer one before finishing — drop its card(s).
+  | { type: "prototype.cancel"; buildId: string }
   // Partner / critic agent reviewing a built artifact (id), then refining it in place.
   // `pass` is the 1-based review round; `final` marks the last review (shipped or capped).
   | { type: "critic.start"; id: string; buildId: string; pass: number }
