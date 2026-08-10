@@ -4,6 +4,8 @@ import {
   createAsrProvider,
   webSpeechAvailable,
   probeWebgpu,
+  prewarmWhisper,
+  whisperReady,
   engineSupportsPlayback,
   GEMMA_VAD_DEFAULTS,
   DEFAULT_WHISPER_MODEL,
@@ -95,6 +97,23 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
   useEffect(() => {
     void probeWebgpu().then(() => setWebgpuReady(true));
   }, []);
+
+  // Preload the Whisper model as soon as its engine is selected, so the first
+  // transcription isn't gated on a cold (hundreds-of-MB) download + WebGPU init.
+  useEffect(() => {
+    if (engine !== "whisper-webgpu") {
+      setStatus("");
+      return;
+    }
+    let cancelled = false;
+    setStatus(whisperReady(whisperModel) ? "Whisper ready" : "Preloading Whisper…");
+    void prewarmWhisper(whisperModel).then(() => {
+      if (!cancelled) setStatus(whisperReady(whisperModel) ? "Whisper ready" : "");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [engine, whisperModel]);
 
   const setVad = (patch: Partial<GemmaVad>): void => {
     Object.assign(vadRef.current, patch);

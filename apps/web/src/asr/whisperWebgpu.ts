@@ -29,6 +29,78 @@ export function webgpuAvailableCached(): boolean {
   return webgpuCache === true;
 }
 
+// ── Shared, kept-warm worker ──────────────────────────────────────────────────
+// The Whisper model (download + WebGPU pipeline + shader warm) loads ONCE into a
+// module-level worker that survives stop()/start(), so re-recording is instant and the
+// cold-load cost can be paid up-front via prewarmWhisper() (e.g. on engine select).
+let sharedWorker: Worker | null = null;
+let sharedModelKey: string | undefined;
+let sharedReady = false;
+let sharedLoad: Promise<void> | null = null;
+/** The active provider's message sink — only one capture runs at a time. */
+let activeHandler: ((m: WorkerMsg) => void) | null = null;
+
+function ensureSharedWorker(modelKey: string | undefined): Worker {
+  if (sharedWorker && sharedModelKey !== modelKey) {
+    sharedWorker.terminate();
+    sharedWorker = null;
+    sharedReady = false;
+    sharedLoad = null;
+  }
+  if (!sharedWorker) {
+    const worker = new Worker(new URL("./whisperWorker.ts", import.meta.url), { type: "module" });
+    sharedModelKey = modelKey;
+    sharedReady = false;
+    let settle: () => void = () => {};
+    sharedLoad = new Promise<void>((res) => {
+      settle = res;
+    });
+    const fail = (): void => {
+      if (sharedWorker === worker) {
+        sharedWorker = null;
+        sharedReady = false;
+        sharedModelKey = undefined;
+      }
+      try {
+        worker.terminate();
+      } catch {
+        /* already gone */
+      }
+      settle();
+    };
+    worker.onmessage = (e) => {
+      const m = e.data as WorkerMsg;
+      if (m.type === "ready") {
+        sharedReady = true;
+        settle();
+      } else if (m.type === "error" && m.id === undefined) {
+        fail(); // load-time error (no request id) — drop the worker so the next start retries
+      }
+      activeHandler?.(m);
+    };
+    worker.onerror = () => {
+      activeHandler?.({ type: "error", message: "Whisper worker error" });
+      fail();
+    };
+    worker.postMessage({ type: "load", model: modelKey });
+    sharedWorker = worker;
+  }
+  return sharedWorker;
+}
+
+/** True once the shared worker has finished loading `modelKey` and can decode immediately. */
+export function whisperReady(modelKey: string | undefined): boolean {
+  return sharedReady && sharedModelKey === modelKey;
+}
+
+/** Load the model + warm WebGPU ahead of time so the first transcription isn't gated on a
+ *  cold download/init. Idempotent; no-ops without WebGPU. Resolves once the load settles. */
+export async function prewarmWhisper(modelKey: string | undefined): Promise<void> {
+  if (!(await probeWebgpu())) return;
+  ensureSharedWorker(modelKey);
+  await sharedLoad;
+}
+
 interface Job {
   audio: Float32Array;
   segmentMs: number;
@@ -39,6 +111,7 @@ export class WhisperWebgpuProvider implements AsrProvider {
   readonly label = "Whisper (your GPU)";
 
   private worker: Worker | null = null;
+  private handler: ((m: WorkerMsg) => void) | null = null;
   private ctx: AudioContext | null = null;
   private wired: WiredSource | null = null;
   private node: ScriptProcessorNode | null = null;
@@ -86,22 +159,29 @@ export class WhisperWebgpuProvider implements AsrProvider {
       throw new Error("WebGPU isn't available in this browser — use Chrome/Edge, or pick another engine");
     }
 
-    const worker = new Worker(new URL("./whisperWorker.ts", import.meta.url), { type: "module" });
+    // Adopt the shared, kept-warm worker (created here, or earlier via prewarmWhisper) so a
+    // preloaded model makes start() instant instead of paying the cold download + WebGPU init.
+    const worker = ensureSharedWorker(this.modelKey);
     this.worker = worker;
-    worker.onmessage = (e) => this.onWorker(e.data as WorkerMsg);
-    worker.onerror = () => cb.onError("Whisper worker error");
+    this.handler = (m) => this.onWorker(m);
+    activeHandler = this.handler;
     const meta = whisperModelMeta(this.modelKey);
-    cb.onStatus?.({ text: `loading ${meta.label} (${meta.size})…`, progress: 0 });
-    worker.postMessage({ type: "load", model: this.modelKey });
+    const warm = whisperReady(this.modelKey);
+    if (warm) {
+      this.ready = true;
+      cb.onStatus?.({ text: "Whisper ready", progress: 100 });
+    } else {
+      cb.onStatus?.({ text: `loading ${meta.label} (${meta.size})…`, progress: 0 });
+    }
 
     this.ctx = new AudioContext({ sampleRate: 16000 });
     const rate = this.ctx.sampleRate;
     this.rate = rate;
     const frameMs = (FRAME / rate) * 1000;
     // A recording must wait for the model to warm up, or its first utterances are dropped.
-    // Suspending freezes the playback clock until the worker reports `ready`; the mic path
-    // instead resumes immediately (a post-await context can come back suspended).
-    if (this.playback) await this.ctx.suspend();
+    // If the model is already warm we run immediately; otherwise suspend the playback clock
+    // until the worker reports `ready`. The mic path resumes immediately either way.
+    if (this.playback && !warm) await this.ctx.suspend();
     else await this.ctx.resume().catch(() => {});
     this.wired = this.playback
       ? await fileSource(this.ctx, this.playback, () => this.onPlaybackEnd())
@@ -151,6 +231,8 @@ export class WhisperWebgpuProvider implements AsrProvider {
     this.wired.node.connect(this.node);
     this.node.connect(this.sink);
     this.sink.connect(this.ctx.destination);
+    // Already warm: the worker won't re-emit `ready`, so begin tracking playback now.
+    if (warm && this.playback && this.wired.durationSec > 0) this.startProgress();
   }
 
   /** Recording reached its end: finalize any in-flight clip, then tell the UI we're done. */
@@ -260,7 +342,9 @@ export class WhisperWebgpuProvider implements AsrProvider {
     this.wired = null;
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
-    this.worker?.terminate();
+    // Detach from the shared worker but KEEP it warm for the next session / prewarm.
+    if (activeHandler === this.handler) activeHandler = null;
+    this.handler = null;
     this.worker = null;
     this.cb = null;
   }

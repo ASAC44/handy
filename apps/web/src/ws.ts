@@ -10,6 +10,7 @@ import {
   type ThemeTokens,
   type VariantInfo,
   type AgentName,
+  type PrototypeReview,
   type AgentToggles,
   type ParticipantPresence,
   type CursorPing,
@@ -37,6 +38,10 @@ export interface Artifact {
   variant?: VariantInfo;
   /** This build is an edit cloned from a prior artifact (seeded with its HTML). */
   evolving?: boolean;
+  /** Partner / critic agent: latest verdict + where it is in the review→refine loop. */
+  review?: PrototypeReview;
+  reviewState?: "reviewing" | "refining" | "reviewed";
+  reviewPass?: number;
 }
 export interface Telem { tokPerS: number; tokens: number; latencyMs: number }
 /** The final meeting document (themed HTML recap) streamed when the host ends. */
@@ -59,6 +64,7 @@ export type ActivityKind =
   | "fanout"
   | "prototype"
   | "complete"
+  | "critic"
   | "pick"
   | "dna"
   | "end";
@@ -132,7 +138,7 @@ const initial: SidebarState = {
   telemetry: {},
   latencyMs: null,
   abMode: false,
-  agents: { router: true, summarizer: true, prototype: true, factcheck: true },
+  agents: { router: true, summarizer: true, prototype: true, factcheck: true, nextstep: true },
   kicked: false,
   left: false,
   ended: null,
@@ -330,6 +336,29 @@ function reducer(s: SidebarState, a: Action): SidebarState {
           artifactId: ev.id,
         }),
       };
+    case "critic.start":
+      return {
+        ...s,
+        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, reviewState: "reviewing", reviewPass: ev.pass } : p)),
+      };
+    case "critic.result": {
+      const reviewState: Artifact["reviewState"] = ev.final ? "reviewed" : ev.review.verdict === "refine" ? "refining" : "reviewed";
+      const n = ev.review.issues.length;
+      const title =
+        ev.review.verdict === "ship" || ev.final
+          ? `Reviewer: shipped (${Math.round(ev.review.score * 100)})`
+          : `Reviewer: ${n} fix${n === 1 ? "" : "es"} → polishing`;
+      return {
+        ...s,
+        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, review: ev.review, reviewState, reviewPass: ev.pass } : p)),
+        ...appendActivity(s, { kind: "critic", title, detail: ev.review.summary, buildId: ev.buildId, artifactId: ev.id }),
+      };
+    }
+    case "critic.refined":
+      return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, html: ev.html } : p)) };
+    case "critic.error":
+      // Review failed/timed out — clear the spinner; leave the artifact otherwise intact.
+      return { ...s, artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, reviewState: "reviewed" } : p)) };
     case "fanout.resolved": {
       const artifacts = s.artifacts
         .filter((p) => p.buildId !== ev.buildId || !p.variant || p.themeKey === ev.chosenThemeKey)

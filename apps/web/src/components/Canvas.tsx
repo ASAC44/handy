@@ -6,16 +6,27 @@ import {
   type CSSProperties,
   type PointerEvent as RPE,
 } from "react";
+import { createPortal } from "react-dom";
 import type { SidebarState, Artifact as Art, ActivityEvent } from "../ws";
 import type { ClientEvent, ParticipantPresence } from "@sidebar/shared";
+import { toDesignMd } from "@sidebar/shared";
 
-const W = 440;
-const H = 360;
-const VAR_H = 404;
+const W = 600;
+const H = 470;
+const VAR_H = 520;
+const VAR_COLS = 2;
 const GAP = 64;
 const STAGE_Y = H + GAP * 1.7;
 const MIN_Z = 0.28;
 const MAX_Z = 1.75;
+const CARD_PREVIEW_VIEWPORT = { w: 1280, h: 900 };
+const PREVIEW_VIEWPORTS = [
+  { key: "desktop", label: "Desktop", w: 1440, h: 900 },
+  { key: "tablet", label: "Tablet", w: 834, h: 1112 },
+  { key: "mobile", label: "Mobile", w: 390, h: 844 },
+] as const;
+
+type PreviewViewport = (typeof PREVIEW_VIEWPORTS)[number];
 
 interface PositionedArtifact {
   a: Art;
@@ -60,7 +71,10 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
       if (a.variant) {
         const variants = state.artifacts.filter((v) => v.variant && v.buildId === a.buildId);
         const k = variants.indexOf(a);
-        return { a, x: perm.length * (W + GAP) + k * (W + GAP), y: STAGE_Y, h: VAR_H };
+        // Lay variants in a 2-column grid (not a single wide row) so a 4-up fan-out
+        // frames large and stays comparable instead of trailing off-screen.
+        const x0 = perm.length * (W + GAP);
+        return { a, x: x0 + (k % VAR_COLS) * (W + GAP), y: STAGE_Y + Math.floor(k / VAR_COLS) * (VAR_H + GAP), h: VAR_H };
       }
       return { a, x: perm.indexOf(a) * (W + GAP), y: 0, h: H };
     });
@@ -108,7 +122,7 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
     if (!vp) return undefined;
     const onWheel = (e: WheelEvent): void => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest(".meeting-map,.dna,.canvas-controls,.presence-dock,.inspector,.minimap,.prototype-lightbox")) return;
+      if (target?.closest(".meeting-map,.dna,.canvas-controls,.presence-dock,.inspector,.minimap,.prototype-lightbox,.modalScrim")) return;
       e.preventDefault();
       const rect = vp.getBoundingClientRect();
       zoomAt(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.12 : 0.89);
@@ -141,8 +155,9 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
       if (!iframe) return;
       const vpRect = vp.getBoundingClientRect();
       const frameRect = iframe.getBoundingClientRect();
-      const x = frameRect.left - vpRect.left + data.x;
-      const y = frameRect.top - vpRect.top + data.y;
+      const frameScale = Number(iframe.dataset.frameScale ?? "1") || 1;
+      const x = frameRect.left - vpRect.left + data.x * frameScale;
+      const y = frameRect.top - vpRect.top + data.y * frameScale;
       const c = camRef.current;
       const worldX = (x - c.x) / c.z;
       const worldY = (y - c.y) / c.z;
@@ -155,13 +170,16 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  // Camera follows the newest artifact until the user takes manual control.
+  // Camera auto-frames the active build until the user takes manual control: during a
+  // fan-out it fits ALL of that build's variants (large + comparable); otherwise it fits
+  // the newest build so a single prototype fills the canvas instead of sitting tiny.
   useEffect(() => {
     if (!follow || !vpRef.current || positionedRef.current.length === 0) return;
-    const last = positionedRef.current[positionedRef.current.length - 1]!;
-    focusPosition(last.x + W / 2, last.y + last.h / 2, 0.9, false);
+    const items = positionedRef.current;
+    const group = state.fanoutBuildId ? items.filter((p) => p.a.variant && p.a.buildId === state.fanoutBuildId) : [];
+    frameItems(group.length ? group : [items[items.length - 1]!]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.artifacts.length, follow]);
+  }, [state.artifacts.length, state.fanoutBuildId, follow]);
 
   const focusPosition = (worldX: number, worldY: number, z = camRef.current.z, manual = true): void => {
     const vp = vpRef.current;
@@ -176,14 +194,22 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
   };
 
   const fitAll = (): void => {
-    const vp = vpRef.current;
-    if (!vp || !bounds) return;
-    const pad = 104;
-    const z = clamp(Math.min((vp.clientWidth - pad) / bounds.w, (vp.clientHeight - pad) / bounds.h, 1.08), MIN_Z, MAX_Z);
+    if (!bounds) return;
     setFollow(false);
+    frameItems(positionedRef.current, 1.08);
+  };
+
+  /** Center + fit a group of cards to fill the viewport. maxZoom is capped at 1.0 by
+   *  default so card iframes (rendered at 1280px then downscaled) never upscale-blur. */
+  const frameItems = (items: PositionedArtifact[], maxZoom = 1): void => {
+    const vp = vpRef.current;
+    const b = worldBounds(items);
+    if (!vp || !b) return;
+    const pad = 96;
+    const z = clamp(Math.min((vp.clientWidth - pad) / b.w, (vp.clientHeight - pad) / b.h, maxZoom), MIN_Z, MAX_Z);
     setCam({
-      x: vp.clientWidth / 2 - (bounds.x + bounds.w / 2) * z,
-      y: vp.clientHeight / 2 - (bounds.y + bounds.h / 2) * z,
+      x: vp.clientWidth / 2 - (b.x + b.w / 2) * z,
+      y: vp.clientHeight / 2 - (b.y + b.h / 2) * z,
       z,
     });
   };
@@ -360,7 +386,14 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
         />
       ) : null}
       <MiniMap bounds={bounds} cam={cam} positioned={positioned} vpSize={vpSize} onJump={(x, y) => focusPosition(x, y, cam.z)} />
-      {expanded ? <PrototypeLightbox artifact={expanded} onClose={() => setExpandedId(null)} /> : null}
+      {expanded ? (
+        <PrototypeLightbox
+          artifact={expanded}
+          artifacts={state.artifacts}
+          onSelect={(id) => setExpandedId(id)}
+          onClose={() => setExpandedId(null)}
+        />
+      ) : null}
 
       {state.fanoutBuildId && (
         <div className="stage-banner">
@@ -488,6 +521,7 @@ function ArtifactCard({
           </span>
         ) : null}
         {a.usesScreen && <span className="art-screen">&#128247; screen</span>}
+        <ReviewChip a={a} />
         <button
           className="art-icon"
           data-tip="Focus"
@@ -513,13 +547,7 @@ function ArtifactCard({
         <span className="art-time">{a.status === "done" && a.ms != null ? (a.ms / 1000).toFixed(2) + "s" : "…"}</span>
       </div>
       <div className="art-body">
-        <iframe
-          data-artifact-id={a.id}
-          data-frame-id={`card-${a.id}`}
-          sandbox="allow-scripts"
-          srcDoc={withFramePresenceBridge(a.html, a.id, `card-${a.id}`)}
-          title={a.id}
-        />
+        <ScaledArtifactPreview artifact={a} />
         {a.status === "building" ? (
           <div className="build-sheen">
             <span />
@@ -540,6 +568,76 @@ function ArtifactCard({
         </div>
       )}
     </div>
+  );
+}
+
+function ScaledArtifactPreview({ artifact }: { artifact: Art }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [frameSize, setFrameSize] = useState({ w: 1, h: 1 });
+  const scale = Math.min(frameSize.w / CARD_PREVIEW_VIEWPORT.w, frameSize.h / CARD_PREVIEW_VIEWPORT.h, 1);
+  const scaledW = Math.round(CARD_PREVIEW_VIEWPORT.w * scale);
+  const scaledH = Math.round(CARD_PREVIEW_VIEWPORT.h * scale);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    // Measure the CONTENT box (excludes padding) so the scaled viewport fits the visible
+    // area — using clientWidth (incl. the frame's side padding) oversizes it and clips.
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (r) setFrameSize({ w: r.width, h: r.height });
+    });
+    ro.observe(frame);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div className="art-preview-frame" ref={frameRef}>
+      <div className="art-preview-stage" style={{ width: scaledW, height: scaledH }}>
+        <div
+          className="art-preview-viewport"
+          style={{
+            width: CARD_PREVIEW_VIEWPORT.w,
+            height: CARD_PREVIEW_VIEWPORT.h,
+            transform: `scale(${scale})`,
+          }}
+        >
+          <iframe
+            width={CARD_PREVIEW_VIEWPORT.w}
+            height={CARD_PREVIEW_VIEWPORT.h}
+            data-artifact-id={artifact.id}
+            data-frame-id={`card-${artifact.id}`}
+            data-frame-scale={scale}
+            sandbox="allow-scripts"
+            scrolling="no"
+            srcDoc={withFramePresenceBridge(artifact.html, artifact.id, `card-${artifact.id}`)}
+            title={artifact.id}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewChip({ a }: { a: Art }) {
+  const st = a.reviewState;
+  if (!st) return null;
+  const n = a.review?.issues.length ?? 0;
+  const label =
+    st === "reviewing"
+      ? "reviewing…"
+      : st === "refining"
+        ? `polishing${a.reviewPass && a.reviewPass > 1 ? " ·" + a.reviewPass : ""}…`
+        : a.review
+          ? `${a.review.verdict === "ship" ? "✓" : "●"} ${Math.round(a.review.score * 100)}`
+          : "reviewed";
+  const tip =
+    a.review?.summary ?? (st === "reviewing" ? "partner agent reviewing this build" : "partner agent polishing this build");
+  return (
+    <span className={"art-review " + st} data-tip={tip}>
+      {label}
+      {st === "reviewed" && n > 0 ? <i>{n} fixed</i> : null}
+    </span>
   );
 }
 
@@ -669,14 +767,53 @@ function Inspector({
   );
 }
 
-function PrototypeLightbox({ artifact, onClose }: { artifact: Art; onClose: () => void }) {
+function PrototypeLightbox({
+  artifact,
+  artifacts,
+  onSelect,
+  onClose,
+}: {
+  artifact: Art;
+  artifacts: Art[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [viewport, setViewport] = useState<PreviewViewport>(PREVIEW_VIEWPORTS[0]);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [frameSize, setFrameSize] = useState({ w: 1, h: 1 });
+  const index = Math.max(0, artifacts.findIndex((a) => a.id === artifact.id));
+  const prev = index > 0 ? artifacts[index - 1] : null;
+  const next = index < artifacts.length - 1 ? artifacts[index + 1] : null;
+  const scale = Math.min(frameSize.w / viewport.w, frameSize.h / viewport.h, 1);
+  const scaledW = Math.round(viewport.w * scale);
+  const scaledH = Math.round(viewport.h * scale);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    // Measure the CONTENT box (excludes padding) so the scaled viewport fits the visible
+    // area — using clientWidth (incl. the frame's side padding) oversizes it and clips.
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (r) setFrameSize({ w: r.width, h: r.height });
+    });
+    ro.observe(frame);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && prev) onSelect(prev.id);
+      if (e.key === "ArrowRight" && next) onSelect(next.id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [next, onClose, onSelect, prev]);
+
+  const go = (target: Art | null): void => {
+    if (target) onSelect(target.id);
+  };
 
   return (
     <div
@@ -690,11 +827,29 @@ function PrototypeLightbox({ artifact, onClose }: { artifact: Art; onClose: () =
     >
       <div className="prototype-modal">
         <div className="prototype-top">
-          <div>
+          <div className="prototype-copy">
             <div className="prototype-k">prototype preview</div>
             <div className="prototype-title">{artifact.intent}</div>
           </div>
+          <div className="prototype-viewports" aria-label="Preview viewport">
+            {PREVIEW_VIEWPORTS.map((item) => (
+              <button
+                key={item.key}
+                className={item.key === viewport.key ? "active" : ""}
+                data-tip={`${item.w} × ${item.h}`}
+                onClick={() => setViewport(item)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <div className="prototype-meta">
+            <span>
+              {index + 1}/{artifacts.length}
+            </span>
+            <span>
+              {viewport.w}×{viewport.h}
+            </span>
             <span>{artifact.status === "done" && artifact.ms != null ? (artifact.ms / 1000).toFixed(2) + "s" : "streaming"}</span>
             {artifact.usesScreen ? <span>screen-aware</span> : <span>transcript</span>}
           </div>
@@ -702,15 +857,47 @@ function PrototypeLightbox({ artifact, onClose }: { artifact: Art; onClose: () =
             ×
           </button>
         </div>
-        <div className="prototype-frame">
-          <iframe
-            data-artifact-id={artifact.id}
-            data-frame-id={`large-${artifact.id}`}
-            sandbox="allow-scripts"
-            srcDoc={withFramePresenceBridge(artifact.html, artifact.id, `large-${artifact.id}`)}
-            title={`${artifact.id} large preview`}
-          />
+        <div className="prototype-frame" ref={frameRef}>
+          <div className="prototype-viewport-stage" style={{ width: scaledW, height: scaledH }}>
+            <div
+              className="prototype-viewport"
+              style={{
+                width: viewport.w,
+                height: viewport.h,
+                transform: `scale(${scale})`,
+              }}
+            >
+              <iframe
+                width={viewport.w}
+                height={viewport.h}
+                data-artifact-id={artifact.id}
+                data-frame-id={`large-${artifact.id}`}
+                data-frame-scale={scale}
+                sandbox="allow-scripts"
+                srcDoc={withFramePresenceBridge(artifact.html, artifact.id, `large-${artifact.id}`)}
+                title={`${artifact.id} large preview`}
+              />
+            </div>
+          </div>
         </div>
+        <button
+          className="prototype-arrow prev"
+          data-tip="Previous prototype"
+          aria-label="Previous prototype"
+          disabled={!prev}
+          onClick={() => go(prev)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button
+          className="prototype-arrow next"
+          data-tip="Next prototype"
+          aria-label="Next prototype"
+          disabled={!next}
+          onClick={() => go(next)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
       </div>
     </div>
   );
@@ -772,6 +959,9 @@ function MiniMap({
 
 function DNA({ state, send }: { state: SidebarState; send: (e: ClientEvent) => void }) {
   const t = state.dna;
+  const [showMd, setShowMd] = useState(false);
+  const md = t ? toDesignMd(t) : "";
+
   return (
     <div className="dna" onPointerDown={(e) => e.stopPropagation()}>
       <div className="dna-h">
@@ -790,7 +980,77 @@ function DNA({ state, send }: { state: SidebarState; send: (e: ClientEvent) => v
         )}
       </div>
       <div className="dna-learn">{t ? "applied to every new build" : "awaiting your first pick"}</div>
+      {t && (
+        <>
+          <div className="dna-md-row">
+            <button onClick={() => setShowMd(true)} data-tip="View, copy or download DESIGN.md">View DESIGN.md</button>
+          </div>
+          {showMd && <DesignMdDialog md={md} themeName={t.name} onClose={() => setShowMd(false)} />}
+        </>
+      )}
     </div>
+  );
+}
+
+/** Modal viewer for the learned DESIGN.md — readable, scrollable, with copy + download.
+ *  Replaces the cramped inline panel preview. */
+function DesignMdDialog({ md, themeName, onClose }: { md: string; themeName: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const copy = (): void => {
+    void navigator.clipboard?.writeText(md).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    });
+  };
+  const download = (): void => {
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "DESIGN.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  // Portal to <body> so the dialog escapes the .dna panel's stacking context (z-index:5),
+  // which otherwise lets the meeting map (z-index:6) paint over it.
+  return createPortal(
+    <div
+      className="modalScrim show designmd-scrim"
+      role="dialog"
+      aria-modal="true"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modalCard designmd-card">
+        <button className="modalClose" data-tip="Close" aria-label="Close DESIGN.md" onClick={onClose}>
+          ×
+        </button>
+        <div className="modalHead">
+          <div className="modalK">design system</div>
+          <h2 className="modalTitle">DESIGN.md · {themeName}</h2>
+          <p className="modalSub">Google Labs Code DESIGN.md — the style learned from this meeting&rsquo;s picks, applied to every build.</p>
+        </div>
+        <pre className="designmd-body">{md}</pre>
+        <div className="modalActions">
+          <button className="capBtn" onClick={copy}>
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <button className="capBtn" onClick={download}>
+            Download
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -829,6 +1089,8 @@ function kindLabel(kind: ActivityEvent["kind"]): string {
       return "build";
     case "complete":
       return "render";
+    case "critic":
+      return "review";
     case "pick":
       return "pick";
     case "dna":

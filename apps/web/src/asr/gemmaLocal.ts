@@ -28,8 +28,8 @@ export interface GemmaVad {
 export const GEMMA_VAD_DEFAULTS: GemmaVad = {
   startRms: 0.05, // noise floor — raise to ignore quiet/background talk
   endRms: 0.008,
-  silenceMs: 700,
-  minSpeechMs: 350,
+  silenceMs: 500, // trailing-silence endpoint — the main latency knob; lower = snappier finals
+  minSpeechMs: 300,
   maxUtterMs: 15000,
   prerollMs: 300,
 };

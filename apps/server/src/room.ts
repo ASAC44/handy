@@ -38,7 +38,7 @@ const CONTEXT_CORS = {
 export class Room implements MeetingRuntime {
   learned: ThemeTokens | null = null;
   abMode = false;
-  agents: AgentToggles = { router: true, summarizer: true, prototype: true, factcheck: true };
+  agents: AgentToggles = { router: true, summarizer: true, prototype: true, factcheck: true, nextstep: true };
   latestScreenDataUri: string | null = null;
   readonly context = new ContextStore();
 
@@ -315,6 +315,9 @@ export class Room implements MeetingRuntime {
         break;
       case "pick":
         this.resolvePick(ev.buildId, ev.themeKey);
+        break;
+      case "prototype.next":
+        if (!this.ended) this.orch.requestPrototypeNext(ev.artifactId, ev.intent, this.presence.get(ws)?.name);
         break;
       case "resetTaste":
         this.learned = null;

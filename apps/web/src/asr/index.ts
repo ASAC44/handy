@@ -9,7 +9,7 @@ export type { AsrProvider, AsrProviderId, AsrProviderMeta, AsrCallbacks, AsrMetr
 export type { Playback } from "./audioSource";
 export { webSpeechAvailable } from "./webspeech";
 export { GEMMA_VAD_DEFAULTS, type GemmaVad } from "./gemmaLocal";
-export { probeWebgpu, webgpuAvailableCached } from "./whisperWebgpu";
+export { probeWebgpu, webgpuAvailableCached, prewarmWhisper, whisperReady } from "./whisperWebgpu";
 export { WHISPER_MODELS, DEFAULT_WHISPER_MODEL, type WhisperModelMeta } from "./whisperModels";
 
 /** Engines that decode their own audio (energy VAD) — the only ones that can play back a recording. */
