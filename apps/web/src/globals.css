@@ -290,6 +290,14 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .fc .v-unverified{background:color-mix(in oklab, var(--chart-3) 14%, transparent);color:var(--chart-3)}
 .fc .conf{color:var(--muted-foreground)} .fc .src{color:var(--chart-4);width:100%}
 .fc .note{margin-top:8px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--card);font-size:12px;line-height:1.5;color:var(--muted-foreground)}
+.factcheck-b .impact{border-bottom:1px solid var(--border);padding:8px 0}
+.impact .claim{line-height:1.5;margin-bottom:8px;font-size:14px}
+.impact .row{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10.5px}
+.impactVerdict{padding:2px 9px;border-radius:99px;letter-spacing:.04em}
+.impactVerdict.known-impact{color:var(--chart-3);background:color-mix(in oklab,var(--chart-3) 14%,transparent)}
+.impactVerdict.low-known-impact{color:var(--chart-4);background:color-mix(in oklab,var(--chart-4) 13%,transparent)}
+.impactVerdict.unavailable{color:var(--muted-foreground);background:var(--muted)}
+.impact .note{margin-top:8px;font-size:12px;line-height:1.5;color:var(--muted-foreground)}
 
 /* ── Canvas column + hero ────────────────────────────────────────────── */
 .canvasCol{position:relative;display:grid;grid-template-rows:auto minmax(0,1fr);gap:0;min-width:0;min-height:0}
@@ -303,6 +311,10 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .ctxCanvasControls{display:flex;align-items:center;flex:none;padding-left:7px;border-left:1px solid var(--border)}
 .ctxK{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--chart-2)}
 .ctxCount{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--muted-foreground);white-space:nowrap}
+.dhStatus{font-family:var(--font-mono);font-size:10px;white-space:nowrap;padding:2px 7px;border:1px solid var(--input);border-radius:99px;color:var(--muted-foreground)}
+.dhStatus.connected{color:var(--chart-4);border-color:color-mix(in oklab,var(--chart-4) 35%,transparent)}
+.dhStatus.connecting{color:var(--chart-3)}
+.dhStatus.unavailable{color:var(--destructive)}
 .ctxPath{font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--chart-4);border:1px solid color-mix(in oklab, var(--chart-4) 26%, transparent);border-radius:99px;padding:2px 8px;background:color-mix(in oklab, var(--chart-4) 6%, transparent)}
 .ctxDrop{font-family:var(--font-mono);font-size:10.5px;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .contextDock.dragging .ctxDrop{color:var(--primary)}
@@ -360,6 +372,7 @@ html[data-page="dashboard"] body{font-size:13.5px;line-height:1.5;overflow:hidde
 .art-vname i{color:var(--chart-3);font-style:normal}
 .art-title{font-family:var(--font-sans);font-size:13.5px;color:var(--foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:80px}
 .art-screen{font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--chart-3);border:1px solid color-mix(in oklab, var(--chart-3) 32%, transparent);background:color-mix(in oklab, var(--chart-3) 7%, transparent);padding:2px 6px;border-radius:6px;white-space:nowrap}
+.art-datahub{font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--chart-4);border:1px solid color-mix(in oklab,var(--chart-4) 32%,transparent);padding:2px 6px;border-radius:6px;white-space:nowrap}
 .art-review{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--input);color:var(--muted-foreground);background:var(--popover);font-variant-numeric:tabular-nums}
 .art-review i{font-style:normal;font-weight:500;opacity:.7;font-size:9px}
 .art-review.reviewing{color:var(--chart-2);border-color:color-mix(in oklab, var(--chart-2) 35%, transparent);background:color-mix(in oklab, var(--chart-2) 10%, transparent);animation:reviewPulse 1.1s ease-in-out infinite}
@@ -716,6 +729,9 @@ button.setRow:hover{background:var(--muted)}
 .recapTitle .logo{font-size:18px;color:var(--primary)}
 .recapH{font-family:var(--font-sans);font-weight:600;font-size:18px;line-height:1.1;color:var(--foreground)}
 .recapSub{font-family:var(--font-mono);font-size:11px;color:var(--muted-foreground);margin-top:2px}
+.recapMemory{display:inline-block;margin-top:4px;font-family:var(--font-mono);font-size:10px;color:var(--chart-3)}
+.recapMemory.saved{color:var(--chart-4)}
+.recapMemory.error{color:var(--destructive)}
 .recapDrafting{display:inline-flex;align-items:center;gap:6px;color:var(--primary)}
 .recapDrafting i{width:7px;height:7px;border-radius:50%;background:var(--primary);animation:recapPulse 1s ease-in-out infinite}
 @keyframes recapPulse{0%,100%{opacity:.3}50%{opacity:1}}

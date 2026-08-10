@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@handy/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "universal-llm-client": "^4.5.2",
     "zod": "^4.0.0"
   },

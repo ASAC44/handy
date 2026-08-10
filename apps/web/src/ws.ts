@@ -18,6 +18,10 @@ import {
   type ContextSnapshot,
   type ExportSnapshot,
   type InviteInfo,
+  type CompanySource,
+  type DataHubState,
+  type DataHubMemoryState,
+  type DataHubImpact,
 } from "@handy/shared";
 import { getKey, clearKey } from "./auth";
 
@@ -47,6 +51,7 @@ export interface Artifact {
   /** Follow-up design moves generated once the prototype is ready. */
   nextSteps?: PrototypeSuggestion[];
   nextStepsState?: "thinking" | "ready" | "error";
+  companySources?: CompanySource[];
 }
 export interface Telem { tokPerS: number; tokens: number; latencyMs: number }
 /** The final meeting document (themed HTML recap) streamed when the host ends. */
@@ -104,6 +109,9 @@ export interface HandyState {
   transcript: TLine[];
   summary: MeetingSummary | null;
   factchecks: FactcheckCheck[];
+  datahub: DataHubState;
+  datahubMemory: DataHubMemoryState[];
+  impacts: DataHubImpact[];
   artifacts: Artifact[];
   fanoutBuildId: string | null;
   dna: ThemeTokens | null;
@@ -140,6 +148,9 @@ const initial: HandyState = {
   transcript: [],
   summary: null,
   factchecks: [],
+  datahub: { status: "disabled", query: "", sources: [] },
+  datahubMemory: [],
+  impacts: [],
   artifacts: [],
   fanoutBuildId: null,
   dna: null,
@@ -303,6 +314,12 @@ function reducer(s: HandyState, a: Action): HandyState {
       });
       return { ...s, factchecks: [...ev.result.checks], ...patch };
     }
+    case "datahub.state":
+      return { ...s, datahub: ev.state };
+    case "datahub.memory":
+      return { ...s, datahubMemory: upsertMemory(s.datahubMemory, ev.memory) };
+    case "datahub.impact":
+      return { ...s, impacts: [ev.impact, ...s.impacts].slice(0, 8) };
     case "fanout.start": {
       const patch = appendActivity(s, {
         kind: "fanout",
@@ -320,7 +337,7 @@ function reducer(s: HandyState, a: Action): HandyState {
         ...s,
         artifacts: [
           ...s.artifacts,
-          { id: ev.id, buildId: ev.buildId, intent: ev.intent, usesScreen: ev.usesScreen, themeKey: ev.themeKey, html: baseHtml, status: "building", variant: ev.variant, evolving: !!ev.baseId },
+          { id: ev.id, buildId: ev.buildId, intent: ev.intent, usesScreen: ev.usesScreen, themeKey: ev.themeKey, html: baseHtml, status: "building", variant: ev.variant, evolving: !!ev.baseId, companySources: ev.companySources },
         ],
         ...appendActivity(s, {
           kind: "prototype",
@@ -344,7 +361,7 @@ function reducer(s: HandyState, a: Action): HandyState {
       return {
         ...s,
         latencyMs: ev.ideaToArtifactMs,
-        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, html: ev.html, status: "done", ms: ev.ideaToArtifactMs } : p)),
+        artifacts: s.artifacts.map((p) => (p.id === ev.id ? { ...p, html: ev.html, status: "done", ms: ev.ideaToArtifactMs, companySources: ev.companySources } : p)),
         ...appendActivity(s, {
           kind: "complete",
           title: "Artifact rendered",
@@ -477,6 +494,8 @@ function reducer(s: HandyState, a: Action): HandyState {
         transcript: [],
         summary: null,
         factchecks: [],
+        datahubMemory: [],
+        impacts: [],
         artifacts: [],
         fanoutBuildId: null,
         dna: null,
@@ -521,6 +540,13 @@ function upsertPresence(list: ParticipantPresence[], participant: ParticipantPre
 function upsertContext(list: ContextSnapshot["items"], item: ContextSnapshot["items"][number]): ContextSnapshot["items"] {
   const found = list.some((p) => p.id === item.id);
   return found ? list.map((p) => (p.id === item.id ? item : p)) : [item, ...list];
+}
+
+function upsertMemory(list: DataHubMemoryState[], memory: DataHubMemoryState): DataHubMemoryState[] {
+  const found = list.some((item) => item.kind === memory.kind && item.id === memory.id);
+  return found
+    ? list.map((item) => (item.kind === memory.kind && item.id === memory.id ? memory : item))
+    : [memory, ...list];
 }
 
 function clientPresenceName(): string {

@@ -555,6 +555,11 @@ function ArtifactCard({
           </span>
         ) : null}
         {a.usesScreen && <span className="art-screen">&#128247; screen</span>}
+        {a.companySources?.length ? (
+          <span className="art-datahub" data-tip={a.companySources.map((source) => source.title).join("\n")}>
+            DataHub {a.companySources.length}
+          </span>
+        ) : null}
         <ReviewChip a={a} />
         <button
           className="art-icon"

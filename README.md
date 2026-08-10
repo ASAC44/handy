@@ -177,6 +177,67 @@ fires, the summary updates, and the prototype agent fans out four designs onto t
 pick one and watch the Design DNA lock in (then **view / download** its Google `DESIGN.md`
 from the DNA panel).
 
+## Add DataHub company memory
+
+Handy talks to DataHub through a small MCP server. Think of the three running pieces like
+this:
+
+```text
+DataHub Core (:8080 metadata, :9002 UI)
+              ↓
+official DataHub MCP server (:8000 agent tools)
+              ↓
+Handy (:3001 server, :5173 dev UI)
+```
+
+1. Start DataHub Core. This starts the local catalog and UI; it does not start Handy or
+   the MCP bridge.
+
+   ```bash
+   datahub docker quickstart --version v1.6.0
+   ```
+
+2. Start the official MCP server in another terminal. It translates Handy's simple tool
+   calls into authenticated DataHub API calls. Use a DataHub access token; do not put that
+   token in Handy or the browser.
+
+   ```bash
+   export DATAHUB_GMS_URL=http://127.0.0.1:8080
+   export DATAHUB_GMS_TOKEN='<your DataHub access token>'
+   export TOOLS_IS_MUTATION_ENABLED=true
+   export SAVE_DOCUMENT_PARENT_TITLE='Handy Memory'
+   export FASTMCP_HOST=127.0.0.1
+   export FASTMCP_PORT=8000
+   uvx mcp-server-datahub@0.6.0 --transport http
+   ```
+
+   Mutation mode is required because Handy saves accepted files and meeting summaries.
+   Handy does not use the other metadata-editing tools.
+
+3. Enable the bridge in Handy's `.env`:
+
+   ```bash
+   DATAHUB_ENABLED=true
+   DATAHUB_MCP_URL=http://127.0.0.1:8000/mcp
+   DATAHUB_FRONTEND_URL=http://localhost:9002
+   ```
+
+4. Test the contract before starting a demo:
+
+   ```bash
+   bun run datahub:smoke
+   DATAHUB_SMOKE_WRITE=1 bun run datahub:smoke
+   ```
+
+   The first command proves catalog search, schema reading, and lineage reading. The second
+   also saves a disposable document and waits up to ten seconds for search indexing. In our
+   local test the document became searchable after about 2.5 seconds. Handy adds new memory
+   to the current meeting immediately, so that indexing delay matters only to later search.
+
+Then run Handy normally with `bun run dev`. Use `AGENTS=live` for the real demo: mock
+prototype HTML is intentionally fixed and cannot visibly prove that DataHub context changed
+the generated prototype.
+
 ## Live shared room without Docker (host machine + Tailscale Funnel)
 
 > Legacy host path — **Docker (above) is the default.** Use this only to run on the host
@@ -314,4 +375,3 @@ presence (`presence.snapshot|join|update|leave|cursor|ping`, `kicked`), context
 Licensed under the [Apache License 2.0](LICENSE).
 
 ---
-

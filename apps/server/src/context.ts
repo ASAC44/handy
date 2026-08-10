@@ -12,6 +12,7 @@ interface ContextRecord extends ContextBundle {
   stagingRoot: string;
   workspaceRoot?: string;
   previews: Array<{ path: string; text: string }>;
+  contents: Array<{ path: string; text: string }>;
 }
 
 export class ContextStore {
@@ -58,6 +59,7 @@ export class ContextStore {
     let totalBytes = 0;
     const infos: ContextFileInfo[] = [];
     const previews: ContextRecord["previews"] = [];
+    const contents: ContextRecord["contents"] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]!;
@@ -72,8 +74,11 @@ export class ContextStore {
       const bytes = new Uint8Array(await file.arrayBuffer());
       await writeFile(target, bytes);
       infos.push({ name: basename(safeRel), relativePath: safeRel, size: file.size, type: file.type || undefined });
-      const preview = previewText(file, bytes);
-      if (preview) previews.push({ path: safeRel, text: preview });
+      const content = readableText(file, bytes);
+      if (content) {
+        contents.push({ path: safeRel, text: content });
+        previews.push({ path: safeRel, text: content.slice(0, PREVIEW_BYTES) });
+      }
     }
 
     const record: ContextRecord = {
@@ -91,6 +96,7 @@ export class ContextStore {
       workspacePath: status === "accepted" ? relative(this.workspaceRoot, root) : undefined,
       acceptedAt: status === "accepted" ? Date.now() : undefined,
       previews,
+      contents,
     };
     this.records.set(id, record);
     return publicBundle(record);
@@ -142,6 +148,15 @@ export class ContextStore {
     const previews = accepted.flatMap((item) => item.previews.slice(0, 3).map((p) => `\n--- ${item.title}/${p.path} ---\n${p.text}`)).slice(0, 8);
     return [...lines, ...previews].join("\n").slice(0, 12000);
   }
+
+  acceptedText(id: string): { title: string; content: string } | null {
+    const record = this.records.get(id);
+    if (!record || record.status !== "accepted" || record.contents.length === 0) return null;
+    return {
+      title: record.title,
+      content: record.contents.map((item) => `## ${item.path}\n\n${item.text}`).join("\n\n"),
+    };
+  }
 }
 
 export class ContextUploadError extends Error {
@@ -151,7 +166,7 @@ export class ContextUploadError extends Error {
 }
 
 function publicBundle(record: ContextRecord): ContextBundle {
-  const { stagingRoot: _stagingRoot, workspaceRoot: _workspaceRoot, previews: _previews, ...bundle } = record;
+  const { stagingRoot: _stagingRoot, workspaceRoot: _workspaceRoot, previews: _previews, contents: _contents, ...bundle } = record;
   return { ...bundle, files: record.files.map((f) => ({ ...f })) };
 }
 
@@ -160,12 +175,11 @@ function defaultTitle(files: File[], paths: string[]): string {
   return `${files.length} files`;
 }
 
-function previewText(file: File, bytes: Uint8Array): string | null {
+function readableText(file: File, bytes: Uint8Array): string | null {
   const name = file.name || "";
   const textLike = file.type.startsWith("text/") || file.type === "application/json" || TEXT_EXT.test(name);
   if (!textLike) return null;
-  const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, PREVIEW_BYTES));
-  return text.replace(/\0/g, "").trim().slice(0, PREVIEW_BYTES);
+  return new TextDecoder("utf-8", { fatal: false }).decode(bytes).replace(/\0/g, "").trim();
 }
 
 function safeRelativePath(input: string): string {

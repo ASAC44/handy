@@ -83,10 +83,10 @@ apps/server/package.json
 
 Do not modify a listed file unless the working flow actually needs it.
 
-## Before app code: prove the real DataHub contract
+## Real DataHub contract: verified
 
-The DataHub UI, GMS, and MCP endpoints were not reachable during the QA check. This is the
-first blocker, so do it before editing Handy.
+This gate passed against DataHub Core 1.6.0, the showcase ecommerce catalog, and official
+MCP server 0.6.0 on August 10, 2026.
 
 Run DataHub Core and the official MCP server, then use the real MCP tool list to record the
 exact input and output shapes. Verify only:
@@ -96,7 +96,15 @@ exact input and output shapes. Verify only:
 3. `save_document` saves one temporary Markdown document.
 4. A later document search finds that saved text.
 5. `list_schema_fields` returns fields for the chosen dataset.
-6. `get_lineage` returns a known downstream asset for one preselected change.
+6. `get_lineage` returns an honest downstream result, including an empty result.
+
+Measured result: search found 67 order datasets, the selected dataset exposed 15 schema
+fields, `save_document` returned a real URN, and `search_documents` found it after about
+2.5 seconds. This is a short search-indexing delay, not a fixed long update interval.
+
+The selected asset had no recorded downstream lineage. Handy therefore says **low known
+impact** and notes that the graph may be incomplete. The feature does not need fake lineage
+to be correct.
 
 Do not build a generic response normalizer before seeing these responses. Parse only the
 real shapes needed by the demo.
@@ -292,7 +300,8 @@ until the product loop works.
 
 - Start Core and MCP.
 - Verify search, document save/search, schema, and the chosen lineage.
-- Pick exact demo dataset, field, and downstream asset from the results.
+- Pick an exact demo dataset and accept either named downstream assets or an honest low
+  known impact result.
 
 Stop if this is not real. App UI cannot repair a broken contract.
 

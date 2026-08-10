@@ -209,6 +209,9 @@ export function ContextStrip({
         {accepted.length} accepted
         {pending.length ? ` · ${pending.length} pending` : ""}
       </span>
+      <span className={"dhStatus " + state.datahub.status} title={state.datahub.message ?? state.datahub.query}>
+        DataHub {dataHubLabel(state.datahub.status, state.datahub.sources.length)}
+      </span>
       <span className="ctxDrop">Drop files / folders</span>
       <div className="ctxActions">
         {busy ? <span className="ctxBusy">scanning</span> : error ? <span className="ctxErr">{error}</span> : filterNote ? <span className="ctxOk">{filterNote}</span> : null}
@@ -235,7 +238,7 @@ export function ContextStrip({
       {queue.length ? (
         <div className="ctxQueue">
           {queue.map((item) => (
-            <ContextRow key={item.id} item={item} hostMode={hostMode} onAccept={accept} onReject={reject} />
+            <ContextRow key={item.id} item={item} memory={state.datahubMemory.find((entry) => entry.kind === "file" && entry.id === item.id)} hostMode={hostMode} onAccept={accept} onReject={reject} />
           ))}
         </div>
       ) : null}
@@ -245,11 +248,13 @@ export function ContextStrip({
 
 function ContextRow({
   item,
+  memory,
   hostMode,
   onAccept,
   onReject,
 }: {
   item: ContextBundle;
+  memory?: HandyState["datahubMemory"][number];
   hostMode: boolean;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
@@ -261,6 +266,7 @@ function ContextRow({
       </span>
       <span className="ctxMeta">
         {item.uploadedByName} · {item.fileCount} file{item.fileCount === 1 ? "" : "s"} · {formatBytes(item.totalBytes)}
+        {memory ? ` · DataHub ${memory.status}` : ""}
       </span>
       {hostMode && item.status === "pending" ? (
         <span className="ctxReview">
@@ -272,6 +278,13 @@ function ContextRow({
       )}
     </div>
   );
+}
+
+function dataHubLabel(status: HandyState["datahub"]["status"], sources: number): string {
+  if (status === "connected") return sources ? `connected · ${sources} sources` : "connected";
+  if (status === "connecting") return "connecting";
+  if (status === "unavailable") return "unavailable";
+  return "off";
 }
 
 async function normalizeUploadFiles(incoming: UploadFile[] | FileList | null): Promise<UploadFile[]> {

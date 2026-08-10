@@ -1,5 +1,5 @@
 import { config } from "./config";
-import type { MeetingRuntime } from "./runtime";
+import type { CompanyContext, MeetingRuntime } from "./runtime";
 import { getScenario, type FixtureSegment } from "./source/fixtures";
 import {
   buildPrototype,
@@ -16,6 +16,7 @@ import {
   type AgentName,
   type PrototypeReview,
   type ReviewIssue,
+  type CompanySource,
 } from "@handy/shared";
 import { mockStream, liveStream, evolveStream, getBaseline, type StreamResult } from "./agents/prototype";
 import { routeLive } from "./agents/router";
@@ -35,6 +36,8 @@ interface BuiltArtifact {
   themeKey: ThemeKey;
   html: string;
   variant?: VariantInfo;
+  context: string;
+  companySources: CompanySource[];
 }
 
 const RATE = 0.6; // compress fixture pacing for a snappier replay
@@ -90,6 +93,7 @@ const PROTOTYPE_WORDS =
   /\b(build|make|mock|mockup|prototype|design|sketch|wireframe|dashboard|chart|graph|page|landing|board|kanban|flow|form|table|app|ui|screen|widget|visuali[sz]e)\b/i;
 const SCREEN_WORDS = /\b(this|screen|share|shared|slide|deck|diagram|whiteboard|mockup|figma|visual|screenshot|as shown)\b/i;
 const FACT_WORDS = /\b(\d+[%$kmb]?|percent|million|billion|q[1-4]|january|february|march|april|may|june|july|august|september|october|november|december|industry|category|market)\b/i;
+const CHANGE_WORDS = /\b(remove|rename|replace|drop|delete|expose|change|deprecate)\b/i;
 
 function heuristicExpect(text: string, prev: MeetingSummary | null): FixtureSegment["expect"] {
   const prototype = PROTOTYPE_WORDS.test(text);
@@ -180,7 +184,7 @@ export class Orchestrator {
    *  debounced pending trigger that coalesces a burst of fragments into one build. */
   private buildGen = 0;
   private liveBuildId: string | null = null;
-  private pendingBuild: { seg: FixtureSegment; decision: RouterDecision; my: number } | null = null;
+  private pendingBuild: { seg: FixtureSegment; decision: RouterDecision; my: number; context: string; company: CompanyContext } | null = null;
   private buildTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private runtime: MeetingRuntime) {}
@@ -255,6 +259,15 @@ export class Orchestrator {
     }
     if (!alive()) return;
     this.send({ type: "finaldoc.complete", id, html: result.html, ms: result.ms });
+    await this.runtime.saveMeetingMemory({
+      title: this.lastTitle,
+      tldr: input.summary.tldr,
+      decisions: input.summary.decisions,
+      actionItems: input.summary.action_items,
+      openQuestions: input.summary.open_questions,
+      prototypes: this.artifacts.map((artifact) => artifact.intent),
+      sources: uniqueSources(this.artifacts.flatMap((artifact) => artifact.companySources)),
+    });
   }
 
   async start(scenarioId?: string): Promise<void> {
@@ -353,69 +366,78 @@ export class Orchestrator {
     if (paced) await sleep(Math.max(500, seg.ms * RATE));
     if (my !== this.runId || !seg.expect) return;
 
+    const company = await this.runtime.refreshCompanyContext(`${this.summary?.tldr ?? ""} ${seg.text}`);
+    const context = this.runtime.contextSummary();
+    if (my !== this.runId) return;
+
     // Per-agent toggles for testing. Router off = pure audio path (transcripts only,
     // no inference); each downstream agent is gated independently.
     const agents = this.runtime.agents;
     if (!agents.router) return;
 
-    const decision = await this.router(seg);
+    const decision = await this.router(seg, context);
     if (my !== this.runId) return;
     this.send({ type: "router.decision", decision });
 
     if (decision.summary_update && agents.summarizer) {
-      const summary = await this.summarize(seg);
+      const summary = await this.summarize(seg, context);
       if (summary) {
         this.summary = summary;
         this.send({ type: "summary.update", summary });
       }
     }
     if (decision.factcheck.trigger && agents.factcheck) {
-      const result = await this.factcheck(seg, decision.factcheck.claims);
+      const result = await this.factcheck(seg, decision.factcheck.claims, context);
       if (result) this.send({ type: "factcheck.result", result });
+    }
+    if (CHANGE_WORDS.test(seg.text)) {
+      const impact = await this.runtime.checkCompanyImpact(seg.text);
+      if (my !== this.runId) return;
+      this.send({ type: "datahub.impact", impact });
     }
     if (decision.prototype.trigger && agents.prototype) {
       // First build = fan-out (its awaitingPick guard blocks re-fires). Once a design is
       // learned, coalesce the burst and let a new build supersede the in-flight one.
-      if (this.runtime.learned) this.scheduleLearnedBuild(seg, decision, my);
-      else await this.build(seg, decision, my);
+      if (this.runtime.learned) this.scheduleLearnedBuild(seg, decision, my, context, company);
+      else await this.build(seg, decision, my, context, company);
     }
     await sleep(400);
   }
 
-  private async router(seg: FixtureSegment): Promise<RouterDecision> {
+  private async router(seg: FixtureSegment, context: string): Promise<RouterDecision> {
     this.telemetry("router", 950, 180);
     if (config.agents === "mock") return seg.expect!.router;
     try {
       // Pass a short recent-transcript window so the router judges the conversation, not a
       // single (often fragmentary) segment — lets it fire as soon as the intent is clear.
-      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}), this.runtime.contextSummary(), this.transcript.slice(-6).join("\n"));
+      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}), context, this.transcript.slice(-6).join("\n"));
     } catch (err) {
       console.error("[router] live call failed", errMsg(err));
       return NOOP_DECISION;
     }
   }
 
-  private async summarize(seg: FixtureSegment): Promise<MeetingSummary | null> {
+  private async summarize(seg: FixtureSegment, context: string): Promise<MeetingSummary | null> {
     this.telemetry("summarizer", 760, 520);
     if (config.agents === "mock") return seg.expect!.summary ?? summarizeMock(this.transcript, this.summary);
     try {
-      return await summarizeLive(this.transcript.join("\n"), this.summary, this.runtime.contextSummary());
+      return await summarizeLive(this.transcript.join("\n"), this.summary, context);
     } catch (err) {
       console.error("[summarizer] live call failed", errMsg(err));
       return summarizeMock(this.transcript, this.summary);
     }
   }
 
-  private async factcheck(seg: FixtureSegment, claims: string[]): Promise<FactcheckResult | null> {
+  private async factcheck(seg: FixtureSegment, claims: string[], context: string): Promise<FactcheckResult | null> {
     if (config.agents === "mock") {
       const f = seg.expect!.factcheck;
       return f ? { checks: [f] } : null;
     }
-    return factcheckLive(claims);
+    return factcheckLive(claims, context);
   }
 
   /** Prototype build: fan-out 3 variants the first time, single learned-style build after. */
-  private async build(seg: FixtureSegment, decision: RouterDecision, my: number): Promise<void> {
+  private async build(seg: FixtureSegment, decision: RouterDecision, my: number, context: string, company: CompanyContext): Promise<void> {
     // Live mode waits for a human to pick the design DNA (no auto-pick). While that
     // first fan-out is still on screen, skip new fan-outs so we don't stack competing
     // first-builds before a direction is locked in.
@@ -435,7 +457,7 @@ export class Orchestrator {
       }));
       this.send({ type: "fanout.start", buildId, intent, usesScreen, variants });
       await Promise.all(
-        variants.map((v) => this.streamOne(v.id, buildId, intent, usesScreen, v.themeKey, buildKey, 1850, my, v)),
+        variants.map((v) => this.streamOne(v.id, buildId, intent, usesScreen, v.themeKey, buildKey, 1850, my, v, false, undefined, context, company.sources)),
       );
       if (my !== this.runId) return;
       // Review only the RECOMMENDED variant, not all of them: reviewing every variant ×
@@ -462,9 +484,9 @@ export class Orchestrator {
       // from a blank canvas — so the agent can actually iterate on what's on screen.
       const base = this.currentArtifact();
       // A/B: race Cerebras and the GPU baseline concurrently so both timers run live.
-      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base)];
+      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base, context, company.sources)];
       if (this.runtime.abMode) {
-        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base));
+        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base, context, company.sources));
       }
       await Promise.all(tasks);
       if (my !== this.runId) return;
@@ -480,21 +502,21 @@ export class Orchestrator {
 
   /** Debounce learned-build triggers: a spoken idea lands as several ASR finals, so wait
    *  for the speaker to pause and build ONCE from the latest (fullest) trigger. */
-  private scheduleLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number): void {
-    this.pendingBuild = { seg, decision, my };
+  private scheduleLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number, context: string, company: CompanyContext): void {
+    this.pendingBuild = { seg, decision, my, context, company };
     if (this.buildTimer) clearTimeout(this.buildTimer);
     this.buildTimer = setTimeout(() => {
       this.buildTimer = null;
       const pb = this.pendingBuild;
       this.pendingBuild = null;
-      if (pb && pb.my === this.runId) void this.runLearnedBuild(pb.seg, pb.decision, pb.my);
+      if (pb && pb.my === this.runId) void this.runLearnedBuild(pb.seg, pb.decision, pb.my, pb.context, pb.company);
     }, BUILD_DEBOUNCE_MS);
   }
 
   /** A single learned-style (evolve) build that SUPERSEDES any in-flight one: it cancels the
    *  previous build's work (generation token) and drops its half-built card, so a new idea
    *  replaces the current build instead of stacking another card. */
-  private async runLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number): Promise<void> {
+  private async runLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number, context: string, company: CompanyContext): Promise<void> {
     if (my !== this.runId || !this.runtime.learned) return;
     // Supersede the in-flight build: drop its (incomplete) card; the gen bump cancels its work.
     if (this.liveBuildId) {
@@ -512,9 +534,9 @@ export class Orchestrator {
     const theme = this.runtime.learned.key;
     const base = this.currentArtifact();
     try {
-      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base, gen)];
+      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base, context, company.sources, gen)];
       if (this.runtime.abMode) {
-        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base, gen));
+        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base, context, company.sources, gen));
       }
       await Promise.all(tasks);
       if (dead()) return;
@@ -549,9 +571,9 @@ export class Orchestrator {
     const theme = this.runtime.learned?.key ?? base.themeKey;
     const buildKey: PrototypeKey = inferPrototypeKey(`${intent} ${base.intent}`);
     const usesScreen = false;
-    const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base)];
+    const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base, base.context, base.companySources)];
     if (this.runtime.abMode) {
-      tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base));
+      tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base, base.context, base.companySources));
     }
     await Promise.all(tasks);
     if (my !== this.runId) return;
@@ -569,7 +591,7 @@ export class Orchestrator {
     this.send({ type: "nextsteps.start", id: a.id, buildId: a.buildId });
     this.telemetry("nextstep", 720, 140);
     const theme = THEMES[a.themeKey];
-    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    const transcript = withContext(this.transcript.join("\n"), a.context);
     try {
       let suggestions =
         config.agents === "mock"
@@ -596,7 +618,7 @@ export class Orchestrator {
    */
   private async reviewAndRefine(a: BuiltArtifact, my: number, gen?: number): Promise<void> {
     const theme = THEMES[a.themeKey];
-    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    const transcript = withContext(this.transcript.join("\n"), a.context);
     // Dead = run superseded (new meeting) OR this learned build replaced by a newer one.
     const dead = (): boolean => my !== this.runId || (gen !== undefined && gen !== this.buildGen);
     for (let pass = 1; pass <= MAX_REVIEW_PASSES; pass++) {
@@ -659,7 +681,7 @@ export class Orchestrator {
 
     const my = this.runId;
     const theme = THEMES[a.themeKey];
-    const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    const transcript = withContext(this.transcript.join("\n"), a.context);
     const change =
       "The rendered prototype reported these BROWSER runtime/load failures. Fix them so it renders " +
       "correctly — correct or replace a failed resource URL, guard against the missing dependency, or " +
@@ -741,6 +763,8 @@ export class Orchestrator {
     variant?: VariantInfo,
     baseline = false,
     base?: BuiltArtifact,
+    context = "",
+    companySources: CompanySource[] = [],
     gen?: number,
   ): Promise<void> {
     // The GPU baseline build needs BASELINE_* configured; skip (don't fake) if absent.
@@ -752,7 +776,7 @@ export class Orchestrator {
     // new card with the base HTML (no blank canvas), and the agent returns edit blocks —
     // so we DON'T stream raw edit-block tokens into the rendered iframe.
     const evolving = !!base && config.agents !== "mock";
-    this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant, baseId: evolving ? base!.id : undefined });
+    this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant, baseId: evolving ? base!.id : undefined, companySources });
     // Alive = this run is current AND (for learned builds) this build hasn't been superseded.
     const alive = (): boolean => my === this.runId && (gen === undefined || gen === this.buildGen);
     const onToken = evolving ? (): void => {} : (delta: string): void => {
@@ -770,7 +794,7 @@ export class Orchestrator {
         // On later single builds, themeKey is already the learned theme's key.
         // baseline=true routes the build through the GPU baseline model (honest A/B).
         const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
-        const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+        const transcript = withContext(this.transcript.join("\n"), context);
         const model = baseline ? getBaseline()! : undefined;
         const r = evolving
           ? await evolveStream(base!.html, intent, transcript, THEMES[themeKey], screenshot, onToken, model)
@@ -783,16 +807,16 @@ export class Orchestrator {
       console.error("[prototype] build failed", errMsg(err));
       if (!alive()) return;
       const fallback = base?.html ?? "";
-      this.send({ type: "prototype.complete", id, buildId, html: fallback, ideaToArtifactMs: 0, themeKey });
-      if (!baseline && fallback) this.recordArtifact({ id, buildId, intent, themeKey, html: fallback, variant });
+      this.send({ type: "prototype.complete", id, buildId, html: fallback, ideaToArtifactMs: 0, themeKey, companySources });
+      if (!baseline && fallback) this.recordArtifact({ id, buildId, intent, themeKey, html: fallback, variant, context, companySources });
       return;
     }
     if (!alive()) return;
     this.telemetry("prototype", tokPerS, tokens);
-    this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey });
+    this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey, companySources });
     // Remember the canonical (non-baseline) build: base for the next evolution + recap.
     if (!baseline) {
-      const artifact = { id, buildId, intent, themeKey, html, variant };
+      const artifact = { id, buildId, intent, themeKey, html, variant, context, companySources };
       this.recordArtifact(artifact);
       void this.suggestNextSteps(artifact, my);
     }
@@ -823,4 +847,8 @@ export class Orchestrator {
 
 function withContext(transcript: string, context: string): string {
   return context ? `${context}\n\nRolling transcript:\n${transcript}` : transcript;
+}
+
+function uniqueSources(sources: CompanySource[]): CompanySource[] {
+  return [...new Map(sources.map((source) => [source.urn, source])).values()];
 }

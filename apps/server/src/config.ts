@@ -20,6 +20,11 @@ export const config = {
   factcheckSearch: (process.env.FACTCHECK_SEARCH ?? "tavily") as FactcheckSearch,
   tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
 
+  /** DataHub's official MCP companion. It owns the DataHub token; Handy only sees this local URL. */
+  datahubEnabled: (process.env.DATAHUB_ENABLED ?? "false") === "true",
+  datahubMcpUrl: process.env.DATAHUB_MCP_URL ?? "http://127.0.0.1:8000/mcp",
+  datahubFrontendUrl: process.env.DATAHUB_FRONTEND_URL ?? "http://localhost:9002",
+
   /** ElevenLabs Scribe v2 Realtime — client-side ASR via a single-use token minted server-side. */
   elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
 
