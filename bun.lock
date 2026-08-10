@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "sidebar",
+      "name": "handy",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.1.0",
@@ -12,10 +12,10 @@
       },
     },
     "apps/server": {
-      "name": "@sidebar/server",
+      "name": "@handy/server",
       "version": "0.1.0",
       "dependencies": {
-        "@sidebar/shared": "workspace:*",
+        "@handy/shared": "workspace:*",
         "universal-llm-client": "^4.5.2",
         "zod": "^4.0.0",
       },
@@ -24,11 +24,11 @@
       },
     },
     "apps/web": {
-      "name": "@sidebar/web",
+      "name": "@handy/web",
       "version": "0.1.0",
       "dependencies": {
         "@huggingface/transformers": "^3.4.0",
-        "@sidebar/shared": "workspace:*",
+        "@handy/shared": "workspace:*",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
       },
@@ -41,7 +41,7 @@
       },
     },
     "packages/shared": {
-      "name": "@sidebar/shared",
+      "name": "@handy/shared",
       "version": "0.1.0",
       "dependencies": {
         "zod": "^4.0.0",
@@ -271,11 +271,11 @@
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.62.2", "", { "os": "win32", "cpu": "x64" }, "sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA=="],
 
-    "@sidebar/server": ["@sidebar/server@workspace:apps/server"],
+    "@handy/server": ["@handy/server@workspace:apps/server"],
 
-    "@sidebar/shared": ["@sidebar/shared@workspace:packages/shared"],
+    "@handy/shared": ["@handy/shared@workspace:packages/shared"],
 
-    "@sidebar/web": ["@sidebar/web@workspace:apps/web"],
+    "@handy/web": ["@handy/web@workspace:apps/web"],
 
     "@types/babel__core": ["@types/babel__core@7.20.5", "", { "dependencies": { "@babel/parser": "^7.20.7", "@babel/types": "^7.20.7", "@types/babel__generator": "*", "@types/babel__template": "*", "@types/babel__traverse": "*" } }, "sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA=="],
 

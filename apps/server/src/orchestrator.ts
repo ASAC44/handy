@@ -16,7 +16,7 @@ import {
   type AgentName,
   type PrototypeReview,
   type ReviewIssue,
-} from "@sidebar/shared";
+} from "@handy/shared";
 import { mockStream, liveStream, evolveStream, getBaseline, type StreamResult } from "./agents/prototype";
 import { routeLive } from "./agents/router";
 import { summarizeLive } from "./agents/summarizer";

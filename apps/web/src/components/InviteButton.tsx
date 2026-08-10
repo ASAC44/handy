@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientEvent, InviteInfo } from "@sidebar/shared";
-import type { SidebarState } from "../ws";
+import type { ClientEvent, InviteInfo } from "@handy/shared";
+import type { HandyState } from "../ws";
 
 /**
  * Host-only "invite participants" control. Each guest gets a UNIQUE, server-minted
@@ -30,7 +30,7 @@ function isLocalOrigin(): boolean {
 
 const EXIT_MS = 200; // keep in sync with the .modalScrim transition in styles.css
 
-export function InviteButton({ state, send }: { state: SidebarState; send: (e: ClientEvent) => void }) {
+export function InviteButton({ state, send }: { state: HandyState; send: (e: ClientEvent) => void }) {
   const [mounted, setMounted] = useState(false); // in the DOM (kept during exit animation)
   const [shown, setShown] = useState(false); // drives the enter/exit transition
   const local = isLocalOrigin();

@@ -1,6 +1,6 @@
 /**
  * Shared helpers for the audio-fixture toolchain (gen-fixture-audio + asr-bench).
- * Kept dependency-light (no @sidebar/shared) so the scripts run standalone under
+ * Kept dependency-light (no @handy/shared) so the scripts run standalone under
  * `bun scripts/*.ts`. Bun auto-loads .env, so ELEVENLABS_API_KEY etc. are present.
  */
 import { readFileSync } from "node:fs";

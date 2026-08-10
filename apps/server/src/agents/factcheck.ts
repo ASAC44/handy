@@ -5,7 +5,7 @@ import {
   FACTCHECK_SYSTEM_UNGROUNDED,
   FactcheckResultSchema,
   type FactcheckResult,
-} from "@sidebar/shared";
+} from "@handy/shared";
 import { gatherEvidence } from "../search";
 
 /**

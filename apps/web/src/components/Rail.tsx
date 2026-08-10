@@ -9,15 +9,15 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { ClientEvent } from "@sidebar/shared";
-import type { SidebarState } from "../ws";
+import type { ClientEvent } from "@handy/shared";
+import type { HandyState } from "../ws";
 import { SCENARIOS } from "../scenarios";
 import { CustomSelect } from "./CustomSelect";
 import { clamp, PANEL_MIN_PX, RAIL_MAX, RAIL_MIN, type PanelId, type PanelLayout, type Side } from "../useLayout";
 import type { DragLayerHandle } from "./DragLayer";
 
 interface PanelProps {
-  state: SidebarState;
+  state: HandyState;
   hostMode: boolean;
   send: (e: ClientEvent) => void;
 }
@@ -276,7 +276,7 @@ function RailWidthHandle({
   );
 }
 
-function Transcript({ state, hostMode, send }: { state: SidebarState; hostMode: boolean; send: (e: ClientEvent) => void }) {
+function Transcript({ state, hostMode, send }: { state: HandyState; hostMode: boolean; send: (e: ClientEvent) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
@@ -335,7 +335,7 @@ function Transcript({ state, hostMode, send }: { state: SidebarState; hostMode: 
   );
 }
 
-function Summary({ state }: { state: SidebarState }) {
+function Summary({ state }: { state: HandyState }) {
   const s = state.summary;
   return (
     <>
@@ -392,7 +392,7 @@ function Sec<T>({
   );
 }
 
-function FactCheck({ state }: { state: SidebarState }) {
+function FactCheck({ state }: { state: HandyState }) {
   return (
     <>
       <div className="panel-h">

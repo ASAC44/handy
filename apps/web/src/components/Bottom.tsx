@@ -1,5 +1,5 @@
-import type { SidebarState } from "../ws";
-import type { ClientEvent, AgentName } from "@sidebar/shared";
+import type { HandyState } from "../ws";
+import type { ClientEvent, AgentName } from "@handy/shared";
 
 const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck", "nextstep"];
 
@@ -7,7 +7,7 @@ export function Bottom({
   state,
   send,
 }: {
-  state: SidebarState;
+  state: HandyState;
   send: (e: ClientEvent) => void;
 }) {
   return (
@@ -54,7 +54,7 @@ export function Bottom({
 
 /** The "idea → artifact" hero metric, relocated from the old top HUD into the footer:
  *  build latency + live throughput + state, compact. */
-function Metrics({ state }: { state: SidebarState }) {
+function Metrics({ state }: { state: HandyState }) {
   const lat = state.latencyMs != null ? (state.latencyMs / 1000).toFixed(2) + "s" : "0.00s";
   const tps = protoTokPerS(state);
   return (
@@ -74,7 +74,7 @@ function Metrics({ state }: { state: SidebarState }) {
 
 /** Real throughput of the prototype agent — the one that produces the artifact whose
  *  latency we headline — falling back to the fastest agent we've heard from. */
-function protoTokPerS(state: SidebarState): number | null {
+function protoTokPerS(state: HandyState): number | null {
   const proto = state.telemetry.prototype?.tokPerS;
   if (proto != null && proto > 0) return Math.round(proto);
   const all = Object.values(state.telemetry)

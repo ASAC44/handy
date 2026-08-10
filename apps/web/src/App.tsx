@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSidebar } from "./ws";
+import { useHandy } from "./ws";
 import { useLayout, type Side } from "./useLayout";
 import { Rail } from "./components/Rail";
 import { ContextStrip } from "./components/ContextStrip";
@@ -83,7 +83,7 @@ function Lock({ onSubmit, error, busy }: { onSubmit: (pw: string) => void; error
         }}
       >
         <div className="lockBrand">
-          <span className="logo"><Logo /></span> Sidebar
+          <span className="logo"><Logo /></span> Handy
         </div>
         <div className="lockTitle">This meeting is locked</div>
         <input
@@ -109,7 +109,7 @@ function Removed() {
     <div className="lockScreen">
       <div className="lockCard">
         <div className="lockBrand">
-          <span className="logo"><Logo /></span> Sidebar
+          <span className="logo"><Logo /></span> Handy
         </div>
         <div className="lockTitle">You were removed from the meeting</div>
         <button className="lockBtn" onClick={() => location.reload()}>
@@ -125,7 +125,7 @@ function Left() {
     <div className="lockScreen">
       <div className="lockCard">
         <div className="lockBrand">
-          <span className="logo"><Logo /></span> Sidebar
+          <span className="logo"><Logo /></span> Handy
         </div>
         <div className="lockTitle">You left the meeting</div>
         <button className="lockBtn" onClick={() => location.reload()}>
@@ -137,7 +137,7 @@ function Left() {
 }
 
 function Meeting() {
-  const { state, send, setAbMode, leave } = useSidebar();
+  const { state, send, setAbMode, leave } = useHandy();
   const cap = useCapture(send);
   // Server-authoritative once presence arrives: the role comes from the credential the
   // connection authenticated with (host passcode vs guest invite code). The `?host` URL
@@ -184,7 +184,7 @@ function Meeting() {
     <div className={"app" + (hostMode ? "" : " viewer") + (dragging ? " dragging" : "")}>
       <header className="topbar">
         <div className="brand">
-          <span className="logo"><Logo /></span> Sidebar <span className="bsub">meeting agents</span>
+          <span className="logo"><Logo /></span> Handy <span className="bsub">meeting agents</span>
         </div>
         <span className={"conn " + (state.connected ? "on" : "off")}>
           {state.connected ? "● connected" : "○ offline"}

@@ -1,6 +1,6 @@
 import { AIModel, multimodalMessage } from "universal-llm-client";
 import { prototypeModel, baselineModel } from "../llm";
-import { prototypeSystemFor, prototypeEditSystemFor, type ThemeTokens } from "@sidebar/shared";
+import { prototypeSystemFor, prototypeEditSystemFor, type ThemeTokens } from "@handy/shared";
 
 export interface StreamResult {
   html: string;

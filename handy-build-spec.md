@@ -1,6 +1,6 @@
-# Sidebar — Build Spec
+# Handy — Build Spec
 
-> **Working title:** Sidebar (alts: Backchannel, Cohost, Aux). Rename freely.
+> **Working title:** Handy (alts: Backchannel, Cohost, Aux). Rename freely.
 > **One-liner:** A panel of AI agents that works *alongside* you during a live meeting — one keeps a rolling summary, one turns spoken ideas into running prototypes the moment they're said, one fact-checks claims. Built on Cerebras + Gemma 4 31B.
 > **Hackathon:** Cerebras × Google DeepMind Gemma 4, 24h. Targets both tracks: **Enterprise** ("an AI panel that works with you in meetings") and **Inference Speed** (the idea→prototype cliff).
 
@@ -231,7 +231,7 @@ Most teams will fake the GPU comparison by artificially delaying tokens. **Do an
 - **The metric on screen:** idea→artifact latency, both columns live. Cerebras shows ~1–2s; baseline shows ~8–12s. The prototype renders on the fast side while the slow side is still spilling tokens. That single shot is the submission.
 
 **Demo script (60–90s video):**
-1. Two-line intro: "Sidebar is a panel of agents that works while you talk."
+1. Two-line intro: "Handy is a panel of agents that works while you talk."
 2. Speak an idea ("a kanban board with drag-and-drop and a burndown chart") — summary updates, prototype starts streaming, renders live in ~2s.
 3. Speak an idea that references the screen ("make it look like *this* mockup", screenshot attached) — prototype reads the image and matches it. (Multimodal proof.)
 4. Flip the A/B toggle on the next idea — fast side renders while slow side crawls. Hold on the dual timer.

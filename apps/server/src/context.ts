@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
-import type { ContextBundle, ContextFileInfo, ContextSnapshot, ContextStatus } from "@sidebar/shared";
+import type { ContextBundle, ContextFileInfo, ContextSnapshot, ContextStatus } from "@handy/shared";
 
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
 const PREVIEW_BYTES = 3200;
@@ -16,7 +16,7 @@ interface ContextRecord extends ContextBundle {
 
 export class ContextStore {
   readonly meetingId = `m-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${crypto.randomUUID().slice(0, 6)}`;
-  readonly root = join(tmpdir(), "sidebar-meetings", this.meetingId);
+  readonly root = join(tmpdir(), "handy-meetings", this.meetingId);
   readonly workspaceRoot = join(this.root, "workspace");
 
   private readonly inboxRoot = join(this.root, "inbox");

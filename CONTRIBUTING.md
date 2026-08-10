@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in Sidebar.
+Thanks for your interest in Handy.
 
 This is a small two-person project and is **source-available, not open source**
 (see [LICENSE](LICENSE)). To keep our options open — including possibly

@@ -1,4 +1,4 @@
-import type { AgentToggles, ServerEvent, ThemeKey, ThemeTokens } from "@sidebar/shared";
+import type { AgentToggles, ServerEvent, ThemeKey, ThemeTokens } from "@handy/shared";
 
 export interface MeetingRuntime {
   learned: ThemeTokens | null;

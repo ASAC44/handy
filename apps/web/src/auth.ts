@@ -3,7 +3,7 @@
  * rejects the WS + ASR + upload endpoints without the key); this just carries the
  * key the user typed on the lock screen and asks the server whether one is needed.
  */
-const STORE_KEY = "sidebar.key";
+const STORE_KEY = "handy.key";
 
 export function getKey(): string {
   try {
@@ -45,7 +45,7 @@ export function clearKey(): void {
 /** Header to attach to same-origin fetches (ASR token, Gemma, context upload). */
 export function authHeaders(): Record<string, string> {
   const k = getKey();
-  return k ? { "x-sidebar-key": k } : {};
+  return k ? { "x-handy-key": k } : {};
 }
 
 export interface GateInfo {

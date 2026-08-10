@@ -1,6 +1,6 @@
 import { fromZod } from "universal-llm-client/zod";
 import { routerModel } from "../llm";
-import { ROUTER_SYSTEM, RouterDecisionSchema, type RouterDecision } from "@sidebar/shared";
+import { ROUTER_SYSTEM, RouterDecisionSchema, type RouterDecision } from "@handy/shared";
 
 /** Cheap gatekeeper: strict structured output deciding which agents act. */
 export async function routeLive(segment: string, summaryJson: string, context = "", recent = ""): Promise<RouterDecision> {

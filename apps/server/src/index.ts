@@ -7,10 +7,10 @@ import { room } from "./room";
 
 assertLiveReady();
 
-/** The credential a request carries: `x-sidebar-key` header (fetches) or `?key=`
+/** The credential a request carries: `x-handy-key` header (fetches) or `?key=`
  *  query param (WebSocket, which can't set headers). */
 function keyFrom(req: Request, url: URL): string {
-  return req.headers.get("x-sidebar-key") ?? url.searchParams.get("key") ?? "";
+  return req.headers.get("x-handy-key") ?? url.searchParams.get("key") ?? "";
 }
 
 /** Authenticate against the room's host-passcode + invite registry. Returns the
@@ -76,7 +76,7 @@ function serveWeb(pathname: string): Response {
   }
 
   return new Response(
-    "Sidebar server is running. Build the web app with `bun run build`, then open this URL again.",
+    "Handy server is running. Build the web app with `bun run build`, then open this URL again.",
     { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } },
   );
 }
@@ -202,5 +202,5 @@ const server = Bun.serve<WsData>({
 });
 
 console.log(
-  `▚ Sidebar server on :${server.port}  (agents=${config.agents}, source=${config.source}, model=${config.modelId})`,
+  `▚ Handy server on :${server.port}  (agents=${config.agents}, source=${config.source}, model=${config.modelId})`,
 );

@@ -1,6 +1,6 @@
 import { finalDocModel } from "../llm";
 import { extractHtml, type StreamResult } from "./prototype";
-import { finalDocSystemFor, toDesignMd, type MeetingSummary, type ThemeKey, type ThemeTokens, THEMES, RECOMMENDED } from "@sidebar/shared";
+import { finalDocSystemFor, toDesignMd, type MeetingSummary, type ThemeKey, type ThemeTokens, THEMES, RECOMMENDED } from "@handy/shared";
 
 /** A prototype produced during the meeting, embedded in the recap's gallery. */
 export interface RecapArtifact {
@@ -71,16 +71,16 @@ export function artifactGalleryHtml(artifacts: RecapArtifact[], t: ThemeTokens):
   const cards = artifacts
     .map(
       (a) =>
-        `<figure class="sidebar-recap-prototype-card">` +
+        `<figure class="handy-recap-prototype-card">` +
         `<figcaption>${esc(a.intent)}</figcaption>` +
-        `<iframe class="sidebar-recap-prototype-frame" sandbox="allow-scripts" loading="lazy" title="${escAttr(a.intent)}" srcdoc="${escAttr(a.html)}"></iframe>` +
+        `<iframe class="handy-recap-prototype-frame" sandbox="allow-scripts" loading="lazy" title="${escAttr(a.intent)}" srcdoc="${escAttr(a.html)}"></iframe>` +
         `</figure>`,
     )
     .join("");
   return (
-    `<section class="sidebar-recap-prototypes">` +
+    `<section class="handy-recap-prototypes">` +
     `<h2>Prototypes built · ${artifacts.length}</h2>` +
-    `<div class="sidebar-recap-gallery">${cards}</div>` +
+    `<div class="handy-recap-gallery">${cards}</div>` +
     `</section>`
   );
 }
@@ -91,7 +91,7 @@ export function artifactGalleryHtml(artifacts: RecapArtifact[], t: ThemeTokens):
 export function designMdSectionHtml(theme: ThemeTokens | null, t: ThemeTokens): string {
   if (!theme) return "";
   return (
-    `<section class="sidebar-recap-design">` +
+    `<section class="handy-recap-design">` +
     `<h2>This meeting&#39;s DESIGN.md</h2>` +
     `<p>The learned Design DNA, exported in Google&#39;s DESIGN.md format (YAML tokens + prose).</p>` +
     `<details>` +
@@ -103,29 +103,29 @@ export function designMdSectionHtml(theme: ThemeTokens | null, t: ThemeTokens): 
 }
 
 function recapAppendixCss(t: ThemeTokens): string {
-  return `<style id="sidebar-recap-css">
+  return `<style id="handy-recap-css">
 html,body{min-height:100%}
 body{margin:0!important;padding:0!important;max-width:none!important;display:block!important;overflow-x:hidden;background:${t.bg};color:${t.ink};font-family:${t.font};line-height:1.6}
-.sidebar-recap-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:48px 0 72px}
-.sidebar-recap-main{max-width:860px;margin:0 auto}
-.sidebar-recap-main>*:first-child{margin-top:0}
-.sidebar-recap-main>*:last-child{margin-bottom:0}
-.sidebar-recap-appendix{margin-top:42px;display:grid;gap:32px}
-.sidebar-recap-prototypes,.sidebar-recap-design{margin:0}
-.sidebar-recap-prototypes>h2,.sidebar-recap-design>h2{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 14px;font-weight:700}
-.sidebar-recap-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px;align-items:start}
-.sidebar-recap-prototype-card{margin:0;border:1px solid ${t.border};border-radius:${t.radius};overflow:hidden;background:${t.surface};box-shadow:${t.shadow}}
-.sidebar-recap-prototype-card figcaption{padding:11px 14px;font-size:13px;font-weight:700;color:${t.ink};border-bottom:1px solid ${t.border};background:${t.surface2}}
-.sidebar-recap-prototype-frame{width:100%;height:min(620px,72vh);min-height:440px;border:0;display:block;background:#fff}
-.sidebar-recap-design p{font-size:12px;color:${t.mut};margin:0 0 12px}
-.sidebar-recap-design details{border:1px solid ${t.border};border-radius:${t.radius};background:${t.surface};box-shadow:${t.shadow};overflow:hidden}
-.sidebar-recap-design summary{cursor:pointer;padding:13px 16px;color:${t.ink};font-weight:700;list-style:none}
-.sidebar-recap-design summary::-webkit-details-marker{display:none}
-.sidebar-recap-design summary:after{content:"+";float:right;color:${t.mut};font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.sidebar-recap-design details[open] summary{border-bottom:1px solid ${t.border};background:${t.surface2}}
-.sidebar-recap-design details[open] summary:after{content:"-"}
-.sidebar-recap-design pre{margin:0;max-height:520px;padding:16px;color:${t.ink};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow:auto}
-@media (max-width:720px){.sidebar-recap-shell{width:min(100% - 20px,1180px);padding:26px 0 48px}.sidebar-recap-prototype-frame{height:520px;min-height:360px}}
+.handy-recap-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:48px 0 72px}
+.handy-recap-main{max-width:860px;margin:0 auto}
+.handy-recap-main>*:first-child{margin-top:0}
+.handy-recap-main>*:last-child{margin-bottom:0}
+.handy-recap-appendix{margin-top:42px;display:grid;gap:32px}
+.handy-recap-prototypes,.handy-recap-design{margin:0}
+.handy-recap-prototypes>h2,.handy-recap-design>h2{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${t.mut};margin:0 0 14px;font-weight:700}
+.handy-recap-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px;align-items:start}
+.handy-recap-prototype-card{margin:0;border:1px solid ${t.border};border-radius:${t.radius};overflow:hidden;background:${t.surface};box-shadow:${t.shadow}}
+.handy-recap-prototype-card figcaption{padding:11px 14px;font-size:13px;font-weight:700;color:${t.ink};border-bottom:1px solid ${t.border};background:${t.surface2}}
+.handy-recap-prototype-frame{width:100%;height:min(620px,72vh);min-height:440px;border:0;display:block;background:#fff}
+.handy-recap-design p{font-size:12px;color:${t.mut};margin:0 0 12px}
+.handy-recap-design details{border:1px solid ${t.border};border-radius:${t.radius};background:${t.surface};box-shadow:${t.shadow};overflow:hidden}
+.handy-recap-design summary{cursor:pointer;padding:13px 16px;color:${t.ink};font-weight:700;list-style:none}
+.handy-recap-design summary::-webkit-details-marker{display:none}
+.handy-recap-design summary:after{content:"+";float:right;color:${t.mut};font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.handy-recap-design details[open] summary{border-bottom:1px solid ${t.border};background:${t.surface2}}
+.handy-recap-design details[open] summary:after{content:"-"}
+.handy-recap-design pre{margin:0;max-height:520px;padding:16px;color:${t.ink};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow:auto}
+@media (max-width:720px){.handy-recap-shell{width:min(100% - 20px,1180px);padding:26px 0 48px}.handy-recap-prototype-frame{height:520px;min-height:360px}}
 </style>`;
 }
 
@@ -134,7 +134,7 @@ body{margin:0!important;padding:0!important;max-width:none!important;display:blo
 export function injectGallery(html: string, gallery: string, theme: ThemeTokens = THEMES[RECOMMENDED]): string {
   if (!gallery) return html;
   const withCss = injectRecapCss(html, theme);
-  if (/sidebar-recap-shell/.test(withCss)) return withCss;
+  if (/handy-recap-shell/.test(withCss)) return withCss;
   const body = /<body\b[^>]*>/i.exec(withCss);
   if (body) {
     const bodyStart = body.index + body[0].length;
@@ -143,19 +143,19 @@ export function injectGallery(html: string, gallery: string, theme: ThemeTokens 
     if (bodyEnd !== -1) {
       const inner = withCss.slice(bodyStart, bodyEnd);
       const wrapped =
-        `<div class="sidebar-recap-shell"><main class="sidebar-recap-main">${inner}</main>` +
-        `<div class="sidebar-recap-appendix">${gallery}</div></div>`;
+        `<div class="handy-recap-shell"><main class="handy-recap-main">${inner}</main>` +
+        `<div class="handy-recap-appendix">${gallery}</div></div>`;
       return withCss.slice(0, bodyStart) + wrapped + withCss.slice(bodyEnd);
     }
   }
   const lower = withCss.toLowerCase();
   const idx = lower.lastIndexOf("</html>");
-  const wrapped = `<div class="sidebar-recap-shell"><main class="sidebar-recap-main">${withCss}</main><div class="sidebar-recap-appendix">${gallery}</div></div>`;
+  const wrapped = `<div class="handy-recap-shell"><main class="handy-recap-main">${withCss}</main><div class="handy-recap-appendix">${gallery}</div></div>`;
   return idx !== -1 ? withCss.slice(0, idx) + wrapped + withCss.slice(idx) : wrapped;
 }
 
 function injectRecapCss(html: string, theme: ThemeTokens): string {
-  if (/id=["']sidebar-recap-css["']/.test(html)) return html;
+  if (/id=["']handy-recap-css["']/.test(html)) return html;
   const css = recapAppendixCss(theme);
   const headEnd = html.toLowerCase().lastIndexOf("</head>");
   if (headEnd !== -1) return html.slice(0, headEnd) + css + html.slice(headEnd);
@@ -192,17 +192,17 @@ th{text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;co
 td{padding:9px 10px;border-bottom:1px solid ${t.border};vertical-align:top}tr:last-child td{border-bottom:0}
 .owner{color:${t.accent2};font-weight:600;white-space:nowrap}
 </style>${recapAppendixCss(t)}</head><body>
-<div class="sidebar-recap-shell">
-<main class="sidebar-recap-main">
+<div class="handy-recap-shell">
+<main class="handy-recap-main">
 <p class="k">Meeting Recap</p>
 <h1>${esc(input.title || "Meeting")}</h1>
-<p class="meta">Drafted live by the Sidebar agents · ${s.action_items.length} action item${s.action_items.length === 1 ? "" : "s"} · ${input.artifacts.length} prototype${input.artifacts.length === 1 ? "" : "s"}</p>
+<p class="meta">Drafted live by the Handy agents · ${s.action_items.length} action item${s.action_items.length === 1 ? "" : "s"} · ${input.artifacts.length} prototype${input.artifacts.length === 1 ? "" : "s"}</p>
 ${section("Executive summary", `<p class="lead">${esc(s.tldr || "No summary was captured for this meeting.")}</p>`)}
 ${section("Key decisions", li(s.decisions))}
 ${section("Action items", actions)}
 ${section("Open questions", li(s.open_questions))}
 </main>
-<div class="sidebar-recap-appendix">${appendix}</div>
+<div class="handy-recap-appendix">${appendix}</div>
 </div>
 </body></html>`;
 }

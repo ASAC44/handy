@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve, sep } from "node:path";
-import { toDesignMd, type ExportFileInfo, type ExportFileKind, type ExportSnapshot, type MeetingSummary, type ThemeKey, type ThemeTokens } from "@sidebar/shared";
+import { toDesignMd, type ExportFileInfo, type ExportFileKind, type ExportSnapshot, type MeetingSummary, type ThemeKey, type ThemeTokens } from "@handy/shared";
 import { config } from "./config";
 
 const MIME: Record<string, string> = {
@@ -29,7 +29,7 @@ export class ExportStore {
 
   constructor(private readonly baseRoot = resolve(config.exportsDir)) {
     mkdirSync(this.baseRoot, { recursive: true });
-    this.beginMeeting("Sidebar Meeting");
+    this.beginMeeting("Handy Meeting");
   }
 
   beginMeeting(title: string): ExportSnapshot {
@@ -226,11 +226,11 @@ export class ExportStore {
 
 function meetingReadme(title: string, meetingId: string): string {
   return [
-    `# ${title || "Sidebar meeting"} exports`,
+    `# ${title || "Handy meeting"} exports`,
     "",
     `Meeting export id: \`${meetingId}\``,
     "",
-    "This folder is written by Sidebar as the meeting runs. Participants can download these same files from the end-of-meeting recap screen.",
+    "This folder is written by Handy as the meeting runs. Participants can download these same files from the end-of-meeting recap screen.",
     "",
   ].join("\n");
 }

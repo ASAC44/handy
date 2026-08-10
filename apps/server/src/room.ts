@@ -13,7 +13,7 @@ import {
   type ServerEvent,
   type ThemeKey,
   type ThemeTokens,
-} from "@sidebar/shared";
+} from "@handy/shared";
 import { config } from "./config";
 import { Orchestrator } from "./orchestrator";
 import { ContextStore, ContextUploadError } from "./context";
@@ -34,7 +34,7 @@ const PRESENCE_NAMES = ["Host", "Priya", "Maya", "Dev", "Alex", "Jordan", "Sam",
 const CONTEXT_CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",
-  "access-control-allow-headers": "content-type, x-sidebar-key",
+  "access-control-allow-headers": "content-type, x-handy-key",
 };
 
 export class Room implements MeetingRuntime {
@@ -453,7 +453,7 @@ export class Room implements MeetingRuntime {
         snapshot = await this.exports.saveRecap(ev.html);
         break;
       case "meeting.clear":
-        this.exports.beginMeeting("Sidebar Meeting");
+        this.exports.beginMeeting("Handy Meeting");
         snapshot = this.exports.snapshot();
         break;
     }
@@ -530,7 +530,7 @@ export class Room implements MeetingRuntime {
     this.ended = false; // starting fresh also lifts the recap lock
     const byHostId = this.presence.get(ws)?.id ?? "";
     void this.context.clear();
-    this.exports.beginMeeting("Sidebar Meeting");
+    this.exports.beginMeeting("Handy Meeting");
     this.broadcast({ type: "meeting.clear", byHostId, at: Date.now() });
     this.broadcast({ type: "export.snapshot", exports: this.exports.snapshot() });
   }

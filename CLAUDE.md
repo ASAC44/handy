@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Sidebar** — an ambient panel of AI agents for a live meeting: one keeps a rolling
+**Handy** — an ambient panel of AI agents for a live meeting: one keeps a rolling
 summary, one turns spoken ideas into running HTML prototypes in ~2s, one fact-checks
 claims. Built on **Cerebras + Gemma 4** via [`universal-llm-client`](https://github.com/igorls/universal-llm-client), on **Bun**. The hero is the
 real-time prototype agent and its fan-out → pick → learn loop.
 
-`sidebar-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`)
+`handy-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`)
 and schemas (`schemas.ts`) are copied verbatim from its section 4, and the WS protocol
 from section 7. Reconcile changes against it.
 
@@ -69,10 +69,10 @@ committed — the bench never calls the network; needs an ElevenLabs key with
 Bun-workspace monorepo, three packages. The shared package is the contract both other
 packages compile against.
 
-- **`packages/shared`** (`@sidebar/shared`) — the single source of cross-cutting truth:
+- **`packages/shared`** (`@handy/shared`) — the single source of cross-cutting truth:
   the WebSocket event protocol (`events.ts`), Zod schemas + inferred types
   (`schemas.ts`), agent system prompts (`prompts.ts`), and design-language themes +
-  the mock prototype HTML builders (`themes.ts`). Imported via the `@sidebar/shared`
+  the mock prototype HTML builders (`themes.ts`). Imported via the `@handy/shared`
   path alias (`tsconfig.base.json`) and as a `workspace:*` dependency. Change a type
   here and both server and web see it.
 - **`apps/server`** — `Bun.serve` WebSocket at `/ws` (+ `/health`). One `Session`

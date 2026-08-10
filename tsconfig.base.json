@@ -13,7 +13,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@sidebar/shared": ["packages/shared/src/index.ts"]
+      "@handy/shared": ["packages/shared/src/index.ts"]
     }
   }
 }

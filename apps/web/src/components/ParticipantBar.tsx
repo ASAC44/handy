@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import type { SidebarState } from "../ws";
+import type { HandyState } from "../ws";
 import { asrProviders, GEMMA_VAD_DEFAULTS, WHISPER_MODELS, type AsrProviderId } from "../asr";
 import type { Capture } from "../useCapture";
 import { CustomSelect } from "./CustomSelect";
@@ -31,7 +31,7 @@ const LANGS: { code: string; label: string }[] = [
 ];
 
 /** The shared bottom bar — every participant's own mic controls (host and guests alike). */
-export function ParticipantBar({ cap, state }: { cap: Capture; state: SidebarState }) {
+export function ParticipantBar({ cap, state }: { cap: Capture; state: HandyState }) {
   const providers = asrProviders();
   const self = state.presence.find((p) => p.id === state.selfId);
   const priv = PRIVACY[cap.engine];

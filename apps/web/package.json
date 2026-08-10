@@ -1,5 +1,5 @@
 {
-  "name": "@sidebar/web",
+  "name": "@handy/web",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.4.0",
-    "@sidebar/shared": "workspace:*",
+    "@handy/shared": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

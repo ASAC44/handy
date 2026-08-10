@@ -5,7 +5,7 @@ import {
   PrototypeReviewSchema,
   type PrototypeReview,
   type ThemeTokens,
-} from "@sidebar/shared";
+} from "@handy/shared";
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 

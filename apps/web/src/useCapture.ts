@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientEvent } from "@sidebar/shared";
+import type { ClientEvent } from "@handy/shared";
 import {
   createAsrProvider,
   webSpeechAvailable,
@@ -62,7 +62,7 @@ export interface Capture {
 
 function loadVad(): GemmaVad {
   try {
-    const raw = localStorage.getItem("sidebar.vad");
+    const raw = localStorage.getItem("handy.vad");
     if (raw) return { ...GEMMA_VAD_DEFAULTS, ...(JSON.parse(raw) as Partial<GemmaVad>) };
   } catch {
     /* ignore */
@@ -74,10 +74,10 @@ const isTyping = (el: Element | null): boolean =>
   !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable);
 
 export function useCapture(send: (e: ClientEvent) => void): Capture {
-  const [engine, setEngineState] = useState<AsrProviderId>(() => (localStorage.getItem("sidebar.asr") as AsrProviderId) || "webspeech");
-  const [lang, setLangState] = useState<string>(() => localStorage.getItem("sidebar.lang") || "auto");
-  const [whisperModel, setWhisperModelState] = useState<string>(() => localStorage.getItem("sidebar.whispermodel") || DEFAULT_WHISPER_MODEL);
-  const [mode, setModeState] = useState<MicMode>(() => (localStorage.getItem("sidebar.micmode") as MicMode) || "open");
+  const [engine, setEngineState] = useState<AsrProviderId>(() => (localStorage.getItem("handy.asr") as AsrProviderId) || "webspeech");
+  const [lang, setLangState] = useState<string>(() => localStorage.getItem("handy.lang") || "auto");
+  const [whisperModel, setWhisperModelState] = useState<string>(() => localStorage.getItem("handy.whispermodel") || DEFAULT_WHISPER_MODEL);
+  const [mode, setModeState] = useState<MicMode>(() => (localStorage.getItem("handy.micmode") as MicMode) || "open");
   const [speechOn, setSpeechOn] = useState(false);
   const [talking, setTalking] = useState(false);
   const [level, setLevel] = useState(0);
@@ -119,28 +119,28 @@ export function useCapture(send: (e: ClientEvent) => void): Capture {
     Object.assign(vadRef.current, patch);
     const next = { ...vadRef.current };
     setVadView(next);
-    localStorage.setItem("sidebar.vad", JSON.stringify(next));
+    localStorage.setItem("handy.vad", JSON.stringify(next));
   };
 
   const setEngine = (id: AsrProviderId): void => {
     setEngineState(id);
-    localStorage.setItem("sidebar.asr", id);
+    localStorage.setItem("handy.asr", id);
   };
 
   const setLang = (l: string): void => {
     setLangState(l);
-    localStorage.setItem("sidebar.lang", l);
+    localStorage.setItem("handy.lang", l);
   };
 
   const setWhisperModel = (m: string): void => {
     setWhisperModelState(m);
-    localStorage.setItem("sidebar.whispermodel", m);
+    localStorage.setItem("handy.whispermodel", m);
   };
 
   const setMode = (m: MicMode): void => {
     setModeState(m);
     modeRef.current = m;
-    localStorage.setItem("sidebar.micmode", m);
+    localStorage.setItem("handy.micmode", m);
     if (asrRef.current) {
       const muted = m === "ptt";
       asrRef.current.setMuted?.(muted);

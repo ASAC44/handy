@@ -7,7 +7,7 @@
  */
 import { AIModel } from "universal-llm-client";
 import { prototypeModel } from "./llm";
-import { prototypeSystemFor } from "@sidebar/shared";
+import { prototypeSystemFor } from "@handy/shared";
 
 const MAXTOK = Number(process.env.BENCH_MAXTOK ?? 256);
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";

@@ -1,7 +1,7 @@
 import type { ServerWebSocket } from "bun";
 import { room } from "./room";
 
-/** Outcome of authenticating a connection's `?key=`/`x-sidebar-key`, captured onto
+/** Outcome of authenticating a connection's `?key=`/`x-handy-key`, captured onto
  *  the socket at upgrade time. `role` is set only in locked mode (host passcode or a
  *  valid invite code matched) and is then SERVER-AUTHORITATIVE — the client can no
  *  longer self-assert host via a URL flag. In open mode `role` is undefined and the

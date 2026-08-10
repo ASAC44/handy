@@ -16,8 +16,9 @@ import {
   type ParticipantPresence,
   type CursorPing,
   type ContextSnapshot,
+  type ExportSnapshot,
   type InviteInfo,
-} from "@sidebar/shared";
+} from "@handy/shared";
 import { getKey, clearKey } from "./auth";
 
 export interface TLine {
@@ -85,7 +86,7 @@ export interface ActivityEvent {
   at: number;
 }
 
-export interface SidebarState {
+export interface HandyState {
   connected: boolean;
   title: string;
   participants: string[];
@@ -93,6 +94,7 @@ export interface SidebarState {
   presence: ParticipantPresence[];
   pings: PresencePing[];
   context: ContextSnapshot;
+  exports: ExportSnapshot;
   scenarioId?: string;
   running: boolean;
   capture: { screen: boolean; speech: boolean; lastFrameTs?: number; host?: string };
@@ -121,14 +123,15 @@ export interface SidebarState {
   invites: InviteInfo[];
 }
 
-const initial: SidebarState = {
+const initial: HandyState = {
   connected: false,
-  title: "Sidebar",
+  title: "Handy",
   participants: [],
   selfId: null,
   presence: [],
   pings: [],
   context: { meetingId: "", workspaceRoot: "", items: [] },
+  exports: { meetingId: "", root: "", startedAt: 0, updatedAt: 0, files: [] },
   running: false,
   capture: { screen: false, speech: false },
   seq: 1,
@@ -157,7 +160,7 @@ type Action =
   | { kind: "left" }
   | { kind: "abMode"; v: boolean };
 
-function reducer(s: SidebarState, a: Action): SidebarState {
+function reducer(s: HandyState, a: Action): HandyState {
   if (a.kind === "connected") return { ...s, connected: a.v };
   if (a.kind === "left") return { ...s, left: true, connected: false };
   if (a.kind === "abMode") return { ...s, abMode: a.v };
@@ -220,6 +223,8 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       return { ...s, context: { ...s.context, items: upsertContext(s.context.items, ev.item) } };
     case "context.updated":
       return { ...s, context: { ...s.context, items: upsertContext(s.context.items, ev.item) } };
+    case "export.snapshot":
+      return { ...s, exports: ev.exports };
     case "capture.status":
       return {
         ...s,
@@ -453,7 +458,7 @@ function reducer(s: SidebarState, a: Action): SidebarState {
       // presence, and context snapshot are preserved (the room is shared, not torn down).
       return {
         ...s,
-        title: "Sidebar",
+        title: "Handy",
         participants: [],
         scenarioId: undefined,
         running: false,
@@ -479,20 +484,21 @@ function reducer(s: SidebarState, a: Action): SidebarState {
         latencyMs: null,
         ended: null,
         finalDoc: null,
+        exports: { meetingId: "", root: "", startedAt: 0, updatedAt: 0, files: [] },
       };
     default:
       return s;
   }
 }
 
-function makeActivity(s: SidebarState, event: Omit<ActivityEvent, "id" | "at">): { activitySeq: number; event: ActivityEvent } {
+function makeActivity(s: HandyState, event: Omit<ActivityEvent, "id" | "at">): { activitySeq: number; event: ActivityEvent } {
   return {
     activitySeq: s.activitySeq + 1,
     event: { ...event, id: s.activitySeq, at: Date.now() },
   };
 }
 
-function appendActivity(s: SidebarState, event: Omit<ActivityEvent, "id" | "at">): Pick<SidebarState, "activity" | "activitySeq"> {
+function appendActivity(s: HandyState, event: Omit<ActivityEvent, "id" | "at">): Pick<HandyState, "activity" | "activitySeq"> {
   const next = makeActivity(s, event);
   return { activitySeq: next.activitySeq, activity: [...s.activity, next.event].slice(-80) };
 }
@@ -521,11 +527,11 @@ function clientPresenceName(): string {
   const params = new URLSearchParams(location.search);
   const fromUrl = params.get("name")?.trim();
   if (fromUrl) return fromUrl;
-  if (params.has("host")) return localStorage.getItem("sidebar.host") || "Host";
-  const stored = localStorage.getItem("sidebar.viewer");
+  if (params.has("host")) return localStorage.getItem("handy.host") || "Host";
+  const stored = localStorage.getItem("handy.viewer");
   if (stored) return stored;
   const generated = `Viewer ${Math.floor(100 + Math.random() * 900)}`;
-  localStorage.setItem("sidebar.viewer", generated);
+  localStorage.setItem("handy.viewer", generated);
   return generated;
 }
 
@@ -533,7 +539,7 @@ function clientPresenceRole(): "host" | "viewer" {
   return new URLSearchParams(location.search).has("host") ? "host" : "viewer";
 }
 
-export function useSidebar() {
+export function useHandy() {
   const [state, dispatch] = useReducer(reducer, initial);
   const wsRef = useRef<WebSocket | null>(null);
   // A deliberate guest "exit": stop auto-reconnect and show the "you left" screen.

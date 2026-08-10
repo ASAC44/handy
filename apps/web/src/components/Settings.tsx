@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientEvent, AgentName } from "@sidebar/shared";
-import type { SidebarState } from "../ws";
+import type { ClientEvent, AgentName } from "@handy/shared";
+import type { HandyState } from "../ws";
 import { ThemeToggle } from "./ThemeToggle";
 
 const AGENTS: AgentName[] = ["router", "summarizer", "prototype", "factcheck", "nextstep"];
@@ -15,7 +15,7 @@ export function Settings({
   setAbMode,
   hostMode,
 }: {
-  state: SidebarState;
+  state: HandyState;
   send: (e: ClientEvent) => void;
   setAbMode: (v: boolean) => void;
   hostMode: boolean;

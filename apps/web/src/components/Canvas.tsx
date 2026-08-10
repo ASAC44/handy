@@ -7,9 +7,9 @@ import {
   type PointerEvent as RPE,
 } from "react";
 import { createPortal } from "react-dom";
-import type { SidebarState, Artifact as Art, ActivityEvent } from "../ws";
-import type { ClientEvent, ParticipantPresence } from "@sidebar/shared";
-import { toDesignMd } from "@sidebar/shared";
+import type { HandyState, Artifact as Art, ActivityEvent } from "../ws";
+import type { ClientEvent, ParticipantPresence } from "@handy/shared";
+import { toDesignMd } from "@handy/shared";
 
 const W = 600;
 const H = 470;
@@ -50,7 +50,7 @@ interface PointerWorld {
   artifactId?: string;
 }
 
-export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (e: ClientEvent) => void; hostMode: boolean }) {
+export function Canvas({ state, send, hostMode }: { state: HandyState; send: (e: ClientEvent) => void; hostMode: boolean }) {
   const vpRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 40, y: 30, z: 0.9 });
   const [follow, setFollow] = useState(true);
@@ -146,7 +146,7 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
         frameId?: string;
         errors?: string[];
       };
-      if (data.source !== "sidebar-artifact-frame" || !data.artifactId) return;
+      if (data.source !== "handy-artifact-frame" || !data.artifactId) return;
       // The in-iframe watchdog reported runtime/CDN/load failures — forward ONCE per
       // artifact to the repair agent (the server is host-gated + caps repairs, so this
       // can't loop). Resolve the buildId from the artifact the frame belongs to.
@@ -740,7 +740,7 @@ function RemoteCursor({ participant, x, y }: { participant: ParticipantPresence;
   );
 }
 
-function PresenceDock({ state, send, hostMode }: { state: SidebarState; send: (e: ClientEvent) => void; hostMode: boolean }) {
+function PresenceDock({ state, send, hostMode }: { state: HandyState; send: (e: ClientEvent) => void; hostMode: boolean }) {
   const kick = (p: ParticipantPresence): void => {
     if (confirm(`Remove ${p.name} from the meeting?`)) send({ type: "host.kick", id: p.id });
   };
@@ -1011,7 +1011,7 @@ function MiniMap({
   );
 }
 
-function DNA({ state, send }: { state: SidebarState; send: (e: ClientEvent) => void }) {
+function DNA({ state, send }: { state: HandyState; send: (e: ClientEvent) => void }) {
   const t = state.dna;
   const [showMd, setShowMd] = useState(false);
   const md = t ? toDesignMd(t) : "";
@@ -1172,6 +1172,6 @@ function cssEscape(value: string): string {
 }
 
 function withFramePresenceBridge(html: string, artifactId: string, frameId: string): string {
-  const bridge = `<script>(()=>{const id=${JSON.stringify(artifactId)},frameId=${JSON.stringify(frameId)};let last=0;function post(type,e){parent.postMessage({source:"sidebar-artifact-frame",type,artifactId:id,frameId,x:e.clientX,y:e.clientY},"*")}addEventListener("pointermove",e=>{const now=performance.now();if(now-last>45){last=now;post("cursor",e)}},true);addEventListener("pointerdown",e=>post("cursor",e),true);addEventListener("click",e=>post("ping",e),true);const errs=[];const note=m=>{if(m&&errs.indexOf(m)<0&&errs.length<6)errs.push(String(m).slice(0,200))};addEventListener("error",e=>{const t=e.target;if(t&&t!==window&&t.tagName)note("Failed to load "+t.tagName.toLowerCase()+" "+(t.src||t.href||""));else note("JS error: "+(e.message||""))},true);addEventListener("unhandledrejection",e=>note("Unhandled rejection: "+((e.reason&&e.reason.message)||e.reason||"")));setTimeout(()=>{try{if(document.querySelector('script[src*="cdn.tailwindcss.com"]')&&!window.tailwind)note("Tailwind (cdn.tailwindcss.com) failed to load or initialize — the page renders unstyled.")}catch(_){}if(errs.length)parent.postMessage({source:"sidebar-artifact-frame",type:"render-report",artifactId:id,frameId:frameId,errors:errs},"*")},2000)})();<\/script>`;
+  const bridge = `<script>(()=>{const id=${JSON.stringify(artifactId)},frameId=${JSON.stringify(frameId)};let last=0;function post(type,e){parent.postMessage({source:"handy-artifact-frame",type,artifactId:id,frameId,x:e.clientX,y:e.clientY},"*")}addEventListener("pointermove",e=>{const now=performance.now();if(now-last>45){last=now;post("cursor",e)}},true);addEventListener("pointerdown",e=>post("cursor",e),true);addEventListener("click",e=>post("ping",e),true);const errs=[];const note=m=>{if(m&&errs.indexOf(m)<0&&errs.length<6)errs.push(String(m).slice(0,200))};addEventListener("error",e=>{const t=e.target;if(t&&t!==window&&t.tagName)note("Failed to load "+t.tagName.toLowerCase()+" "+(t.src||t.href||""));else note("JS error: "+(e.message||""))},true);addEventListener("unhandledrejection",e=>note("Unhandled rejection: "+((e.reason&&e.reason.message)||e.reason||"")));setTimeout(()=>{try{if(document.querySelector('script[src*="cdn.tailwindcss.com"]')&&!window.tailwind)note("Tailwind (cdn.tailwindcss.com) failed to load or initialize — the page renders unstyled.")}catch(_){}if(errs.length)parent.postMessage({source:"handy-artifact-frame",type:"render-report",artifactId:id,frameId:frameId,errors:errs},"*")},2000)})();<\/script>`;
   return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${bridge}</body>`) : `${html}${bridge}`;
 }

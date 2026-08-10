@@ -1,4 +1,4 @@
-# Sidebar — Bun monorepo. The server serves the web bundle + /ws + the API routes on
+# Handy — Bun monorepo. The server serves the web bundle + /ws + the API routes on
 # a single port (:3001), so one Tailscale `serve` carries everything.
 #
 # This image is used by docker-compose.yml in HOT-RELOAD mode: your working tree is

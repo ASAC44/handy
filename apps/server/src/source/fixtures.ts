@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { RouterDecision, MeetingSummary, FactcheckCheck, PrototypeKey } from "@sidebar/shared";
+import type { RouterDecision, MeetingSummary, FactcheckCheck, PrototypeKey } from "@handy/shared";
 
 /** Shape of test-transcripts.json (the stable fixture that emulates ASR + inference). */
 export interface FixtureExpect {

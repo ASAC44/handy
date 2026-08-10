@@ -1,9 +1,9 @@
 {
-  "name": "sidebar",
+  "name": "handy",
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "Sidebar — an ambient panel of AI agents that works alongside you in a live meeting. Built on Cerebras + Gemma 4.",
+  "description": "Handy — an ambient panel of AI agents that works alongside you in a live meeting. Built on Cerebras + Gemma 4.",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "concurrently -k -n server,web -c green,cyan \"bun run dev:server\" \"bun run dev:web\"",

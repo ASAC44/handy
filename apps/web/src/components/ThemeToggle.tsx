@@ -11,13 +11,13 @@ const THEMES: { id: Theme; label: string; icon: string }[] = [
  *  (no flash); this keeps it in sync and lets the user change it. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("sidebar.theme");
+    const saved = localStorage.getItem("handy.theme");
     return saved === "ink" || saved === "paper" ? saved : "paper";
   });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("sidebar.theme", theme);
+    localStorage.setItem("handy.theme", theme);
   }, [theme]);
 
   const current = THEMES.find((t) => t.id === theme) ?? THEMES[0];

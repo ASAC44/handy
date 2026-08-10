@@ -1,4 +1,4 @@
-# Sidebar
+# Handy
 
 **An ambient panel of AI agents that works alongside you in a live meeting.** One keeps a
 rolling summary, one turns spoken ideas into running prototypes the moment they're said,
@@ -9,7 +9,7 @@ WebSocket event stream. Built on **Cerebras + Gemma 4** via
 The hero is the **real-time prototype agent**: a spoken idea becomes a working,
 screen-aware HTML proof-of-concept in **~1.5s** — fast enough that the artifact appears
 *while the idea is still alive in the room*. When the first idea is built, the agent
-**fans out four design languages in parallel**; you pick one and Sidebar **learns your
+**fans out four design languages in parallel**; you pick one and Handy **learns your
 taste** — a "Design DNA" injected into every later build (real preference learning carried
 through to inference) and exported as a Google
 [`DESIGN.md`](https://github.com/google-labs-code/design.md). When the meeting ends, a
@@ -68,7 +68,7 @@ don't fire on every utterance.
 
 ## The live room
 
-Sidebar is multiplayer. There is one in-memory **room** per server; every connection is a
+Handy is multiplayer. There is one in-memory **room** per server; every connection is a
 thin session that joins it.
 
 - **Host + guests.** The host captures screen + speech and hosts the shared canvas; guests
@@ -104,7 +104,7 @@ compile against.
 
 ```
 .
-├─ packages/shared/   @sidebar/shared — WS event protocol (events.ts), Zod schemas +
+├─ packages/shared/   @handy/shared — WS event protocol (events.ts), Zod schemas +
 │                     inferred types (schemas.ts), agent prompts (prompts.ts), design
 │                     languages + mock builders (themes.ts) + DESIGN.md serializer (designmd.ts)
 ├─ apps/server/       Bun.serve WebSocket (/ws) + static host + a shared Room that owns
@@ -115,15 +115,15 @@ compile against.
 ├─ fixtures/          committed 16 kHz audio sets for the ASR benches (audio/, meetings/)
 ├─ scripts/          asr/meeting fixture generation + WER benches + live-sim
 ├─ test-transcripts.json   stable meeting fixtures (gold-label `expect` blocks)
-├─ sidebar-build-spec.md   design source of truth (prompts + schemas + protocol)
+├─ handy-build-spec.md   design source of truth (prompts + schemas + protocol)
 ├─ docs/index.html         self-contained landing page — the GitHub Pages site (served from docs/)
-└─ docs/positioning.md     Sidebar vs the 2026 AI-meeting landscape + the honest A/B
+└─ docs/positioning.md     Handy vs the 2026 AI-meeting landscape + the honest A/B
 ```
 
 ## Run it (Docker is the default)
 
-Sidebar runs in **Docker with a Tailscale sidecar**, so the app comes up as its own
-**isolated node on your tailnet** (e.g. `https://sidebar.tail1234.ts.net`) — no host-level
+Handy runs in **Docker with a Tailscale sidecar**, so the app comes up as its own
+**isolated node on your tailnet** (e.g. `https://handy.tail1234.ts.net`) — no host-level
 funnel, and the whole thing tears down with one command. The Bun server serves the web app,
 `/ws`, and the API on a single port, so one `tailscale serve` carries everything.
 
@@ -134,7 +134,7 @@ cp .env.example .env
 #  - add a Tailscale auth key for the sidecar (ephemeral + reusable):
 #      https://login.tailscale.com/admin/settings/keys
 #    TS_AUTHKEY=tskey-auth-...
-#    TS_HOSTNAME=sidebar        # -> https://sidebar.<your-tailnet>.ts.net (tailnet only)
+#    TS_HOSTNAME=handy        # -> https://handy.<your-tailnet>.ts.net (tailnet only)
 
 docker compose up              # build + run both containers (logs in foreground)
 ```
@@ -182,7 +182,7 @@ from the DNA panel).
 > Legacy host path — **Docker (above) is the default.** Use this only to run on the host
 > directly without containers.
 
-One participant hosts Sidebar on their own machine, captures their screen, and serves the
+One participant hosts Handy on their own machine, captures their screen, and serves the
 shared UI. Everyone else opens the same URL.
 
 ```bash
@@ -319,9 +319,9 @@ now (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ---
 
-`sidebar-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`) and
+`handy-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`) and
 schemas (`schemas.ts`) are copied verbatim from its §4 and the WS protocol from its §7.
-Reconcile changes against it. See [`docs/positioning.md`](docs/positioning.md) for how Sidebar
+Reconcile changes against it. See [`docs/positioning.md`](docs/positioning.md) for how Handy
 differs from the 2026 AI-meeting landscape — notetakers, live-assist copilots, and platform AI.
 </content>
 </invoke>

@@ -68,6 +68,27 @@ export interface ContextSnapshot {
   items: ContextBundle[];
 }
 
+export type ExportFileKind = "prototype" | "recap" | "transcript" | "summary" | "design" | "manifest" | "readme";
+
+export interface ExportFileInfo {
+  id: string;
+  kind: ExportFileKind;
+  name: string;
+  relativePath: string;
+  size: number;
+  mime: string;
+  updatedAt: number;
+  url: string;
+}
+
+export interface ExportSnapshot {
+  meetingId: string;
+  root: string;
+  startedAt: number;
+  updatedAt: number;
+  files: ExportFileInfo[];
+}
+
 /** A unique, host-minted guest invitation. The `code` is the per-guest secret that
  *  authorizes a viewer (carried as `?key=` on their link); the host authenticates
  *  with the separate host passcode. Lives only in the (in-memory) room registry. */
@@ -124,6 +145,8 @@ export type ServerEvent =
   | { type: "context.snapshot"; context: ContextSnapshot }
   | { type: "context.item"; item: ContextBundle }
   | { type: "context.updated"; item: ContextBundle }
+  // Files durably written under the host's export folder for this meeting.
+  | { type: "export.snapshot"; exports: ExportSnapshot }
   | { type: "meeting.clear"; byHostId: string; at: number }
   // Host ended the meeting for everyone: all clients lock to the read-only recap.
   | { type: "meeting.over"; at: number; byHostId: string }

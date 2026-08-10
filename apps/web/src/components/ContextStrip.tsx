@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import type { ClientEvent, ContextBundle } from "@sidebar/shared";
-import type { SidebarState } from "../ws";
+import type { ClientEvent, ContextBundle } from "@handy/shared";
+import type { HandyState } from "../ws";
 import { authHeaders } from "../auth";
 
 interface UploadFile {
@@ -76,7 +76,7 @@ export function ContextStrip({
   send,
   hostMode,
 }: {
-  state: SidebarState;
+  state: HandyState;
   send: (e: ClientEvent) => void;
   hostMode: boolean;
 }) {

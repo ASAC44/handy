@@ -5,7 +5,7 @@ var THEMES = {
   neon:{name:'Neon',bg:'#080611',surface:'#160f29',surface2:'#0f0b1f',ink:'#eef0ff',mut:'#9a90c8',border:'#2a1f4d',accent:'#c77dff',accent2:'#3fe0ff',radius:'4px',pad:'7px',font:'"SF Mono",ui-monospace,Menlo,monospace',shadow:'0 0 12px rgba(199,125,255,.25)',density:'Compact',typeLabel:'Mono'}
 };
 var FANOUT=['midnight','warm','neon'];
-var RECOMMENDED='warm';   // the variant Sidebar auto-picks if no one chooses
+var RECOMMENDED='warm';   // the variant Handy auto-picks if no one chooses
 
 function rootCss(T){return ':root{--bg:'+T.bg+';--surface:'+T.surface+';--surface2:'+T.surface2+';--ink:'+T.ink+';--mut:'+T.mut+';--border:'+T.border+';--ac:'+T.accent+';--ac2:'+T.accent2+';--rad:'+T.radius+';--pad:'+T.pad+';--font:'+T.font+';--shadow:'+T.shadow+';}'}
 
@@ -206,7 +206,7 @@ function renderDNA(){
   $('dnaRows').innerHTML='<div class="dna-row"><span>Accent</span><b>'+T.name+'</b></div><div class="dna-row"><span>Radius</span><b>'+T.radius+'</b></div><div class="dna-row"><span>Density</span><b>'+T.density+'</b></div><div class="dna-row"><span>Type</span><b>'+T.typeLabel+'</b></div>';
   $('dnaLearn').innerHTML='&#9670; applied to every new build';
 }
-function learnStyle(tk){learnedKey=tk;learnedTheme=THEMES[tk];renderDNA();toast('Sidebar learned your style: <b>'+THEMES[tk].name+'</b> — future builds match your taste.')}
+function learnStyle(tk){learnedKey=tk;learnedTheme=THEMES[tk];renderDNA();toast('Handy learned your style: <b>'+THEMES[tk].name+'</b> — future builds match your taste.')}
 $('resetTaste').onclick=function(){if(busy)return;learnedKey=null;learnedTheme=null;renderDNA();toast('Forgot your style — the next build will explore fresh directions.')};
 
 /* =================== build flows =================== */
@@ -223,7 +223,7 @@ async function fanOut(proto){
   await Promise.all(vs.map(function(v){return streamP(v,PROTO_BUILD[proto.build](THEMES[v.theme]),1850,(v===vs[0]?function(e){setHudLat(e,false)}:null),function(){artDone(v,1850)})}));
   clearInterval(ft);
   setHudLat(2000,true); setHudState('3 designs · pick one','ok');
-  toast('<b>3 design languages</b> generated in parallel &mdash; pick one, Sidebar learns your taste.');
+  toast('<b>3 design languages</b> generated in parallel &mdash; pick one, Handy learns your taste.');
   $('stageBanner').classList.add('on');
   var chosen=await new Promise(function(resolve){
     var picked=false,left=4;

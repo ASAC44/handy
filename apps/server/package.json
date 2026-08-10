@@ -1,5 +1,5 @@
 {
-  "name": "@sidebar/server",
+  "name": "@handy/server",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sidebar/shared": "workspace:*",
+    "@handy/shared": "workspace:*",
     "universal-llm-client": "^4.5.2",
     "zod": "^4.0.0"
   },

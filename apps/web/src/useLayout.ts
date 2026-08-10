@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 /** UI-only layout preferences for the meeting rails — which side each panel is
  *  docked on, its order within that rail, its relative height, and each rail's
- *  width. Persisted to localStorage like the other `sidebar.*` prefs
+ *  width. Persisted to localStorage like the other `handy.*` prefs
  *  (see ThemeToggle.tsx); deliberately NOT in the ws.ts reducer, which is
  *  driven purely by server events. */
 
@@ -24,7 +24,7 @@ export interface LayoutState {
   railWidth: Record<Side, number>;
 }
 
-const KEY = "sidebar.layout";
+const KEY = "handy.layout";
 const KNOWN: PanelId[] = ["transcript", "summary", "factcheck"];
 
 export const RAIL_MIN = 240;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ClientEvent } from "@sidebar/shared";
-import type { SidebarState } from "../ws";
+import type { ClientEvent } from "@handy/shared";
+import type { HandyState } from "../ws";
 import { InviteButton } from "./InviteButton";
 
 /**
@@ -15,11 +15,11 @@ export function CaptureDock({
   onLeave,
 }: {
   hostMode: boolean;
-  state: SidebarState;
+  state: HandyState;
   send: (ev: ClientEvent) => void;
   onLeave: () => void;
 }) {
-  const [host, setHost] = useState(() => localStorage.getItem("sidebar.host") || "Host");
+  const [host, setHost] = useState(() => localStorage.getItem("handy.host") || "Host");
   const [screenOn, setScreenOn] = useState(false);
   const [manual, setManual] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +39,7 @@ export function CaptureDock({
 
   const persistHost = (value: string): void => {
     setHost(value);
-    localStorage.setItem("sidebar.host", value);
+    localStorage.setItem("handy.host", value);
     send({ type: "presence.hello", name: value, role: "host" });
   };
 
@@ -134,7 +134,7 @@ export function CaptureDock({
           onBlur={(e) => {
             const n = e.target.value.trim();
             if (n) {
-              localStorage.setItem("sidebar.viewer", n);
+              localStorage.setItem("handy.viewer", n);
               send({ type: "presence.hello", name: n, role: "viewer" });
             }
           }}

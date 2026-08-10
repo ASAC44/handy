@@ -9,7 +9,7 @@ import { routeLive } from "./agents/router";
 import { summarizeLive } from "./agents/summarizer";
 import { factcheckLive } from "./agents/factcheck";
 import { liveStream } from "./agents/prototype";
-import { THEMES, type MeetingSummary } from "@sidebar/shared";
+import { THEMES, type MeetingSummary } from "@handy/shared";
 
 const ok = (b: boolean): string => (b ? "✅" : "❌");
 const ms = () => performance.now();

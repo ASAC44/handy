@@ -1,6 +1,6 @@
 import { fromZod } from "universal-llm-client/zod";
 import { summarizerModel } from "../llm";
-import { SUMMARIZER_SYSTEM, MeetingSummarySchema, type MeetingSummary } from "@sidebar/shared";
+import { SUMMARIZER_SYSTEM, MeetingSummarySchema, type MeetingSummary } from "@handy/shared";
 
 /** Rolling structured summary: decisions / action items / open questions / TL;DR. */
 export async function summarizeLive(
