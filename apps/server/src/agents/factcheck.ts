@@ -15,15 +15,17 @@ import { gatherEvidence } from "../search";
  * (best-effort, conservative). The critical path is the search round-trip, not
  * generation — this is a feature, never a speed showcase.
  */
-export async function factcheckLive(claims: string[]): Promise<FactcheckResult> {
+export async function factcheckLive(claims: string[], companyContext = ""): Promise<FactcheckResult> {
   const model = factcheckModel();
   const evidence = await gatherEvidence(claims);
   const today = new Date().toISOString().slice(0, 10);
 
-  const system = evidence ? FACTCHECK_SYSTEM : FACTCHECK_SYSTEM_UNGROUNDED;
-  const user = evidence
-    ? `Today's date: ${today}.\n\nVerify each claim using ONLY the evidence provided below.\n\n${evidence}`
-    : `Today's date: ${today}.\n\nClaims to check:\n${claims.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
+  const groundedEvidence = [companyContext, evidence].filter(Boolean).join("\n\nPUBLIC-WORLD EVIDENCE:\n");
+  const system = groundedEvidence ? FACTCHECK_SYSTEM : FACTCHECK_SYSTEM_UNGROUNDED;
+  const claimList = claims.map((claim, index) => `${index + 1}. ${claim}`).join("\n");
+  const user = groundedEvidence
+    ? `Today's date: ${today}.\n\nClaims to check:\n${claimList}\n\nVerify each claim using ONLY the evidence provided below. DataHub metadata proves company definitions, schemas, and known relationships—not live row values.\n\n${groundedEvidence}`
+    : `Today's date: ${today}.\n\nClaims to check:\n${claimList}`;
 
   return (await model.generateStructured(fromZod(FactcheckResultSchema as never, { name: "factcheck_result" }) as never, [
     { role: "system", content: system },

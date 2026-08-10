@@ -1,6 +1,36 @@
 import type { RouterDecision, MeetingSummary, FactcheckResult, PrototypeReview, PrototypeSuggestion } from "./schemas";
 import type { ThemeKey, ThemeTokens } from "./themes";
 
+export interface CompanySource {
+  urn: string;
+  title: string;
+  kind: "asset" | "document";
+}
+
+export interface DataHubState {
+  status: "disabled" | "connecting" | "connected" | "unavailable";
+  query: string;
+  sources: CompanySource[];
+  updatedAt?: number;
+  message?: string;
+}
+
+export interface DataHubMemoryState {
+  kind: "file" | "meeting";
+  id: string;
+  title: string;
+  status: "saving" | "saved" | "error";
+  urn?: string;
+}
+
+export interface DataHubImpact {
+  change: string;
+  verdict: "known-impact" | "low-known-impact" | "unavailable";
+  source?: CompanySource;
+  affected: CompanySource[];
+  note: string;
+}
+
 export type AgentName = "router" | "summarizer" | "prototype" | "factcheck" | "nextstep";
 /** Global on/off per agent — lets you isolate the audio path or a single agent for testing. */
 export type AgentToggles = Record<AgentName, boolean>;
@@ -111,9 +141,9 @@ export type ServerEvent =
   | { type: "fanout.start"; buildId: string; intent: string; usesScreen: boolean; variants: VariantInfo[] }
   // `baseId` (evolve mode): the artifact this build is cloned from + edited — the
   // client seeds the new card with that artifact's HTML instead of a blank canvas.
-  | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string }
+  | { type: "prototype.start"; id: string; buildId: string; intent: string; usesScreen: boolean; themeKey: ThemeKey; variant?: VariantInfo; baseId?: string; companySources?: CompanySource[] }
   | { type: "prototype.token"; id: string; delta: string }
-  | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey }
+  | { type: "prototype.complete"; id: string; buildId: string; html: string; ideaToArtifactMs: number; themeKey: ThemeKey; companySources?: CompanySource[] }
   // A learned build was superseded by a newer one before finishing — drop its card(s).
   | { type: "prototype.cancel"; buildId: string }
   // Partner / critic agent reviewing a built artifact (id), then refining it in place.
@@ -131,6 +161,9 @@ export type ServerEvent =
   | { type: "fanout.resolved"; buildId: string; chosenThemeKey: ThemeKey }
   | { type: "dna.update"; theme: ThemeTokens | null }
   | { type: "factcheck.result"; result: FactcheckResult }
+  | { type: "datahub.state"; state: DataHubState }
+  | { type: "datahub.memory"; memory: DataHubMemoryState }
+  | { type: "datahub.impact"; impact: DataHubImpact }
   | { type: "telemetry"; agent: AgentName; latencyMs: number; tokens: number; tokPerS: number }
   | { type: "mode.changed"; baseline: "cerebras" | "gpu" }
   | { type: "agents.changed"; agents: AgentToggles }

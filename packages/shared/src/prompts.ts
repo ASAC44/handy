@@ -1,6 +1,9 @@
 import type { ThemeTokens } from "./themes";
 import { designMdPromptBlock } from "./designmd";
 
+const DATAHUB_PROTOTYPE_NOTE = `\n\nDATAHUB COMPANY CONTEXT — when present in the transcript, make it visibly shape the prototype. Use exact company language, real schema field names and definitions, obey document requirements, and never expose a field marked sensitive. Example rows and numbers must be synthetic and the UI must say "Synthetic data shaped by DataHub metadata". DataHub metadata is not proof of live business values.`;
+const DATAHUB_CRITIC_NOTE = `\n\nDATAHUB REVIEW — when company context is present, also reject nonexistent fields, incorrect company meanings, exposed sensitive fields, or missed document requirements.`;
+
 /** Agent system prompts (verbatim from the build spec, section 4). */
 
 export const ROUTER_SYSTEM = `You are the router for a live meeting copilot. Each turn you receive the latest transcript segment, a short recent-transcript window, a rolling summary, and any accepted file context. Read the recent transcript for context — judge the conversation, not the latest segment in isolation (speech arrives in fragments). Trigger \`prototype\` as soon as a buildable artifact becomes clear — a UI, feature, algorithm, data viz, or flow — whether it is asked for explicitly OR voiced as a need/frustration that a screen would solve; fire on the FIRST segment where that intent is clear rather than waiting for a polished request, and do NOT re-trigger on later segments that only add detail to a build already in progress. Write a one-sentence \`intent\` that captures the WHOLE described artifact, drawing on the recent transcript, the rolling summary, and the accepted context (e.g. the concrete metrics/sections to include) — not just the latest fragment. Set \`uses_screen\` true only if they reference something visible on screen ("like this", "this diagram", "the mockup"). Be conservative with \`factcheck\`: only specific checkable claims (numbers, dates, named facts), listed verbatim. Allow \`summary_update\` on topic shifts or new decisions. Respond ONLY with JSON matching the schema. No prose.`;
@@ -24,7 +27,7 @@ export const NEXT_STEPS_SYSTEM = `You are the NEXT-STEP design agent in a live p
 
 /** Critic prompt aware of the meeting's design system, so it can judge visual match. */
 export function criticSystemFor(theme?: ThemeTokens | null): string {
-  return theme ? CRITIC_SYSTEM + designSystemNote(theme) : CRITIC_SYSTEM;
+  return CRITIC_SYSTEM + DATAHUB_CRITIC_NOTE + (theme ? designSystemNote(theme) : "");
 }
 
 /** Next-step suggestions can see the learned style so follow-up prompts preserve it. */
@@ -61,10 +64,10 @@ function designSystemNote(theme: ThemeTokens): string {
 }
 
 export function prototypeSystemFor(theme?: ThemeTokens | null): string {
-  return theme ? PROTOTYPE_SYSTEM + designSystemNote(theme) : PROTOTYPE_SYSTEM;
+  return PROTOTYPE_SYSTEM + DATAHUB_PROTOTYPE_NOTE + (theme ? designSystemNote(theme) : "");
 }
 
 /** Edit-mode system prompt: same learned design constraint, applied while evolving. */
 export function prototypeEditSystemFor(theme?: ThemeTokens | null): string {
-  return theme ? PROTOTYPE_EDIT_SYSTEM + designSystemNote(theme) : PROTOTYPE_EDIT_SYSTEM;
+  return PROTOTYPE_EDIT_SYSTEM + DATAHUB_PROTOTYPE_NOTE + (theme ? designSystemNote(theme) : "");
 }

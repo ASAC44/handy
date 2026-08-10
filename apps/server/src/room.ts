@@ -18,7 +18,8 @@ import { config } from "./config";
 import { Orchestrator } from "./orchestrator";
 import { ContextStore, ContextUploadError } from "./context";
 import { ExportStore } from "./exports";
-import type { MeetingRuntime } from "./runtime";
+import { DataHubMemory } from "./datahub";
+import type { CompanyContext, MeetingMemory, MeetingRuntime } from "./runtime";
 import type { AuthResult, WsData } from "./session";
 
 /** Constant-time string compare (avoids leaking the passcode via timing). */
@@ -44,6 +45,7 @@ export class Room implements MeetingRuntime {
   latestScreenDataUri: string | null = null;
   readonly context = new ContextStore();
   readonly exports = new ExportStore();
+  readonly datahub = new DataHubMemory((state) => this.broadcast({ type: "datahub.state", state }));
 
   private clients = new Set<ServerWebSocket<WsData>>();
   private presence = new Map<ServerWebSocket<WsData>, ParticipantPresence>();
@@ -66,7 +68,28 @@ export class Room implements MeetingRuntime {
   }
 
   contextSummary(): string {
-    return this.context.summary();
+    return [this.context.summary(), this.datahub.context().prompt].filter(Boolean).join("\n\n");
+  }
+
+  refreshCompanyContext(query: string): Promise<CompanyContext> {
+    return this.datahub.refresh(query);
+  }
+
+  async saveMeetingMemory(memory: MeetingMemory): Promise<void> {
+    const id = this.context.meetingId;
+    const title = `Meeting summary: ${memory.title}`;
+    this.send({ type: "datahub.memory", memory: { kind: "meeting", id, title, status: "saving" } });
+    try {
+      const source = await this.datahub.saveMeeting(memory);
+      this.send({ type: "datahub.memory", memory: { kind: "meeting", id, title, status: "saved", urn: source.urn } });
+    } catch (error) {
+      console.error("[datahub] meeting save failed", error);
+      this.send({ type: "datahub.memory", memory: { kind: "meeting", id, title, status: "error" } });
+    }
+  }
+
+  checkCompanyImpact(change: string) {
+    return this.datahub.impact(change);
   }
 
   /** Authenticate a connection's key. Open mode (no host passcode) authorizes
@@ -146,6 +169,7 @@ export class Room implements MeetingRuntime {
     ws.send(encode({ type: "presence.snapshot", selfId: participant.id, participants: this.participants() }));
     ws.send(encode({ type: "context.snapshot", context: this.context.snapshot() }));
     ws.send(encode({ type: "export.snapshot", exports: this.exports.snapshot() }));
+    ws.send(encode({ type: "datahub.state", state: this.datahub.snapshot() }));
     ws.send(encode({ type: "agents.changed", agents: this.agents }));
     // Hosts get the live invite-code list; guests never see other codes.
     if (this.isHost(ws)) ws.send(encode({ type: "invite.list", invites: this.inviteList() }));
@@ -223,6 +247,7 @@ export class Room implements MeetingRuntime {
     try {
       const item = await this.context.upload(form);
       this.broadcast({ type: "context.item", item });
+      if (item.status === "accepted") void this.saveContextToDataHub(item.id);
       return Response.json({ ok: true, item, workspaceRoot: this.context.workspaceRoot }, { headers: CONTEXT_CORS });
     } catch (err) {
       if (err instanceof ContextUploadError) return Response.json({ error: err.message }, { status: err.status, headers: CONTEXT_CORS });
@@ -501,7 +526,10 @@ export class Room implements MeetingRuntime {
 
   private async acceptContext(id: string): Promise<void> {
     const item = await this.context.accept(id);
-    if (item) this.broadcast({ type: "context.updated", item });
+    if (item) {
+      this.broadcast({ type: "context.updated", item });
+      if (item.status === "accepted") void this.saveContextToDataHub(item.id);
+    }
   }
 
   private async rejectContext(id: string): Promise<void> {
@@ -511,7 +539,22 @@ export class Room implements MeetingRuntime {
 
   private async clearContext(): Promise<void> {
     const context = await this.context.clear();
+    this.datahub.clearLocal();
     this.broadcast({ type: "context.snapshot", context });
+  }
+
+  private async saveContextToDataHub(id: string): Promise<void> {
+    if (!config.datahubEnabled) return;
+    const readable = this.context.acceptedText(id);
+    if (!readable) return;
+    this.send({ type: "datahub.memory", memory: { kind: "file", id, title: readable.title, status: "saving" } });
+    try {
+      const source = await this.datahub.saveFile({ ...readable, id, meetingId: this.context.meetingId });
+      this.send({ type: "datahub.memory", memory: { kind: "file", id, title: readable.title, status: "saved", urn: source.urn } });
+    } catch (error) {
+      console.error("[datahub] file save failed", error);
+      this.send({ type: "datahub.memory", memory: { kind: "file", id, title: readable.title, status: "error" } });
+    }
   }
 
   /** Host clears the meeting and starts fresh: stop any running scenario/live run,
@@ -528,6 +571,7 @@ export class Room implements MeetingRuntime {
     this.lastFrameTs = undefined;
     this.history = [];
     this.ended = false; // starting fresh also lifts the recap lock
+    this.datahub.clearLocal();
     const byHostId = this.presence.get(ws)?.id ?? "";
     void this.context.clear();
     this.exports.beginMeeting("Handy Meeting");
