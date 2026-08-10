@@ -1,28 +1,24 @@
 import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "./ui/button";
 
-export type Theme = "paper" | "ink";
-const THEMES: { id: Theme; label: string; icon: string }[] = [
-  { id: "paper", label: "Paper", icon: "◐" },
-  { id: "ink", label: "Ink", icon: "◑" },
-];
+export type Theme = "light" | "dark";
 
-/** Switches the app theme by setting [data-theme] on <html>; persisted to
- *  localStorage. An inline script in index.html applies it before first paint
- *  (no flash); this keeps it in sync and lets the user change it. */
+/** Toggles shadcn's light and dark token sets and persists the preference. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("handy.theme");
-    return saved === "ink" || saved === "paper" ? saved : "paper";
+    return saved === "dark" || saved === "ink" ? "dark" : "light";
   });
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    delete document.documentElement.dataset.theme;
     localStorage.setItem("handy.theme", theme);
   }, [theme]);
 
-  const current = THEMES.find((t) => t.id === theme) ?? THEMES[0];
-  const next: Theme = theme === "paper" ? "ink" : "paper";
+  const next: Theme = theme === "light" ? "dark" : "light";
+  const Icon = theme === "light" ? Sun : Moon;
 
   return (
     <Button
@@ -30,10 +26,10 @@ export function ThemeToggle() {
       size="sm"
       className="capBtn themeToggle"
       onClick={() => setTheme(next)}
-      data-tip={`Theme: ${current.label} — switch to ${next}`}
+      data-tip={`Theme: ${theme} — switch to ${next}`}
       aria-label="Switch theme"
     >
-      {current.icon} {current.label}
+      <Icon aria-hidden="true" /> {theme === "light" ? "Light" : "Dark"}
     </Button>
   );
 }

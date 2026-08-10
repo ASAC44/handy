@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description" data-layout-version="cloudy-native-v2" data-spec-sha256="c593d8b67cff96c27825413bc43c683930dbaff396a3ea10fa7de581fbd9eec5">
-  <title id="title">How Handy turns a meeting into working context</title>
-  <desc id="description">A three-stage view of Handy: meeting inputs enter a routed live agent loop, become shared in-room artifacts, and leave as reusable exports. DataHub metadata supplies data context.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description" data-layout-version="cloudy-native-v2" data-spec-sha256="69f9204dad3a3bce1bd532b83a532f449fca697aa819d5240a063a2693dfec00">
+  <title id="title">How DataHub becomes live meeting context</title>
+  <desc id="description">DataHub company memory and live meeting signals form one changing shared context. All Handy agents read that context, create grounded work, assess known impact, and return structured meeting knowledge.</desc>
   <defs>
     <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
     <marker id="arrow-violet" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"/></marker>
@@ -23,57 +23,47 @@
     </style>
   </defs>
   <rect width="1600" height="900" fill="#fffdf8"/>
-  <text x="54" y="62" class="title">How Handy turns a meeting into working context</text>
-  <text x="54" y="94" class="subtitle">Conversation becomes evidence, prototypes, decisions, and a reusable meeting package while the room is still live</text>
-  <rect data-zone-id="inputs" x="42.0" y="130" width="396.3" height="690" rx="28" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" stroke-dasharray="8 8"/>
-  <text x="62.0" y="160" class="zone-label" fill="#1e40af">1 · WHAT ENTERS THE ROOM</text>
-  <rect data-zone-id="loop" x="466.3" y="130" width="563.1" height="690" rx="28" fill="#faf5ff" stroke="#c4b5fd" stroke-width="2" stroke-dasharray="8 8"/>
-  <text x="486.3" y="160" class="zone-label" fill="#5b21b6">2 · THE LIVE AGENT LOOP</text>
-  <rect data-zone-id="outcomes" x="1057.4" y="130" width="500.6" height="690" rx="28" fill="#f0fdf4" stroke="#86efac" stroke-width="2" stroke-dasharray="8 8"/>
-  <text x="1077.4" y="160" class="zone-label" fill="#166534">3 · WHAT THE ROOM GETS</text>
-  <path class="arrow" data-edge="conversation--router" d="M408.3 258.0 C439.1 258.0 465.5 258.0 496.3 258.0" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
-  <path class="arrow" data-edge="files--router" d="M408.3 408.0 H452.3 V258.0 H496.3" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
-  <path class="arrow" data-edge="datahub--router" d="M408.3 558.0 H452.3 V258.0 H496.3" stroke="#d97706" marker-end="url(#arrow-amber)" stroke-dasharray="7 6"/>
-  <path class="arrow" data-edge="router--understand" d="M747.9 315.0 V352.0" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
-  <path class="arrow" data-edge="router--build" d="M747.9 315.0 V502.0" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
-  <path class="arrow" data-edge="understand--room" d="M999.4 408.0 H1043.4 V258.0 H1087.4" stroke="#16a34a" marker-end="url(#arrow-green)"/>
-  <path class="arrow" data-edge="build--room" d="M999.4 558.0 H1043.4 V258.0 H1087.4" stroke="#16a34a" marker-end="url(#arrow-green)"/>
-  <path class="arrow" data-edge="room--recap" d="M1307.7 315.0 V477.0" stroke="#16a34a" marker-end="url(#arrow-green)"/>
-  <path class="arrow" data-edge="room--build" d="M1528.0 258.0 H1546.0 V806.0 H478.3 V558.0 H496.3" stroke="#d97706" marker-end="url(#arrow-amber)"/>
-  <rect class="node" data-node-id="conversation" data-status="external" x="72.0" y="177.0" width="336.3" height="162.0" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="240.1" y="212.0" text-anchor="middle" class="node-title">People speak and share the</text>
-  <text x="240.1" y="238.0" text-anchor="middle" class="node-title">screen</text>
-  <text x="240.1" y="269.0" text-anchor="middle" class="node-body">live transcript · optional screen</text>
-  <text x="240.1" y="291.0" text-anchor="middle" class="node-body">frame</text>
-  <text x="240.1" y="321.0" text-anchor="middle" class="node-note">Raw frames stay on the meeting server</text>
-  <rect class="node" data-node-id="files" data-status="implemented" x="72.0" y="338.0" width="336.3" height="140.0" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text x="240.1" y="373.0" text-anchor="middle" class="node-title">The host accepts useful</text>
-  <text x="240.1" y="399.0" text-anchor="middle" class="node-title">files</text>
-  <text x="240.1" y="430.0" text-anchor="middle" class="node-body">research · specs · workspace context</text>
-  <text x="240.1" y="460.0" text-anchor="middle" class="node-note">Guest uploads wait for host review</text>
-  <rect class="node" data-node-id="datahub" data-status="planned" x="72.0" y="502.0" width="336.3" height="112.0" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 5"/>
-  <text x="240.1" y="537.0" text-anchor="middle" class="node-title">DataHub adds data meaning</text>
-  <text x="240.1" y="568.0" text-anchor="middle" class="node-body">schemas · lineage · owners · quality</text>
-  <rect class="node" data-node-id="router" data-status="implemented" x="496.3" y="201.0" width="503.1" height="114.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
-  <text x="747.9" y="236.0" text-anchor="middle" class="node-title">A router decides what matters now</text>
-  <text x="747.9" y="267.0" text-anchor="middle" class="node-body">recent transcript + summary + accepted context</text>
-  <text x="747.9" y="297.0" text-anchor="middle" class="node-note">Heavy agents do not run on every utterance</text>
-  <rect class="node" data-node-id="understand" data-status="implemented" x="496.3" y="352.0" width="503.1" height="112.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
-  <text x="747.9" y="387.0" text-anchor="middle" class="node-title">Agents structure and check the discussion</text>
-  <text x="747.9" y="418.0" text-anchor="middle" class="node-body">rolling decisions · owners · open questions</text>
-  <text x="747.9" y="440.0" text-anchor="middle" class="node-body">retrieved evidence when search is configured</text>
-  <rect class="node" data-node-id="build" data-status="implemented" x="496.3" y="502.0" width="503.1" height="112.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
-  <text x="747.9" y="537.0" text-anchor="middle" class="node-title">The idea becomes a live prototype</text>
-  <text x="747.9" y="568.0" text-anchor="middle" class="node-body">streamed HTML · review · next-step edits</text>
-  <text x="747.9" y="590.0" text-anchor="middle" class="node-body">the chosen style becomes Design DNA</text>
-  <rect class="node" data-node-id="room" data-status="implemented" x="1087.4" y="201.0" width="440.6" height="114.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="1307.7" y="236.0" text-anchor="middle" class="node-title">Everyone sees one shared live room</text>
-  <text x="1307.7" y="267.0" text-anchor="middle" class="node-body">transcript · evidence · prototypes · presence</text>
-  <text x="1307.7" y="297.0" text-anchor="middle" class="node-note">Settled events replay for late joiners</text>
-  <rect class="node" data-node-id="recap" data-status="implemented" x="1087.4" y="477.0" width="440.6" height="162.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="1307.7" y="512.0" text-anchor="middle" class="node-title">The meeting leaves a reusable</text>
-  <text x="1307.7" y="538.0" text-anchor="middle" class="node-title">package</text>
-  <text x="1307.7" y="569.0" text-anchor="middle" class="node-body">recap · transcript · summary</text>
-  <text x="1307.7" y="591.0" text-anchor="middle" class="node-body">prototypes · DESIGN.md · manifest</text>
-  <text x="1307.7" y="621.0" text-anchor="middle" class="node-note">Saved under the host export folder</text>
+  <text x="54" y="62" class="title">How DataHub becomes live meeting context</text>
+  <text x="54" y="94" class="subtitle">Company knowledge narrows to what this conversation needs, guides every agent, then gains new meeting knowledge</text>
+  <rect data-zone-id="memory" x="42.0" y="130" width="400.0" height="690" rx="28" fill="#f0fdfa" stroke="#5eead4" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="62.0" y="160" class="zone-label" fill="#115e59">1 · COMPANY MEMORY + LIVE SIGNALS</text>
+  <rect data-zone-id="context" x="470.0" y="130" width="580.0" height="690" rx="28" fill="#faf5ff" stroke="#c4b5fd" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="490.0" y="160" class="zone-label" fill="#5b21b6">2 · ONE SHARED MEETING CONTEXT</text>
+  <rect data-zone-id="outcome" x="1078.0" y="130" width="480.0" height="690" rx="28" fill="#f0fdf4" stroke="#86efac" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="1098.0" y="160" class="zone-label" fill="#166534">3 · GROUNDED WORK + MEMORY</text>
+  <path class="arrow" data-edge="datahub--focus" d="M412.0 258.0 C442.8 258.0 469.2 258.0 500.0 258.0" stroke="#7c3aed" marker-end="url(#arrow-violet)" stroke-dasharray="7 6"/>
+  <path class="arrow" data-edge="signals--focus" d="M412.0 558.0 H456.0 V258.0 H500.0" stroke="#7c3aed" marker-end="url(#arrow-violet)" stroke-dasharray="7 6"/>
+  <path class="arrow" data-edge="focus--route" d="M760.0 326.0 V501.0" stroke="#7c3aed" marker-end="url(#arrow-violet)" stroke-dasharray="7 6"/>
+  <path class="arrow" data-edge="route--agents" d="M1020.0 558.0 H1064.0 V258.0 H1108.0" stroke="#16a34a" marker-end="url(#arrow-green)"/>
+  <path class="arrow" data-edge="agents--writeback" d="M1318.0 314.0 V490.0" stroke="#16a34a" marker-end="url(#arrow-green)" stroke-dasharray="7 6"/>
+  <path class="arrow" data-edge="writeback--datahub" d="M1528.0 558.0 H1546.0 V806.0 H54.0 V258.0 H72.0" stroke="#0f766e" marker-end="url(#arrow-teal)" stroke-dasharray="7 6"/>
+  <rect class="node" data-node-id="datahub" data-status="external" x="72.0" y="192.0" width="340.0" height="132.0" rx="22" fill="#ccfbf1" stroke="#0f766e" stroke-width="2"/>
+  <text x="242.0" y="227.0" text-anchor="middle" class="node-title">DataHub connects company</text>
+  <text x="242.0" y="253.0" text-anchor="middle" class="node-title">knowledge</text>
+  <text x="242.0" y="284.0" text-anchor="middle" class="node-body">documents · schemas · metrics</text>
+  <text x="242.0" y="306.0" text-anchor="middle" class="node-body">decisions · lineage · privacy</text>
+  <rect class="node" data-node-id="signals" data-status="implemented" x="72.0" y="481.0" width="340.0" height="154.0" rx="22" fill="#ccfbf1" stroke="#0f766e" stroke-width="2"/>
+  <text x="242.0" y="516.0" text-anchor="middle" class="node-title">The live meeting changes</text>
+  <text x="242.0" y="542.0" text-anchor="middle" class="node-title">what matters</text>
+  <text x="242.0" y="573.0" text-anchor="middle" class="node-body">conversation · dropped files</text>
+  <text x="242.0" y="595.0" text-anchor="middle" class="node-body">new decisions · findings · open</text>
+  <text x="242.0" y="617.0" text-anchor="middle" class="node-body">problems</text>
+  <rect class="node" data-node-id="focus" data-status="planned" x="500.0" y="190.0" width="520.0" height="136.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="760.0" y="225.0" text-anchor="middle" class="node-title">One shared context guides every agent</text>
+  <text x="760.0" y="256.0" text-anchor="middle" class="node-body">definitions · sources · privacy · dependencies</text>
+  <text x="760.0" y="278.0" text-anchor="middle" class="node-body">topic-aware context + known-impact checks</text>
+  <text x="760.0" y="308.0" text-anchor="middle" class="node-note">The collection changes with the conversation</text>
+  <rect class="node" data-node-id="route" data-status="implemented" x="500.0" y="501.0" width="520.0" height="114.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="760.0" y="536.0" text-anchor="middle" class="node-title">The router activates the right agents</text>
+  <text x="760.0" y="567.0" text-anchor="middle" class="node-body">summary · fact-check · prototype</text>
+  <text x="760.0" y="597.0" text-anchor="middle" class="node-note">Agents read shared context instead of searching alone</text>
+  <rect class="node" data-node-id="agents" data-status="implemented" x="1108.0" y="202.0" width="420.0" height="112.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="1318.0" y="237.0" text-anchor="middle" class="node-title">The room gets live working</text>
+  <text x="1318.0" y="263.0" text-anchor="middle" class="node-title">artifacts</text>
+  <text x="1318.0" y="294.0" text-anchor="middle" class="node-body">summary · checks · prototypes · recap</text>
+  <rect class="node" data-node-id="writeback" data-status="planned" x="1108.0" y="490.0" width="420.0" height="136.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="1318.0" y="525.0" text-anchor="middle" class="node-title">Useful meeting knowledge returns</text>
+  <text x="1318.0" y="556.0" text-anchor="middle" class="node-body">decisions · changed definitions · findings</text>
+  <text x="1318.0" y="578.0" text-anchor="middle" class="node-body">prototype information · unresolved problems</text>
+  <text x="1318.0" y="608.0" text-anchor="middle" class="node-note">Structured outcomes, not every sentence</text>
 </svg>

@@ -376,7 +376,7 @@ export function Canvas({
             <span
               key={ping.id}
               className="cursor-ping"
-              style={{ left: point.x, top: point.y, "--pc": participant?.color ?? "var(--mint)" } as CSSProperties}
+              style={{ left: point.x, top: point.y, "--pc": participant?.color ?? "var(--primary)" } as CSSProperties}
             />
           );
         })}

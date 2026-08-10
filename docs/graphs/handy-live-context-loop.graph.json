@@ -1,116 +1,89 @@
 {
-  "title": "How Handy turns a meeting into working context",
-  "subtitle": "Conversation becomes evidence, prototypes, decisions, and a reusable meeting package while the room is still live",
-  "description": "A three-stage view of Handy: meeting inputs enter a routed live agent loop, become shared in-room artifacts, and leave as reusable exports. DataHub metadata supplies data context.",
+  "title": "How DataHub becomes live meeting context",
+  "subtitle": "Company knowledge narrows to what this conversation needs, guides every agent, then gains new meeting knowledge",
+  "description": "DataHub company memory and live meeting signals form one changing shared context. All Handy agents read that context, create grounded work, assess known impact, and return structured meeting knowledge.",
   "zones": [
-    { "id": "inputs", "label": "1 · WHAT ENTERS THE ROOM", "tone": "blue", "width": 0.95 },
-    { "id": "loop", "label": "2 · THE LIVE AGENT LOOP", "tone": "violet", "width": 1.35 },
-    { "id": "outcomes", "label": "3 · WHAT THE ROOM GETS", "tone": "green", "width": 1.2 }
+    { "id": "memory", "label": "1 · COMPANY MEMORY + LIVE SIGNALS", "tone": "teal", "width": 1.0 },
+    { "id": "context", "label": "2 · ONE SHARED MEETING CONTEXT", "tone": "violet", "width": 1.45 },
+    { "id": "outcome", "label": "3 · GROUNDED WORK + MEMORY", "tone": "green", "width": 1.2 }
   ],
   "nodes": [
     {
-      "id": "conversation",
-      "zone": "inputs",
-      "title": "People speak and share the screen",
-      "body": ["live transcript · optional screen frame"],
-      "note": "Raw frames stay on the meeting server",
+      "id": "datahub",
+      "zone": "memory",
+      "title": "DataHub connects company knowledge",
+      "body": ["documents · schemas · metrics", "decisions · lineage · privacy"],
       "status": "external",
       "size": "wide",
       "row": 1,
       "span": 2,
-      "evidence": ["apps/web/src/useCapture.ts", "apps/server/src/room.ts"]
+      "evidence": ["apps/web/src/landing/ProductExplainer.tsx", "apps/web/src/landing/LandingSections.tsx"]
     },
     {
-      "id": "files",
-      "zone": "inputs",
-      "title": "The host accepts useful files",
-      "body": ["research · specs · workspace context"],
-      "note": "Guest uploads wait for host review",
+      "id": "signals",
+      "zone": "memory",
+      "title": "The live meeting changes what matters",
+      "body": ["conversation · dropped files", "new decisions · findings · open problems"],
       "status": "implemented",
-      "size": "standard",
-      "row": 2,
-      "span": 2,
-      "evidence": ["apps/server/src/context.ts", "apps/web/src/components/ContextStrip.tsx"]
-    },
-    {
-      "id": "datahub",
-      "zone": "inputs",
-      "title": "DataHub adds data meaning",
-      "body": ["schemas · lineage · owners · quality"],
-      "status": "planned",
       "size": "standard",
       "row": 3,
       "span": 2,
-      "evidence": ["apps/web/src/landing/LandingSections.tsx"]
+      "evidence": ["apps/server/src/context.ts", "apps/server/src/orchestrator.ts", "apps/web/src/landing/ProductExplainer.tsx"]
     },
     {
-      "id": "router",
-      "zone": "loop",
-      "title": "A router decides what matters now",
-      "body": ["recent transcript + summary + accepted context"],
-      "note": "Heavy agents do not run on every utterance",
-      "status": "implemented",
+      "id": "focus",
+      "zone": "context",
+      "title": "One shared context guides every agent",
+      "body": ["definitions · sources · privacy · dependencies", "topic-aware context + known-impact checks"],
+      "note": "The collection changes with the conversation",
+      "status": "planned",
       "size": "wide",
       "row": 1,
+      "span": 2,
+      "evidence": ["apps/web/src/landing/ProductExplainer.tsx"]
+    },
+    {
+      "id": "route",
+      "zone": "context",
+      "title": "The router activates the right agents",
+      "body": ["summary · fact-check · prototype"],
+      "note": "Agents read shared context instead of searching alone",
+      "status": "implemented",
+      "size": "wide",
+      "row": 3,
       "span": 2,
       "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/router.ts", "packages/shared/src/prompts.ts"]
     },
     {
-      "id": "understand",
-      "zone": "loop",
-      "title": "Agents structure and check the discussion",
-      "body": ["rolling decisions · owners · open questions", "retrieved evidence when search is configured"],
-      "status": "implemented",
-      "size": "wide",
-      "row": 2,
-      "span": 2,
-      "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/summarizer.ts", "apps/server/src/agents/factcheck.ts", "apps/server/src/search.ts"]
-    },
-    {
-      "id": "build",
-      "zone": "loop",
-      "title": "The idea becomes a live prototype",
-      "body": ["streamed HTML · review · next-step edits", "the chosen style becomes Design DNA"],
-      "status": "implemented",
-      "size": "wide",
-      "row": 3,
-      "span": 2,
-      "evidence": ["apps/server/src/orchestrator.ts", "apps/server/src/agents/prototype.ts", "apps/server/src/agents/critic.ts", "apps/server/src/agents/nextsteps.ts", "packages/shared/src/themes.ts"]
-    },
-    {
-      "id": "room",
-      "zone": "outcomes",
-      "title": "Everyone sees one shared live room",
-      "body": ["transcript · evidence · prototypes · presence"],
-      "note": "Settled events replay for late joiners",
+      "id": "agents",
+      "zone": "outcome",
+      "title": "The room gets live working artifacts",
+      "body": ["summary · checks · prototypes · recap"],
       "status": "implemented",
       "size": "wide",
       "row": 1,
       "span": 2,
-      "evidence": ["apps/server/src/room.ts", "apps/web/src/ws.ts", "apps/web/src/components/Canvas.tsx"]
+      "evidence": ["apps/server/src/orchestrator.ts", "packages/shared/src/prompts.ts", "apps/web/src/components/Canvas.tsx"]
     },
     {
-      "id": "recap",
-      "zone": "outcomes",
-      "title": "The meeting leaves a reusable package",
-      "body": ["recap · transcript · summary", "prototypes · DESIGN.md · manifest"],
-      "note": "Saved under the host export folder",
-      "status": "implemented",
+      "id": "writeback",
+      "zone": "outcome",
+      "title": "Useful meeting knowledge returns",
+      "body": ["decisions · changed definitions · findings", "prototype information · unresolved problems"],
+      "note": "Structured outcomes, not every sentence",
+      "status": "planned",
       "size": "wide",
       "row": 3,
       "span": 2,
-      "evidence": ["apps/server/src/room.ts", "apps/server/src/exports.ts", "apps/server/src/agents/finaldoc.ts", "apps/web/src/components/RecapView.tsx"]
+      "evidence": ["apps/server/src/exports.ts", "apps/server/src/agents/finaldoc.ts", "apps/web/src/landing/ProductExplainer.tsx"]
     }
   ],
   "edges": [
-    { "from": "conversation", "to": "router", "tone": "violet", "route": "horizontal" },
-    { "from": "files", "to": "router", "tone": "violet", "route": "orthogonal" },
-    { "from": "datahub", "to": "router", "tone": "amber", "route": "orthogonal" },
-    { "from": "router", "to": "understand", "tone": "violet", "route": "vertical" },
-    { "from": "router", "to": "build", "tone": "violet", "route": "vertical" },
-    { "from": "understand", "to": "room", "tone": "green", "route": "orthogonal" },
-    { "from": "build", "to": "room", "tone": "green", "route": "orthogonal" },
-    { "from": "room", "to": "recap", "tone": "green", "route": "vertical" },
-    { "from": "room", "to": "build", "tone": "amber", "route": "feedback" }
+    { "from": "datahub", "to": "focus", "tone": "violet", "route": "horizontal" },
+    { "from": "signals", "to": "focus", "tone": "violet", "route": "orthogonal" },
+    { "from": "focus", "to": "route", "tone": "violet", "route": "vertical" },
+    { "from": "route", "to": "agents", "tone": "green", "route": "orthogonal" },
+    { "from": "agents", "to": "writeback", "tone": "green", "route": "vertical" },
+    { "from": "writeback", "to": "datahub", "tone": "teal", "route": "feedback" }
   ]
 }

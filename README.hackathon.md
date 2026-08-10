@@ -8,7 +8,7 @@ Hackathon MVP · Bun + React · Cerebras + Gemma 4
 
 </div>
 
-> Handy runs end to end in keyless fixture mode. Live inference, web-grounded fact-checking, and provider-based transcription require their respective credentials.
+> Handy runs end to end in keyless fixture mode. Live inference, web-grounded fact-checking, and provider-based transcription require their respective credentials. The DataHub company-memory and impact-analysis paths below are the planned hackathon integration and are shown with dashed arrows.
 
 <!-- README-HACK:NEEDS-OWNER key="demo-video" instruction="Replace with the final public demo video URL near the top of the README." -->
 
@@ -64,6 +64,61 @@ flowchart LR
 | **Honest fact-checking** | With Tavily configured, claims are searched and judged against retrieved snippets. Without search configuration, Handy labels the result as model-based rather than web-grounded. |
 | **Durable handoff** | Ending a meeting writes a recap, transcript, structured summary, prototypes, `DESIGN.md`, a README, and a manifest to the host export folder. |
 
+## DataHub-powered company memory — planned integration
+
+Handy is designed to use DataHub as the shared company brain behind the live agent system. The [DataHub Agent Context Kit](https://docs.datahub.com/docs/dev-guides/agent-context/agent-context) exposes business definitions, context documents, schemas, ownership, lineage, quality signals, sample queries, and tools for searching or updating that knowledge. Handy can use those capabilities to connect tables, dashboards, documents, teams, systems, and past meeting decisions.
+
+Handy would retrieve a **shared meeting context** from that memory: the small, changing collection of company information relevant to the conversation right now. Every agent reads the same context instead of independently searching DataHub, keeping summaries, checks, prototypes, and recaps grounded in one consistent view of the company.
+
+```mermaid
+flowchart TD
+    Conversation["Ongoing conversation"]
+    Files["Dropped company files"]
+    DataHub["DataHub company memory<br/>(planned)"]
+    Context["Shared meeting context<br/>changes with the conversation"]
+    Agents["All Handy agents"]
+    Outputs["Summary · checks · prototypes · recap"]
+    Knowledge["Structured decisions, definitions, findings,<br/>prototype context, and unresolved problems"]
+
+    Conversation -. "Retrieve relevant knowledge" .-> DataHub
+    Files -. "Ingest and connect" .-> DataHub
+    DataHub -. "Supply relevant context" .-> Context
+    Context --> Agents
+    Agents --> Outputs
+    Outputs --> Knowledge
+    Knowledge -. "Write back after the meeting" .-> DataHub
+```
+
+Only structured knowledge that Handy already produces would be written back—not every spoken sentence. A dropped file could also become reusable company knowledge: DataHub would ingest it, connect it to related datasets, dashboards, owners, and definitions, then make it available to this and future meetings.
+
+### What grounding changes
+
+If a meeting turns to customer retention, the shared context could receive:
+
+- customer tables and approved column names
+- the official definition of an active customer
+- related dashboards and data lineage
+- previous retention decisions
+- privacy and quality rules
+
+When someone asks Handy to build a customer-retention dashboard, that context can make the prototype use company terminology, the approved 90-day active-customer definition, the recommended source tables, realistic fake values shaped like the schema, and no private customer-email field.
+
+### Fact and Safety Checker — planned
+
+The planned checker uses DataHub relationships to estimate the known impact of a proposed change before the room acts on it.
+
+```mermaid
+flowchart LR
+    Proposal["Proposed change"] -.-> Map["DataHub relationships,<br/>lineage, rules, and decisions"]
+    Map -.-> Checker["Fact and Safety Checker"]
+    Checker --> Warning["Known conflict or downstream impact"]
+    Checker --> Low["Low known impact"]
+```
+
+For example, changing **Active Customer** from 90 days to 60 days could reveal three dashboards, two reports, one segmentation model, and a previous company decision that depend on the existing definition. Handy can warn the room about those affected systems and the conflict before generating an artifact around the change.
+
+For a new optional `customer_segment` field with no known breaking dependency or privacy conflict, Handy can report **low known impact**. That wording is deliberate: DataHub can show that no known problem was found, but it cannot guarantee absolute safety when the relationship map may be incomplete.
+
 ## The learning loop
 
 The first prototype is not only an output; it is a preference probe. Handy generates four visual directions, lets the room pick one, and turns that choice into session-level Design DNA. Later artifacts use the selected language without repeating the fan-out.
@@ -95,10 +150,12 @@ flowchart LR
     subgraph Server["Bun server"]
         Session["Authenticated sessions"]
         Room["Shared in-memory Room"]
+        Context["Shared meeting context"]
         Orchestrator["Agent orchestrator"]
         Exports["Meeting export writer"]
         Session --> Room
-        Room --> Orchestrator
+        Room --> Context
+        Context --> Orchestrator
         Room --> Exports
     end
 
@@ -124,16 +181,18 @@ flowchart LR
     Prototype --> Cerebras["Gemma 4 via Cerebras"]
     Check -. "Optional grounding" .-> Tavily["Tavily search"]
     Capture -. "Optional providers" .-> ASR["ElevenLabs, WebGPU Whisper, or local Ollama"]
+    DataHub["DataHub company memory<br/>(planned)"] -. "Context sync" .-> Context
+    Exports -. "Structured meeting knowledge" .-> DataHub
     Exports --> Package["Portable meeting package"]
 ```
 
-The frontend and server compile against the same `@handy/shared` Zod schemas and discriminated event unions. The server keeps each WebSocket session thin; one shared `Room` owns presence, invites, accepted context, learned taste, meeting history, and the orchestrator. The MVP deliberately uses no database.
+The frontend and server compile against the same `@handy/shared` Zod schemas and discriminated event unions. The server keeps each WebSocket session thin; one shared `Room` owns presence, invites, accepted context, learned taste, meeting history, and the orchestrator. The MVP deliberately uses no database. In the planned integration, DataHub synchronizes with the shared context and meeting exports; individual agents do not call DataHub directly.
 
 ### Detailed context map
 
 ![Handy live context loop, from meeting inputs through routed agents to shared artifacts and exports](apps/web/public/graphs/handy-live-context-loop.svg)
 
-The dashed DataHub metadata node in this existing project diagram is **planned**, not part of the current implementation.
+In this project diagram, DataHub is the external platform; the dashed Handy nodes and arrows represent the planned context retrieval, shared grounding, impact analysis, and knowledge write-back integration.
 
 ## Built with
 
@@ -210,11 +269,11 @@ The repository includes a deterministic fixture mode, committed meeting audio, s
 
 ## Current boundaries
 
-Handy is a hackathon MVP, not a production meeting platform. It currently uses one in-memory room per server and browser-based capture. It does not provide recording playback, a searchable meeting archive, CRM automation, or the production hardening of established meeting tools. Live provider paths require external services or local model infrastructure; fixture mode demonstrates the same event and canvas flow without claiming live inference.
+Handy is a hackathon MVP, not a production meeting platform. It currently uses one in-memory room per server and browser-based capture. It does not provide recording playback, a searchable meeting archive, CRM automation, or the production hardening of established meeting tools. Live provider paths require external services or local model infrastructure; fixture mode demonstrates the same event and canvas flow without claiming live inference. The current repository does not yet ingest, query, or write back to DataHub.
 
 ## What's next
 
-- Complete DataHub grounding for schemas, lineage, ownership, and quality signals; the current diagram marks this integration as planned.
+- Implement the shared DataHub context service: file ingestion, relevant-context retrieval, structured meeting write-back, and lineage-aware impact analysis.
 - Add explicit screen-capture privacy controls, preview, and frame deduplication.
 - Let participants remix an existing artifact by speaking a change.
 - Add prompt caching and an explicit per-meeting rate budget.

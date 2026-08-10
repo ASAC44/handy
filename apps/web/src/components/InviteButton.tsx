@@ -30,7 +30,7 @@ function isLocalOrigin(): boolean {
   return h === "localhost" || h === "0.0.0.0" || h === "::1" || h.startsWith("127.") || h.endsWith(".local");
 }
 
-const EXIT_MS = 200; // keep in sync with the .modalScrim transition in styles.css
+const EXIT_MS = 200; // keep in sync with the .modalScrim transition in globals.css
 
 export function InviteButton({ state, send }: { state: HandyState; send: (e: ClientEvent) => void }) {
   const [mounted, setMounted] = useState(false); // in the DOM (kept during exit animation)

@@ -112,7 +112,7 @@ export function LandingSections() {
               <h2 className="mt-6 text-5xl leading-none tracking-tight text-white sm:text-7xl" style={serifStyle}>The context layer behind the conversation.</h2>
             </div>
             <p className="max-w-xl text-base leading-relaxed text-white/50 lg:justify-self-end">
-              Handy is becoming a context-aware live meeting layer for data teams. DataHub can ground the room in what a dataset is, what depends on it, who owns it, and whether it is healthy before anyone acts.
+              DataHub is the company memory behind the live room. Handy pulls the schemas, definitions, lineage, ownership, quality signals, and prior decisions relevant to the conversation into one shared context that guides every agent.
             </p>
           </div>
           <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

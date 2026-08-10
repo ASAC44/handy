@@ -1,13 +1,22 @@
-import { ArrowDown, FileCode2, FileJson2, FileText, Fingerprint, Radio, Route, SearchCheck, Users, Waypoints } from "lucide-react";
+import { ArrowDown, BookOpenText, Database, FileCode2, FileJson2, FileText, Fingerprint, Network, Radio, Route, SearchCheck, ShieldAlert, TableProperties, Users, Waypoints } from "lucide-react";
 
 const displayStyle = { fontFamily: "'P22 Mackinac W01 Book', serif" } as const;
 
 const flow = [
-  { icon: Radio, number: "01", title: "Listen", body: "A finalized speech turn enters with its speaker and timestamp." },
-  { icon: Waypoints, number: "02", title: "Ground", body: "Handy combines the turn with recent transcript, rolling summary, accepted files, and an optional screen frame." },
-  { icon: Route, number: "03", title: "Route", body: "A lightweight router decides whether this moment needs a summary update, fact-check, or prototype." },
-  { icon: FileCode2, number: "04", title: "Create", body: "The selected agent structures the discussion or streams a working HTML artifact into the room." },
-  { icon: Users, number: "05", title: "Share", body: "Settled events reach every participant; completed artifacts and meeting state are written to the export package." },
+  { icon: Radio, number: "01", title: "Listen", body: "Conversation, dropped files, and new decisions reveal what the meeting needs." },
+  { icon: Database, number: "02", title: "Retrieve", body: "Handy pulls the relevant company knowledge and data relationships from DataHub." },
+  { icon: Route, number: "03", title: "Focus", body: "One shared context keeps only the definitions, sources, rules, and history relevant now." },
+  { icon: Users, number: "04", title: "Create", body: "Every agent reads that same context to produce checks, summaries, prototypes, and the recap." },
+  { icon: Waypoints, number: "05", title: "Remember", body: "Structured decisions and useful meeting knowledge flow back into company memory." },
+] as const;
+
+const companyContext = [
+  { icon: BookOpenText, name: "Written knowledge", detail: "company documents and files" },
+  { icon: TableProperties, name: "Data structure", detail: "databases, tables, and columns" },
+  { icon: FileJson2, name: "Metric definitions", detail: "official business meaning and terminology" },
+  { icon: Waypoints, name: "Past decisions", detail: "prior agreements and unresolved questions" },
+  { icon: Network, name: "Relationships", detail: "tables, dashboards, files, teams, and systems" },
+  { icon: ShieldAlert, name: "Sensitive context", detail: "private fields and known constraints" },
 ] as const;
 
 const outputs = [
@@ -27,26 +36,26 @@ export function ProductExplainer() {
           <div>
             <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">The complete product</p>
             <h2 className="mt-6 max-w-4xl text-5xl leading-[0.96] tracking-tight sm:text-7xl" style={displayStyle}>
-              The meeting becomes the workspace while the idea is still alive.
+              One company brain behind every live meeting agent.
             </h2>
           </div>
           <div className="space-y-5 text-sm leading-relaxed text-black/60 sm:text-base">
-            <p>Most meeting tools preserve a conversation after it ends. Handy intervenes during it: the room can inspect evidence, react to a prototype, choose a direction, and make the next change without losing the conversational moment.</p>
-            <p>The product is one shared event loop—not a chatbot beside a call. Speech, screen context, reviewed files, agents, people, and generated artifacts stay connected from the first utterance to the final export.</p>
+            <p>DataHub holds the company’s documents, data structure, metric definitions, decisions, and relationships. Handy turns the small part relevant to the current conversation into shared meeting context.</p>
+            <p>That context changes as the topic changes. Every agent reads the same source instead of searching independently, so checks, summaries, prototypes, and recaps use consistent company meaning.</p>
           </div>
         </header>
 
         <div className="mt-16 grid gap-3 md:grid-cols-3">
-          <ExplainerCard label="The problem" title="Talk outruns execution." body="By the time notes become tickets, research, or a prototype, the assumptions and energy that shaped the idea are already gone." />
-          <ExplainerCard label="The intervention" title="Create inside the conversation." body="Handy routes each meaningful turn to the right agent and surfaces the result where everyone can react to it immediately." />
-          <ExplainerCard label="The outcome" title="Leave with working context." body="The room ends with decisions, evidence, prototypes, a learned design direction, and a portable meeting package—not only a transcript." />
+          <ExplainerCard label="Company memory" title="DataHub knows what the business means." body="Definitions, tables, lineage, decisions, ownership, privacy, and existing systems stay connected instead of scattered across tools." />
+          <ExplainerCard label="Shared meeting context" title="Only the relevant knowledge enters the room." body="A customer-retention discussion receives customer tables, retention definitions, related dashboards, privacy rules, and prior decisions." />
+          <ExplainerCard label="Grounded creation" title="Context directly changes the artifact." body="Handy uses real terminology and relationships, avoids sensitive fields, checks downstream impact, and generates realistic prototypes." />
         </div>
 
         <figure className="mt-6 overflow-hidden rounded-2xl border border-black/10 bg-[#fffdf8]">
           <div className="overflow-x-auto">
             <img
               src="/graphs/handy-live-context-loop.svg"
-              alt="Flowchart showing meeting speech, screen, accepted files, and DataHub metadata entering Handy’s router; agents then structure discussion, build prototypes, share results with the live room, and save a reusable meeting package."
+              alt="Flowchart showing company memory in DataHub and live meeting signals forming one changing shared context that guides every Handy agent, produces grounded work, and returns structured meeting knowledge to DataHub."
               className="min-w-[920px]"
             />
           </div>
@@ -54,7 +63,7 @@ export function ProductExplainer() {
 
         <div className="mt-6 grid gap-3">
           <article>
-            <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">One utterance through the system</p>
+            <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">The shared context loop</p>
             <div className="mt-8 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {flow.map(({ icon: Icon, number, title, body }, index) => (
                 <div key={title} className="contents">
@@ -72,36 +81,86 @@ export function ProductExplainer() {
             </div>
           </article>
 
-          <article className="rounded-2xl border border-black/10 bg-[#dcd7cd] p-5 sm:p-7">
-            <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">What the room can take away</p>
-            <div className="mt-8 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {outputs.map(({ icon: Icon, name, detail }) => (
-                <div key={name} className="grid min-h-28 grid-cols-[auto_1fr] gap-x-3 rounded-xl border border-black/10 bg-[#efebe3] p-4">
-                  <Icon className="mt-0.5 text-black/45" size={17} strokeWidth={1.5} aria-hidden="true" />
-                  <div>
-                    <h3 className="text-sm font-medium">{name}</h3>
-                    <p className="mt-1 text-xs text-black/50">{detail}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <InfoGrid label="What DataHub contributes" items={companyContext} />
+            <InfoGrid label="What Handy creates" items={outputs} />
+          </div>
         </div>
 
-        <div className="mt-6 grid overflow-hidden rounded-2xl border border-black/10 bg-[#151511] text-white lg:grid-cols-2">
-          <div className="p-6 sm:p-8">
-            <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">Meeting context</p>
-            <h3 className="mt-5 text-3xl sm:text-4xl" style={displayStyle}>Context the host can review and accept.</h3>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/55">People can bring files and folders into the room. Guest uploads remain pending until the host accepts them; only accepted previews are added to agent prompts.</p>
+        <div className="mt-6 overflow-hidden rounded-2xl border border-black/10 bg-[#151511] text-white">
+          <div className="border-b border-white/10 p-6 sm:p-8">
+            <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">Grounded prototype example</p>
+            <blockquote className="mt-5 text-3xl sm:text-5xl" style={displayStyle}>“Build a customer-retention dashboard.”</blockquote>
           </div>
-          <div className="border-t border-white/10 bg-[#20211f] p-6 sm:p-8 lg:border-t-0 lg:border-l">
-            <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">DataHub context</p>
-            <h3 className="mt-5 text-3xl sm:text-4xl" style={displayStyle}>Context that knows what the data means.</h3>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/55">Schemas, lineage, ownership, and quality signals give the router richer context. The room can ask not only “what table?” but “what depends on it, who owns it, and is it healthy enough to use?”</p>
+          <div className="grid lg:grid-cols-2">
+            <ExampleList
+              label="DataHub knows"
+              items={[
+                "Active customer means an order within 90 days.",
+                "Customer activity comes from the orders table.",
+                "order_details is the recommended dashboard source.",
+                "Customer email is private.",
+                "Three dashboards depend on this definition.",
+              ]}
+            />
+            <ExampleList
+              label="The prototype responds"
+              items={[
+                "Uses the official active-customer definition.",
+                "Uses actual table and column names.",
+                "Follows the correct data relationships.",
+                "Excludes private fields.",
+                "Matches company terminology.",
+                "Shapes realistic fake values like the real data.",
+              ]}
+              secondary
+            />
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-3 rounded-2xl border border-black/10 bg-[#dcd7cd] p-6 sm:p-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+          <div>
+            <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">Fact and Safety Checker</p>
+            <h3 className="mt-5 text-3xl sm:text-4xl" style={displayStyle}>Trace the impact before changing the definition.</h3>
+          </div>
+          <div className="rounded-xl border border-black/10 bg-[#efebe3] p-5">
+            <p className="text-sm font-medium">“Change Active Customer from 90 days to 60 days.”</p>
+            <p className="mt-4 text-sm leading-relaxed text-black/60"><strong className="text-black/80">Warning:</strong> this definition connects to three dashboards, two reports, one segmentation model, and a previous retention decision.</p>
+            <p className="mt-4 border-t border-black/10 pt-4 text-xs leading-relaxed text-black/50">A low known impact means DataHub found no known conflict. It is not a guarantee of absolute safety because the relationship map may be incomplete.</p>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function InfoGrid({ label, items }: { label: string; items: ReadonlyArray<{ icon: typeof FileText; name: string; detail: string }> }) {
+  return (
+    <article className="rounded-2xl border border-black/10 bg-[#dcd7cd] p-5 sm:p-7">
+      <p className="text-[10px] font-medium tracking-[0.18em] text-black/45 uppercase">{label}</p>
+      <div className="mt-8 grid gap-2 sm:grid-cols-2">
+        {items.map(({ icon: Icon, name, detail }) => (
+          <div key={name} className="grid min-h-28 grid-cols-[auto_1fr] gap-x-3 rounded-xl border border-black/10 bg-[#efebe3] p-4">
+            <Icon className="mt-0.5 text-black/45" size={17} strokeWidth={1.5} aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-medium">{name}</h3>
+              <p className="mt-1 text-xs text-black/50">{detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function ExampleList({ label, items, secondary = false }: { label: string; items: readonly string[]; secondary?: boolean }) {
+  return (
+    <div className={`p-6 sm:p-8 ${secondary ? "border-t border-white/10 bg-[#20211f] lg:border-t-0 lg:border-l" : ""}`}>
+      <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">{label}</p>
+      <ul className="mt-6 space-y-3 text-sm leading-relaxed text-white/65">
+        {items.map((item) => <li key={item} className="flex gap-3"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/60" />{item}</li>)}
+      </ul>
+    </div>
   );
 }
 
