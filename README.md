@@ -315,9 +315,3 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
-`handy-build-spec.md` is the design source of truth — agent prompts (`prompts.ts`) and
-schemas (`schemas.ts`) are copied verbatim from its §4 and the WS protocol from its §7.
-Reconcile changes against it. See [`docs/positioning.md`](docs/positioning.md) for how Handy
-differs from the 2026 AI-meeting landscape — notetakers, live-assist copilots, and platform AI.
-</content>
-</invoke>
