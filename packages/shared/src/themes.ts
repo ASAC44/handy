@@ -5,7 +5,7 @@
  * injected into the prototype agent's system prompt (real preference learning).
  */
 
-export type ThemeKey = "midnight" | "warm" | "neon";
+export type ThemeKey = "midnight" | "warm" | "neon" | "material";
 export type PrototypeKey = "kanban" | "dashboard" | "landing";
 
 export interface ThemeTokens {
@@ -25,17 +25,24 @@ export interface ThemeTokens {
   shadow: string;
   density: string;
   typeLabel: string;
+  /**
+   * A concrete reference object, not adjectives ("specificity beats adjectives" —
+   * Google's DESIGN.md philosophy). Woven into the design-system prose handed to the
+   * prototype agent so the named thing carries its own negative constraints.
+   */
+  vibe: string;
 }
 
 export const THEMES: Record<ThemeKey, ThemeTokens> = {
-  midnight: { key: "midnight", name: "Midnight", bg: "#0e1320", surface: "#1a2236", surface2: "#121829", ink: "#e8edf7", mut: "#8d9bb5", border: "#232c44", accent: "#6ee7b7", accent2: "#7c9cff", radius: "8px", pad: "8px", font: 'system-ui,"Segoe UI",sans-serif', shadow: "0 1px 0 #0c1120", density: "Cozy", typeLabel: "Geometric sans" },
-  warm: { key: "warm", name: "Warm", bg: "#f6efe4", surface: "#fffaf2", surface2: "#efe5d5", ink: "#3a322a", mut: "#9b8b76", border: "#e3d6c2", accent: "#e8883a", accent2: "#cf6a4c", radius: "16px", pad: "11px", font: '"Iowan Old Style",Palatino,Georgia,serif', shadow: "0 2px 6px rgba(120,90,50,.12)", density: "Airy", typeLabel: "Editorial serif" },
-  neon: { key: "neon", name: "Neon", bg: "#080611", surface: "#160f29", surface2: "#0f0b1f", ink: "#eef0ff", mut: "#9a90c8", border: "#2a1f4d", accent: "#c77dff", accent2: "#3fe0ff", radius: "4px", pad: "7px", font: '"SF Mono",ui-monospace,Menlo,monospace', shadow: "0 0 12px rgba(199,125,255,.25)", density: "Compact", typeLabel: "Mono" },
+  midnight: { key: "midnight", name: "Midnight", bg: "#0e1320", surface: "#1a2236", surface2: "#121829", ink: "#e8edf7", mut: "#8d9bb5", border: "#232c44", accent: "#6ee7b7", accent2: "#7c9cff", radius: "8px", pad: "8px", font: 'system-ui,"Segoe UI",sans-serif', shadow: "0 1px 0 #0c1120", density: "Cozy", typeLabel: "Geometric sans", vibe: "a NASA mission-control console at night" },
+  warm: { key: "warm", name: "Warm", bg: "#f6efe4", surface: "#fffaf2", surface2: "#efe5d5", ink: "#3a322a", mut: "#9b8b76", border: "#e3d6c2", accent: "#e8883a", accent2: "#cf6a4c", radius: "16px", pad: "11px", font: '"Iowan Old Style",Palatino,Georgia,serif', shadow: "0 2px 6px rgba(120,90,50,.12)", density: "Airy", typeLabel: "Editorial serif", vibe: "a 1970s graduate-seminar lecture handout" },
+  neon: { key: "neon", name: "Neon", bg: "#080611", surface: "#160f29", surface2: "#0f0b1f", ink: "#eef0ff", mut: "#9a90c8", border: "#2a1f4d", accent: "#c77dff", accent2: "#3fe0ff", radius: "4px", pad: "7px", font: '"SF Mono",ui-monospace,Menlo,monospace', shadow: "0 0 12px rgba(199,125,255,.25)", density: "Compact", typeLabel: "Mono", vibe: "a synthwave arcade cabinet" },
+  material: { key: "material", name: "Material You", bg: "#fef7ff", surface: "#ffffff", surface2: "#f3edf7", ink: "#1d1b20", mut: "#49454f", border: "#cac4d0", accent: "#6750a4", accent2: "#625b71", radius: "16px", pad: "12px", font: 'Roboto,"Google Sans",system-ui,sans-serif', shadow: "0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08)", density: "Airy", typeLabel: "Roboto / Material", vibe: "the Material 3 'Material You' design kit — dynamic color, large rounded surfaces, tonal elevation" },
 };
 
 /** Order the prototype agent fans out, and the variant it recommends. */
-export const FANOUT: ThemeKey[] = ["midnight", "warm", "neon"];
-export const RECOMMENDED: ThemeKey = "warm";
+export const FANOUT: ThemeKey[] = ["material", "midnight", "warm", "neon"];
+export const RECOMMENDED: ThemeKey = "material";
 
 function rootCss(t: ThemeTokens): string {
   return `:root{--bg:${t.bg};--surface:${t.surface};--surface2:${t.surface2};--ink:${t.ink};--mut:${t.mut};--border:${t.border};--ac:${t.accent};--ac2:${t.accent2};--rad:${t.radius};--pad:${t.pad};--font:${t.font};--shadow:${t.shadow};}`;

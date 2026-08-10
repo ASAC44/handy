@@ -170,6 +170,15 @@ Cheap gatekeeper so the heavy agents don't fire on every chunk.
 - **Render safety:** inject into `<iframe sandbox="allow-scripts">` with no `allow-same-origin`. Generated code cannot touch the parent.
 - **Optional self-correct (only if latency budget allows):** a second pass — "fix any errors, keep it self-contained" — gated behind a flag; off for the speed demo.
 
+#### 4.6.1 Design DNA → Google `DESIGN.md`
+The hero's *fan-out → pick → learn* loop: the first build fans out the `FANOUT` themes in parallel, the user picks one, `room.learn()` locks it in as the meeting's **Design DNA** (a `ThemeTokens` object), and every later build is single-shot in that learned style.
+
+The learned DNA is expressed in Google Labs Code's **[`DESIGN.md`](https://github.com/google-labs-code/design.md)** format — YAML frontmatter design tokens (Material-3 roles: `colors`, `typography`, `rounded`, `spacing`, `components`) plus markdown prose — so preference-learning is handed to the model in a standard, portable format (the hackathon's Google partnership made this a natural fit).
+- **Serializer:** `packages/shared/src/designmd.ts` — `toDesignMd(theme)` (full canonical document) and `designMdPromptBlock(theme)` (compact variant for prompt injection, to respect the live latency budget). Pure mapping over `ThemeTokens`, which stays the internal source of truth.
+- **Injection:** `designSystemNote()` / `finalDocSystemFor()` in `prompts.ts` append the compact `DESIGN.md` to the prototype, edit, critic, and recap system prompts (replacing the old ad-hoc one-line token note).
+- **Philosophy applied:** each theme carries a concrete `vibe` reference (e.g. *"a 1970s graduate-seminar lecture handout"*) — "specificity beats adjectives." A Material 3 **"Material You"** theme is the `RECOMMENDED` fan-out default.
+- **Surfaced:** the DNA panel (`Canvas.tsx`) exposes **View / Copy / Download `DESIGN.md`**; the meeting recap appends a "This meeting's `DESIGN.md`" section. The emitted document is valid for `npx @google/design.md lint`.
+
 ### 4.7 Fact-check agent (stretch, Gemma 4 + Tavily web search)
 - **Approach:** retrieve-then-ground. For each routed claim we call the **Tavily Search API** (`POST https://api.tavily.com/search`, `search_depth: basic`, `include_answer: false`) ourselves, then hand Gemma the result snippets (`results[].content` + source `url`) to judge each claim. We do the search rather than model tool-calling — it's deterministic, adds no extra round-trips, and fits the `generateStructured` path. Falls back to the model's own knowledge (`FACTCHECK_SYSTEM_UNGROUNDED`) when no `TAVILY_API_KEY` is set. Configured via `FACTCHECK_SEARCH` (`tavily` | `none`).
 - **Free tier:** Tavily Researcher (free) — 1,000 credits/mo, monthly-renewing, no credit card; 1 credit per basic search.

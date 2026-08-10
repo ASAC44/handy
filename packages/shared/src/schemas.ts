@@ -50,3 +50,46 @@ export const FactcheckResultSchema = z.object({
   checks: z.array(FactcheckCheckSchema),
 });
 export type FactcheckResult = z.infer<typeof FactcheckResultSchema>;
+
+/**
+ * Prototype review — the "partner" / critic agent's verdict on a just-built artifact.
+ * Drives the build → review → refine loop: `refine` + concrete `issues` feed an edit
+ * pass (reusing the SEARCH/REPLACE evolve path); `ship` ends the loop.
+ */
+export const ReviewIssueSchema = z.object({
+  severity: z.enum(["minor", "major"]),
+  area: z.enum(["completeness", "interactivity", "visual", "content", "bug"]),
+  /** What is wrong, in one short clause. */
+  what: z.string(),
+  /** A concrete, actionable instruction the editing agent can apply to fix it. */
+  fix: z.string(),
+});
+export type ReviewIssue = z.infer<typeof ReviewIssueSchema>;
+
+export const PrototypeReviewSchema = z.object({
+  verdict: z.enum(["ship", "refine"]),
+  /** Overall quality in [0,1]. */
+  score: z.number(),
+  /** One-line assessment shown next to the artifact. */
+  summary: z.string(),
+  /** Fixable issues, most impactful first (empty when shipping clean). */
+  issues: z.array(ReviewIssueSchema),
+});
+export type PrototypeReview = z.infer<typeof PrototypeReviewSchema>;
+
+/**
+ * Prototype next-step suggestions — a lightweight companion agent proposes a few
+ * concrete design moves once a prototype is ready.
+ */
+export const PrototypeSuggestionSchema = z.object({
+  /** Short button label. */
+  label: z.string().min(2).max(42),
+  /** Direct instruction that can be fed back into the prototype agent. */
+  intent: z.string().min(8).max(240),
+});
+export type PrototypeSuggestion = z.infer<typeof PrototypeSuggestionSchema>;
+
+export const PrototypeSuggestionsSchema = z.object({
+  suggestions: z.array(PrototypeSuggestionSchema).max(3),
+});
+export type PrototypeSuggestions = z.infer<typeof PrototypeSuggestionsSchema>;
