@@ -1,0 +1,3 @@
+datahub.13.205.208.105.sslip.io {
+	reverse_proxy 127.0.0.1:9002
+}
