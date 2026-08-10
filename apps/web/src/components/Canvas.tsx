@@ -64,6 +64,9 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
   const positionedRef = useRef<PositionedArtifact[]>([]);
   const cursorEmit = useRef<{ t: number; x: number; y: number } | null>(null);
   const sendRef = useRef(send);
+  // Artifacts we've already forwarded a render-failure report for — forward once each
+  // (the server also caps repairs), so a persistently-broken page can't loop.
+  const reportedRef = useRef<Set<string>>(new Set());
 
   const perm = useMemo(() => state.artifacts.filter((a) => !a.variant), [state.artifacts]);
   const positioned = useMemo<PositionedArtifact[]>(() => {
@@ -141,10 +144,24 @@ export function Canvas({ state, send, hostMode }: { state: SidebarState; send: (
         x?: number;
         y?: number;
         frameId?: string;
+        errors?: string[];
       };
-      if (data.source !== "sidebar-artifact-frame" || !data.artifactId || typeof data.x !== "number" || typeof data.y !== "number") {
+      if (data.source !== "sidebar-artifact-frame" || !data.artifactId) return;
+      // The in-iframe watchdog reported runtime/CDN/load failures — forward ONCE per
+      // artifact to the repair agent (the server is host-gated + caps repairs, so this
+      // can't loop). Resolve the buildId from the artifact the frame belongs to.
+      if (data.type === "render-report") {
+        const errors = Array.isArray(data.errors) ? data.errors.filter((e) => typeof e === "string") : [];
+        if (errors.length && !reportedRef.current.has(data.artifactId)) {
+          const buildId = positionedRef.current.find((p) => p.a.id === data.artifactId)?.a.buildId;
+          if (buildId) {
+            reportedRef.current.add(data.artifactId);
+            sendRef.current({ type: "prototype.renderReport", artifactId: data.artifactId, buildId, errors });
+          }
+        }
         return;
       }
+      if (typeof data.x !== "number" || typeof data.y !== "number") return;
       const vp = vpRef.current;
       if (!vp) return;
       const iframe = data.frameId
@@ -1155,6 +1172,6 @@ function cssEscape(value: string): string {
 }
 
 function withFramePresenceBridge(html: string, artifactId: string, frameId: string): string {
-  const bridge = `<script>(()=>{const id=${JSON.stringify(artifactId)},frameId=${JSON.stringify(frameId)};let last=0;function post(type,e){parent.postMessage({source:"sidebar-artifact-frame",type,artifactId:id,frameId,x:e.clientX,y:e.clientY},"*")}addEventListener("pointermove",e=>{const now=performance.now();if(now-last>45){last=now;post("cursor",e)}},true);addEventListener("pointerdown",e=>post("cursor",e),true);addEventListener("click",e=>post("ping",e),true)})();<\/script>`;
+  const bridge = `<script>(()=>{const id=${JSON.stringify(artifactId)},frameId=${JSON.stringify(frameId)};let last=0;function post(type,e){parent.postMessage({source:"sidebar-artifact-frame",type,artifactId:id,frameId,x:e.clientX,y:e.clientY},"*")}addEventListener("pointermove",e=>{const now=performance.now();if(now-last>45){last=now;post("cursor",e)}},true);addEventListener("pointerdown",e=>post("cursor",e),true);addEventListener("click",e=>post("ping",e),true);const errs=[];const note=m=>{if(m&&errs.indexOf(m)<0&&errs.length<6)errs.push(String(m).slice(0,200))};addEventListener("error",e=>{const t=e.target;if(t&&t!==window&&t.tagName)note("Failed to load "+t.tagName.toLowerCase()+" "+(t.src||t.href||""));else note("JS error: "+(e.message||""))},true);addEventListener("unhandledrejection",e=>note("Unhandled rejection: "+((e.reason&&e.reason.message)||e.reason||"")));setTimeout(()=>{try{if(document.querySelector('script[src*="cdn.tailwindcss.com"]')&&!window.tailwind)note("Tailwind (cdn.tailwindcss.com) failed to load or initialize — the page renders unstyled.")}catch(_){}if(errs.length)parent.postMessage({source:"sidebar-artifact-frame",type:"render-report",artifactId:id,frameId:frameId,errors:errs},"*")},2000)})();<\/script>`;
   return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${bridge}</body>`) : `${html}${bridge}`;
 }

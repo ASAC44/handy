@@ -41,8 +41,13 @@ const RATE = 0.6; // compress fixture pacing for a snappier replay
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 let buildSeq = 0;
 let liveTurnSeq = 0;
-/** Max review rounds per artifact: review (1) → refine → re-review (2) → refine → re-review (3). */
-const MAX_REVIEW_PASSES = 3;
+/** Review rounds per artifact. 1 = review only (no auto-refine) — keeps the critic to a
+ *  single full-HTML call so we stay well within the API rate/token budget. */
+const MAX_REVIEW_PASSES = 1;
+/** Coalesce a burst of prototype triggers (one spoken idea arrives as several ASR finals)
+ *  into ONE learned build that fires once the speaker pauses. Wide enough to swallow the
+ *  natural mid-sentence pauses within a single wish, so one idea = one build. */
+const BUILD_DEBOUNCE_MS = 1500;
 
 /** Compile a critic's fixable issues into a single edit instruction for the evolve pass. */
 function compileChange(issues: ReviewIssue[]): string {
@@ -163,10 +168,20 @@ export class Orchestrator {
   /** Prototypes built this meeting — the latest is the base for the next evolution,
    *  and all of them are embedded in the final recap document. */
   private artifacts: BuiltArtifact[] = [];
+  /** Next-step suggestions are generated once per artifact id. Keeps immediate
+   *  suggestion calls from duplicating later review/finally calls. */
+  private nextStepRequested = new Set<string>();
   private lastTitle = "Live Meeting";
   /** Artifacts already repaired once from a client render-failure report. The LOOP GUARD:
    *  a page is auto-repaired at most once, so a persistently-broken render can't ping-pong. */
   private renderRepaired = new Set<string>();
+  /** Single-flight for learned (evolve) builds: a generation token that invalidates a
+   *  superseded build, the in-flight build's id (to drop its card on supersede), and the
+   *  debounced pending trigger that coalesces a burst of fragments into one build. */
+  private buildGen = 0;
+  private liveBuildId: string | null = null;
+  private pendingBuild: { seg: FixtureSegment; decision: RouterDecision; my: number } | null = null;
+  private buildTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private runtime: MeetingRuntime) {}
 
@@ -182,10 +197,20 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.nextStepRequested.clear();
     this.renderRepaired.clear();
+    this.cancelPendingBuild();
     this.liveQueue = Promise.resolve();
     this.awaitingPick = false;
     liveTurnSeq = 0;
+  }
+
+  /** Drop any debounced/in-flight learned build (on clear; the runId bump cancels the rest). */
+  private cancelPendingBuild(): void {
+    if (this.buildTimer) clearTimeout(this.buildTimer);
+    this.buildTimer = null;
+    this.pendingBuild = null;
+    this.liveBuildId = null;
   }
 
   /**
@@ -238,6 +263,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.nextStepRequested.clear();
     this.awaitingPick = false;
     this.lastTitle = scn.title;
     this.send({ type: "meeting.start", scenarioId: scn.id, title: scn.title, participants: scn.participants });
@@ -255,6 +281,7 @@ export class Orchestrator {
     this.transcript = [];
     this.summary = null;
     this.artifacts = [];
+    this.nextStepRequested.clear();
     this.lastTitle = title;
     this.liveQueue = Promise.resolve();
     this.awaitingPick = false;
@@ -347,7 +374,10 @@ export class Orchestrator {
       if (result) this.send({ type: "factcheck.result", result });
     }
     if (decision.prototype.trigger && agents.prototype) {
-      await this.build(seg, decision, my);
+      // First build = fan-out (its awaitingPick guard blocks re-fires). Once a design is
+      // learned, coalesce the burst and let a new build supersede the in-flight one.
+      if (this.runtime.learned) this.scheduleLearnedBuild(seg, decision, my);
+      else await this.build(seg, decision, my);
     }
     await sleep(400);
   }
@@ -356,7 +386,9 @@ export class Orchestrator {
     this.telemetry("router", 950, 180);
     if (config.agents === "mock") return seg.expect!.router;
     try {
-      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}), this.runtime.contextSummary());
+      // Pass a short recent-transcript window so the router judges the conversation, not a
+      // single (often fragmentary) segment — lets it fire as soon as the intent is clear.
+      return await routeLive(seg.text, JSON.stringify(this.summary ?? {}), this.runtime.contextSummary(), this.transcript.slice(-6).join("\n"));
     } catch (err) {
       console.error("[router] live call failed", errMsg(err));
       return NOOP_DECISION;
@@ -406,13 +438,11 @@ export class Orchestrator {
         variants.map((v) => this.streamOne(v.id, buildId, intent, usesScreen, v.themeKey, buildKey, 1850, my, v)),
       );
       if (my !== this.runId) return;
-      // Partner agent polishes EVERY variant in the background, in place — the variant
-      // cards keep updating while the room studies them and picks a direction.
-      for (const a of this.artifacts.filter((x) => x.buildId === buildId)) {
-        void this.reviewAndRefine(a, my).finally(() => {
-          void this.suggestNextSteps(a, my);
-        });
-      }
+      // Review only the RECOMMENDED variant, not all of them: reviewing every variant ×
+      // multiple passes (plus next-steps each) bursts past the request/token rate limit.
+      // The chosen design gets the full review + refine loop once it's picked / evolved.
+      const lead = this.artifacts.find((x) => x.buildId === buildId && x.themeKey === RECOMMENDED);
+      if (lead) void this.reviewAndRefine(lead, my).finally(() => void this.suggestNextSteps(lead, my));
       if (config.agents === "mock") {
         // Unattended fixture replay: auto-pick the recommended theme after a short beat.
         const chosen = await this.awaitPickWithTimeout(buildId, 4200);
@@ -445,6 +475,57 @@ export class Orchestrator {
         await this.reviewAndRefine(built, my);
         await this.suggestNextSteps(built, my);
       }
+    }
+  }
+
+  /** Debounce learned-build triggers: a spoken idea lands as several ASR finals, so wait
+   *  for the speaker to pause and build ONCE from the latest (fullest) trigger. */
+  private scheduleLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number): void {
+    this.pendingBuild = { seg, decision, my };
+    if (this.buildTimer) clearTimeout(this.buildTimer);
+    this.buildTimer = setTimeout(() => {
+      this.buildTimer = null;
+      const pb = this.pendingBuild;
+      this.pendingBuild = null;
+      if (pb && pb.my === this.runId) void this.runLearnedBuild(pb.seg, pb.decision, pb.my);
+    }, BUILD_DEBOUNCE_MS);
+  }
+
+  /** A single learned-style (evolve) build that SUPERSEDES any in-flight one: it cancels the
+   *  previous build's work (generation token) and drops its half-built card, so a new idea
+   *  replaces the current build instead of stacking another card. */
+  private async runLearnedBuild(seg: FixtureSegment, decision: RouterDecision, my: number): Promise<void> {
+    if (my !== this.runId || !this.runtime.learned) return;
+    // Supersede the in-flight build: drop its (incomplete) card; the gen bump cancels its work.
+    if (this.liveBuildId) {
+      this.send({ type: "prototype.cancel", buildId: this.liveBuildId });
+      this.artifacts = this.artifacts.filter((a) => a.buildId !== this.liveBuildId);
+    }
+    const gen = ++this.buildGen;
+    const buildId = `b${++buildSeq}`;
+    this.liveBuildId = buildId;
+    const dead = (): boolean => my !== this.runId || gen !== this.buildGen;
+
+    const buildKey: PrototypeKey = seg.expect?.prototype?.build ?? inferPrototypeKey(`${decision.prototype.intent} ${seg.text}`);
+    const intent = decision.prototype.intent || seg.expect?.prototype?.intent || "Prototype";
+    const usesScreen = decision.prototype.uses_screen;
+    const theme = this.runtime.learned.key;
+    const base = this.currentArtifact();
+    try {
+      const tasks = [this.streamOne(`${buildId}-cer`, buildId, intent, usesScreen, theme, buildKey, 1800, my, undefined, false, base, gen)];
+      if (this.runtime.abMode) {
+        tasks.push(this.streamOne(`${buildId}-gpu`, buildId, intent, usesScreen, theme, buildKey, 9200, my, undefined, true, base, gen));
+      }
+      await Promise.all(tasks);
+      if (dead()) return;
+      const built = this.currentArtifact();
+      if (built && built.buildId === buildId) {
+        await this.reviewAndRefine(built, my, gen);
+        if (dead()) return;
+        await this.suggestNextSteps(built, my);
+      }
+    } finally {
+      if (this.liveBuildId === buildId) this.liveBuildId = null;
     }
   }
 
@@ -483,20 +564,26 @@ export class Orchestrator {
 
   private async suggestNextSteps(a: BuiltArtifact, my: number): Promise<void> {
     if (my !== this.runId || !this.runtime.agents.nextstep || !this.hasArtifact(a.id) || !a.html.trim()) return;
+    if (this.nextStepRequested.has(a.id)) return;
+    this.nextStepRequested.add(a.id);
     this.send({ type: "nextsteps.start", id: a.id, buildId: a.buildId });
     this.telemetry("nextstep", 720, 140);
     const theme = THEMES[a.themeKey];
     const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
     try {
-      const suggestions =
+      let suggestions =
         config.agents === "mock"
           ? await nextStepsMock(a.intent)
           : await withTimeout(nextStepsLive(a.intent, transcript, a.html, theme), 8_000, "next-step suggestions timed out");
+      if (!suggestions.length) suggestions = await nextStepsMock(a.intent);
       if (my !== this.runId || !this.hasArtifact(a.id)) return;
       this.send({ type: "nextsteps.result", id: a.id, buildId: a.buildId, suggestions });
     } catch (err) {
       console.error("[nextstep] suggestions failed", errMsg(err));
-      if (my === this.runId && this.hasArtifact(a.id)) this.send({ type: "nextsteps.error", id: a.id, buildId: a.buildId });
+      if (my === this.runId && this.hasArtifact(a.id)) {
+        const suggestions = await nextStepsMock(a.intent);
+        this.send({ type: "nextsteps.result", id: a.id, buildId: a.buildId, suggestions });
+      }
     }
   }
 
@@ -507,11 +594,13 @@ export class Orchestrator {
    * becomes the base for the next evolution and the version embedded in the recap.
    * Emits `critic.*` so the UI can show the reviewer working. Honours the runId guard.
    */
-  private async reviewAndRefine(a: BuiltArtifact, my: number): Promise<void> {
+  private async reviewAndRefine(a: BuiltArtifact, my: number, gen?: number): Promise<void> {
     const theme = THEMES[a.themeKey];
     const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+    // Dead = run superseded (new meeting) OR this learned build replaced by a newer one.
+    const dead = (): boolean => my !== this.runId || (gen !== undefined && gen !== this.buildGen);
     for (let pass = 1; pass <= MAX_REVIEW_PASSES; pass++) {
-      if (my !== this.runId) return;
+      if (dead()) return;
       this.send({ type: "critic.start", id: a.id, buildId: a.buildId, pass });
 
       let review: PrototypeReview;
@@ -526,7 +615,7 @@ export class Orchestrator {
         if (my === this.runId) this.send({ type: "critic.error", id: a.id, buildId: a.buildId });
         return; // never block on a failed/slow review
       }
-      if (my !== this.runId) return;
+      if (dead()) return;
 
       const willRefine = config.agents !== "mock" && review.verdict === "refine" && review.issues.length > 0 && pass < MAX_REVIEW_PASSES;
       this.send({ type: "critic.result", id: a.id, buildId: a.buildId, pass, review, final: !willRefine });
@@ -535,7 +624,7 @@ export class Orchestrator {
       // Refine: edit the current document to address the flagged issues.
       try {
         const r = await evolveStream(a.html, compileChange(review.issues), transcript, theme, null, () => {}, prototypeModel());
-        if (my !== this.runId) return;
+        if (dead()) return;
         if (r.html && r.html !== a.html) {
           a.html = r.html; // base for the next evolution + the recap
           this.send({ type: "critic.refined", id: a.id, buildId: a.buildId, pass, html: r.html, ms: r.ms });
@@ -652,6 +741,7 @@ export class Orchestrator {
     variant?: VariantInfo,
     baseline = false,
     base?: BuiltArtifact,
+    gen?: number,
   ): Promise<void> {
     // The GPU baseline build needs BASELINE_* configured; skip (don't fake) if absent.
     if (baseline && config.agents !== "mock" && !getBaseline()) {
@@ -663,31 +753,49 @@ export class Orchestrator {
     // so we DON'T stream raw edit-block tokens into the rendered iframe.
     const evolving = !!base && config.agents !== "mock";
     this.send({ type: "prototype.start", id, buildId, intent, usesScreen, themeKey, variant, baseId: evolving ? base!.id : undefined });
-    const alive = (): boolean => my === this.runId;
-    const onToken = evolving ? (): void => {} : (delta: string): void => this.send({ type: "prototype.token", id, delta });
+    // Alive = this run is current AND (for learned builds) this build hasn't been superseded.
+    const alive = (): boolean => my === this.runId && (gen === undefined || gen === this.buildGen);
+    const onToken = evolving ? (): void => {} : (delta: string): void => {
+      if (alive()) this.send({ type: "prototype.token", id, delta });
+    };
 
     let html: string, ms: number, tokPerS: number, tokens: number;
-    if (config.agents === "mock") {
-      const r = await mockStream(buildPrototype(buildKey, THEMES[themeKey]), totalMs, onToken, alive);
-      ({ html, ms, tokPerS, tokens } = r);
-    } else {
-      // Inject THIS variant's design language (not runtime.learned, which is null
-      // on the first build) so the fan-out yields three visually distinct designs.
-      // On later single builds, themeKey is already the learned theme's key.
-      // baseline=true routes the build through the GPU baseline model (honest A/B).
-      const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
-      const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
-      const model = baseline ? getBaseline()! : undefined;
-      const r = evolving
-        ? await evolveStream(base!.html, intent, transcript, THEMES[themeKey], screenshot, onToken, model)
-        : await liveStream(intent, transcript, THEMES[themeKey], screenshot, onToken, model);
-      ({ html, ms, tokPerS, tokens } = r);
+    try {
+      if (config.agents === "mock") {
+        const r = await mockStream(buildPrototype(buildKey, THEMES[themeKey]), totalMs, onToken, alive);
+        ({ html, ms, tokPerS, tokens } = r);
+      } else {
+        // Inject THIS variant's design language (not runtime.learned, which is null
+        // on the first build) so the fan-out yields three visually distinct designs.
+        // On later single builds, themeKey is already the learned theme's key.
+        // baseline=true routes the build through the GPU baseline model (honest A/B).
+        const screenshot = usesScreen ? this.runtime.latestScreenDataUri : null;
+        const transcript = withContext(this.transcript.join("\n"), this.runtime.contextSummary());
+        const model = baseline ? getBaseline()! : undefined;
+        const r = evolving
+          ? await evolveStream(base!.html, intent, transcript, THEMES[themeKey], screenshot, onToken, model)
+          : await liveStream(intent, transcript, THEMES[themeKey], screenshot, onToken, model);
+        ({ html, ms, tokPerS, tokens } = r);
+      }
+    } catch (err) {
+      // A build that errors (e.g. 429) must NOT leave its card stuck "building". Settle it:
+      // an evolve falls back to the unchanged base; a from-scratch build with no base is dropped.
+      console.error("[prototype] build failed", errMsg(err));
+      if (!alive()) return;
+      const fallback = base?.html ?? "";
+      this.send({ type: "prototype.complete", id, buildId, html: fallback, ideaToArtifactMs: 0, themeKey });
+      if (!baseline && fallback) this.recordArtifact({ id, buildId, intent, themeKey, html: fallback, variant });
+      return;
     }
     if (!alive()) return;
     this.telemetry("prototype", tokPerS, tokens);
     this.send({ type: "prototype.complete", id, buildId, html, ideaToArtifactMs: ms, themeKey });
     // Remember the canonical (non-baseline) build: base for the next evolution + recap.
-    if (!baseline) this.recordArtifact({ id, buildId, intent, themeKey, html, variant });
+    if (!baseline) {
+      const artifact = { id, buildId, intent, themeKey, html, variant };
+      this.recordArtifact(artifact);
+      void this.suggestNextSteps(artifact, my);
+    }
   }
 
   private async awaitPickWithTimeout(buildId: string, ms: number): Promise<ThemeKey> {
