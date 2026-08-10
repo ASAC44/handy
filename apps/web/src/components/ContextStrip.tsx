@@ -200,7 +200,12 @@ export function ContextStrip({
     if (pending.length === 1) setPanelOpen(false);
   };
   const remove = (id: string): void => send({ type: "context.remove", id });
-  const clear = (): void => send({ type: "context.clear" });
+  const clear = (): void => {
+    setFilterNote("");
+    setError("");
+    setPreviewId(null);
+    send({ type: "context.clear" });
+  };
   const visiblePending = hostMode ? pending : mine.filter((item) => item.status === "pending");
 
   return (
