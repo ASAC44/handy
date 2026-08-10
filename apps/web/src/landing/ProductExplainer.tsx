@@ -126,7 +126,6 @@ export function ProductExplainer() {
           <div className="rounded-xl border border-black/10 bg-[#efebe3] p-5">
             <p className="text-sm font-medium">“Change Active Customer from 90 days to 60 days.”</p>
             <p className="mt-4 text-sm leading-relaxed text-black/60"><strong className="text-black/80">Warning:</strong> this definition connects to three dashboards, two reports, one segmentation model, and a previous retention decision.</p>
-            <p className="mt-4 border-t border-black/10 pt-4 text-xs leading-relaxed text-black/50">A low known impact means DataHub found no known conflict. It is not a guarantee of absolute safety because the relationship map may be incomplete.</p>
           </div>
         </div>
       </div>

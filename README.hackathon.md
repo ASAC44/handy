@@ -112,12 +112,9 @@ flowchart LR
     Proposal["Proposed change"] -.-> Map["DataHub relationships,<br/>lineage, rules, and decisions"]
     Map -.-> Checker["Fact and Safety Checker"]
     Checker --> Warning["Known conflict or downstream impact"]
-    Checker --> Low["Low known impact"]
 ```
 
 For example, changing **Active Customer** from 90 days to 60 days could reveal three dashboards, two reports, one segmentation model, and a previous company decision that depend on the existing definition. Handy can warn the room about those affected systems and the conflict before generating an artifact around the change.
-
-For a new optional `customer_segment` field with no known breaking dependency or privacy conflict, Handy can report **low known impact**. That wording is deliberate: DataHub can show that no known problem was found, but it cannot guarantee absolute safety when the relationship map may be incomplete.
 
 ## The learning loop
 
