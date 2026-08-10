@@ -125,6 +125,17 @@ export class ContextStore {
     return publicBundle(record);
   }
 
+  async remove(id: string): Promise<boolean> {
+    const record = this.records.get(id);
+    if (!record) return false;
+    this.records.delete(id);
+    await rm(record.stagingRoot, { recursive: true, force: true });
+    if (record.workspaceRoot && record.workspaceRoot !== record.stagingRoot) {
+      await rm(record.workspaceRoot, { recursive: true, force: true });
+    }
+    return true;
+  }
+
   async clear(): Promise<ContextSnapshot> {
     this.records.clear();
     await rm(this.inboxRoot, { recursive: true, force: true });
@@ -167,7 +178,12 @@ export class ContextUploadError extends Error {
 
 function publicBundle(record: ContextRecord): ContextBundle {
   const { stagingRoot: _stagingRoot, workspaceRoot: _workspaceRoot, previews: _previews, contents: _contents, ...bundle } = record;
-  return { ...bundle, files: record.files.map((f) => ({ ...f })) };
+  const preview = record.previews
+    .slice(0, 3)
+    .map((item) => `${item.path}\n${item.text}`)
+    .join("\n\n")
+    .slice(0, PREVIEW_BYTES);
+  return { ...bundle, preview: preview || undefined, files: record.files.map((f) => ({ ...f })) };
 }
 
 function defaultTitle(files: File[], paths: string[]): string {
