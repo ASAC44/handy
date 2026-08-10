@@ -14,10 +14,10 @@ const capabilities = [
 ] as const;
 
 const dataSignals = [
-  { image: "/landing/schema-card.jpg", label: "Schemas" },
-  { image: "/landing/lineage-card.jpg", label: "Lineage" },
-  { image: "/landing/ownership-card.jpg", label: "Ownership" },
-  { image: "/landing/quality-signals-card.jpg", label: "Quality signals" },
+  { image: "/landing/schema-card.jpg", label: "Schemas", body: "Know what each dataset contains and how its fields are defined." },
+  { image: "/landing/lineage-card.jpg", label: "Lineage", body: "See where data comes from and what downstream work depends on it." },
+  { image: "/landing/ownership-card.jpg", label: "Ownership", body: "Find the people responsible before questions become blockers." },
+  { image: "/landing/quality-signals-card.jpg", label: "Quality signals", body: "Check freshness, reliability, and incidents before trusting the data." },
 ] as const;
 
 function SectionLabel({ children }: { children: string }) {
@@ -116,13 +116,16 @@ export function LandingSections() {
             </p>
           </div>
           <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {dataSignals.map(({ image, label }, index) => (
+            {dataSignals.map(({ image, label, body }, index) => (
               <LandingCard key={label} className="relative min-h-52 overflow-hidden">
                 <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
                 <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
                 <div className="relative flex min-h-52 flex-col justify-between p-5">
                   <span className="text-[10px] text-white/45">0{index + 1}</span>
-                  <h3 className="text-xl text-white" style={serifStyle}>{label}</h3>
+                  <div>
+                    <h3 className="text-xl text-white" style={serifStyle}>{label}</h3>
+                    <p className="mt-2 text-xs leading-relaxed text-white/60">{body}</p>
+                  </div>
                 </div>
               </LandingCard>
             ))}

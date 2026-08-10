@@ -1,9 +1,9 @@
 import { ArrowRight, Code2, Globe, Trophy } from "lucide-react";
+import { Logo } from "../components/Logo";
 import { LandingSections } from "./LandingSections";
 import { LoopingBackgroundVideo } from "./LoopingBackgroundVideo";
 
 const navigation = [
-  { label: "Live room", href: "#live-room" },
   { label: "Features", href: "#features" },
   { label: "DataHub", href: "#datahub" },
 ] as const;
@@ -20,7 +20,9 @@ function Navbar() {
       <nav aria-label="Primary navigation" className="mx-auto flex max-w-5xl items-center justify-between rounded-[10px] border border-white/15 bg-black/35 py-1 pr-1 pl-4 backdrop-blur-md">
         <div className="flex items-center gap-6">
           <a href="/" className="flex items-center gap-2 rounded-sm text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-            <Globe size={21} aria-hidden="true" />
+            <span className="[--logo-fill:transparent] [&_.agent-logo]:h-7 [&_.agent-logo]:w-7">
+              <Logo />
+            </span>
             <span className="text-base font-semibold">Handy</span>
           </a>
           <div className="hidden items-center gap-6 md:flex">
